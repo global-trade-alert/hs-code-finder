@@ -1085,8 +1085,13 @@ server <- function(input, output, session) {
                               )$phrase.id &
                               ! phrase.id %in% subset(check.phrases, check.id %in% check.log$check.id[check.log$user.id == users$user.id[users$name == input$users]])$phrase.id
         )
-        should.do <- subset(should.do, job.id == max(should.do$job.id))$phrase.id
+        
+        job.id =max(should.do$job.id)
+        job.id <<-job.id
+        
+        should.do <- subset(should.do, job.id == job.id)$phrase.id
         should.do <<- should.do
+        
       } else {
         if (nrow(subset(job.log, job.processed == F & is.priority == F)) > 0) {
           should.do <- subset(job.phrase, phrase.id %in% 
@@ -1095,7 +1100,11 @@ server <- function(input, output, session) {
                                 )$phrase.id &
                                 ! phrase.id %in% subset(check.phrases, check.id %in% check.log$check.id[check.log$user.id == users$user.id[users$name == input$users]])$phrase.id
           )
-          should.do <- subset(should.do, job.id == max(should.do$job.id))$phrase.id
+          
+          job.id =max(should.do$job.id)
+          job.id <<-job.id
+          
+          should.do <- subset(should.do, job.id == job.id)$phrase.id
           should.do <<- should.do
           
         }
@@ -1216,9 +1225,11 @@ server <- function(input, output, session) {
           
           if (! tolower(input$search.field.unrelated) %in% unique(tolower(phrase.table$phrase))) {
             old.id <- phr.id
+            job.id <- max(phrase.table$phrase.id)+1
+            job.id <<- job.id
             
             phrase.table <- rbind(phrase.table, 
-                                  data.frame(phrase.id = max(phrase.table$phrase.id)+1,
+                                  data.frame(phrase.id = job.id,
                                                            phrase = tolower(input$search.field.unrelated),
                                                            source = "unrelated search"))
             phrase.table <<- phrase.table
@@ -1246,21 +1257,28 @@ server <- function(input, output, session) {
         } else if (new.phrase == F) {
           
           ## checking whether this phrase has been checked the required number of times
-          required.checks=job.log$nr.of.checks[job.log$job.id==job.id]
-          
-          ## adjust for the present check which is not in the check.log yet
-          required.checks=required.checks-1 
-          
           successful.checks=nrow(subset(check.phrases, phrase.id==phr.id &
-                        check.id %in% subset(check.log, check.successful==T)$check.id))
+                                          check.id %in% subset(check.log, 
+                                                               check.successful==T)$check.id))
           
-          if(successful.checks>=required.checks){
-            job.phrase$processed[job.phrase$phrase.id == phr.id & job.phrase$job.id==job.id] <- TRUE
-            job.phrase <<- job.phrase
+          ## looping over all jobs that happen to include this phrase.
+          for(j.id in unique(subset(job.phrase, phrase.id==phr.id)$job.id)){
+            required.checks=job.log$nr.of.checks[job.log$job.id==j.id]
             
+            ## adjust for the present check which is not in the check.log yet
+            required.checks=required.checks-1 
+            
+            if(successful.checks>=required.checks){
+              job.phrase$processed[job.phrase$phrase.id == phr.id & job.phrase$job.id==j.id] <- TRUE
+              job.phrase <<- job.phrase
+              
+              
+            }
+            rm(required.checks)
             
           }
-          rm(successful.checks, required.checks)
+          rm(successful.checks)
+          
           
         }
         
@@ -1324,7 +1342,7 @@ server <- function(input, output, session) {
                                                  user.id = users$user.id[users$name == input$users],
                                                  time.stamp = Sys.time(),
                                                  check.successful = TRUE,
-                                                 job.id = job.phrase$job.id[job.phrase$phrase.id == phr.id]))
+                                                 job.id = job.id))
         check.log <<- check.log
         
         # Add code.selected
@@ -1336,10 +1354,12 @@ server <- function(input, output, session) {
           code.selected <<- code.selected
           rm(code.selected.new)
         }
+        
+        
         # Check.phrases
         check.phrases <- rbind(check.phrases, 
                                data.frame(check.id = max(check.log$check.id),
-                                                         phrase.id = phr.id))
+                                          phrase.id = phr.id))
         check.phrases <<- check.phrases
         
         if (type %in% c("standard","clipboard")) {
@@ -1350,7 +1370,7 @@ server <- function(input, output, session) {
           if (length(removed) > 0) {
             words.removed <- rbind(words.removed, 
                                    data.frame(check.id = c(rep(max(check.log$check.id), length(words.removed))),
-                                                             words.removed = removed))
+                                              words.removed = removed))
             words.removed <<- words.removed
           }
           
@@ -1363,8 +1383,8 @@ server <- function(input, output, session) {
             additional.suggestions.phrases=as.data.frame(strsplit(input$suggestions.search.terms,split=';', fixed=TRUE))
             additional.suggestions <- rbind(additional.suggestions, 
                                             data.frame(check.id = max(check.log$check.id),
-                                                                               term = additional.suggestions.phrases[,1],
-                                                                               user.id = users$user.id[users$name == input$users]))
+                                                       term = additional.suggestions.phrases[,1],
+                                                       user.id = users$user.id[users$name == input$users]))
             additional.suggestions <<- additional.suggestions
             rm(additional.suggestions.phrases)
           }
@@ -1373,7 +1393,7 @@ server <- function(input, output, session) {
         # check.certainty
         check.certainty <- rbind(check.certainty, 
                                  data.frame(check.id = max(check.log$check.id),
-                                                             certainty.level = input$radio1))
+                                            certainty.level = input$radio1))
         check.certainty <<- check.certainty
         
         
@@ -1399,7 +1419,7 @@ server <- function(input, output, session) {
                                                  user.id = users$user.id[users$name == input$users],
                                                  time.stamp = Sys.time(),
                                                  check.successful = FALSE,
-                                                 job.id = job.phrase$job.id[job.phrase$phrase.id == phr.id]))
+                                                 job.id = job.id))
         check.log <<- check.log
         
         # Check.phrases
