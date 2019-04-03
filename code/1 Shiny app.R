@@ -972,26 +972,27 @@ server <- function(input, output, session) {
   # Report terms which are not a product 
   observeEvent(input$not.product, {
     load(file=path)
-    report.services.new <- data.frame(phrase.id = phr.id,
-                                      user.id = users$user.id[users$name == input$users])
-    report.services <<- rbind(report.services, report.services.new)
+    
+    report.services <<- rbind(report.services, 
+                              data.frame(phrase.id = phr.id,
+                                         user.id = users$user.id[users$name == input$users]))
+    
     job.phrase$processed[job.phrase$phrase.id == phr.id] <- TRUE
     job.phrase <<- job.phrase
     
-    check.log.new <- data.frame(check.id = max(check.log$check.id)+1,
-                                user.id = users$user.id[users$name == input$users],
-                                time.stamp = Sys.time(),
-                                check.successful = TRUE,
-                                job.id = job.phrase$job.id[job.phrase$phrase.id == phr.id])
-    check.log <- rbind(check.log, check.log.new)
+    check.log <- rbind(check.log, 
+                       data.frame(check.id = max(check.log$check.id)+1,
+                                  user.id = users$user.id[users$name == input$users],
+                                  time.stamp = Sys.time(),
+                                  check.successful = TRUE,
+                                  job.id = job.phrase$job.id[job.phrase$phrase.id == phr.id]))
+    
     check.log <<- check.log
     
-    check.phrases.new <- data.frame(check.id = check.log.new$check.id,
-                                    phrase.id = phr.id)
-    check.phrases <- rbind(check.phrases, check.phrases.new)
+    check.phrases <- data.frame(check.id = max(check.log$check.id),
+                                phrase.id = phr.id)
     check.phrases <<- check.phrases
     
-    rm(report.services.new)
     save_all()
     refresh_names()
   })
@@ -1170,24 +1171,22 @@ server <- function(input, output, session) {
         new.job.unrelated <- F
         
         if(type=="unrelated_search") {
-          job.log.new <- data.frame(job.id = max(job.log$job.id)+1,
-                                    job.type = "Own search",
-                                    job.name = input$search.field.unrelated,
-                                    user.id = users$user.id[users$name == input$users],
-                                    nr.of.checks = 1,
-                                    check.hierarchy = FALSE,
-                                    is.priority = FALSE,
-                                    self.check = FALSE,
-                                    related.state.act = NA,
-                                    job.processed = FALSE,
-                                    submission.id = Sys.Date())
           
-          job.log <- rbind(job.log, job.log.new)
+          job.log <- rbind(job.log, 
+                           data.frame(job.id = max(job.log$job.id)+1,
+                                      job.type = "Own search",
+                                      job.name = input$search.field.unrelated,
+                                      user.id = users$user.id[users$name == input$users],
+                                      nr.of.checks = 1,
+                                      check.hierarchy = FALSE,
+                                      is.priority = FALSE,
+                                      self.check = FALSE,
+                                      related.state.act = NA,
+                                      job.processed = FALSE,
+                                      submission.id = Sys.Date()))
           job.log <<- job.log
-          job.id <- job.log.new$job.id
+          job.id <- max(job.log$job.id)
           job.id <<- job.id
-          
-          rm(job.log.new)
           
           new.job.unrelated <- T
           
@@ -1200,16 +1199,14 @@ server <- function(input, output, session) {
           
           if (! tolower(paste(input$query.refine, collapse=" ")) %in% unique(tolower(phrase.table$phrase))) {
             old.id <- phr.id
-            phrase.table.new <- data.frame(phrase.id = max(phrase.table$phrase.id)+1,
-                                           phrase = tolower(paste(input$query.refine, collapse = " ")),
-                                           source = "adjusted")
-            phrase.table <- rbind(phrase.table, phrase.table.new)
+            phrase.table <- rbind(phrase.table, 
+                                  data.frame(phrase.id = max(phrase.table$phrase.id)+1,
+                                             phrase = tolower(paste(input$query.refine, collapse = " ")),
+                                             source = "adjusted"))
             phrase.table <<- phrase.table
             
-            phr.id <- phrase.table.new$phrase.id
+            phr.id <- max(phrase.table$phrase.id)
             phr.id <<- phr.id
-            
-            rm(phrase.table.new)
             
             new.phrase <- T
           }
@@ -1219,16 +1216,15 @@ server <- function(input, output, session) {
           
           if (! tolower(input$search.field.unrelated) %in% unique(tolower(phrase.table$phrase))) {
             old.id <- phr.id
-            phrase.table.new <- data.frame(phrase.id = max(phrase.table$phrase.id)+1,
-                                           phrase = tolower(input$search.field.unrelated),
-                                           source = "unrelated search")
-            phrase.table <- rbind(phrase.table, phrase.table.new)
+            
+            phrase.table <- rbind(phrase.table, 
+                                  data.frame(phrase.id = max(phrase.table$phrase.id)+1,
+                                                           phrase = tolower(input$search.field.unrelated),
+                                                           source = "unrelated search"))
             phrase.table <<- phrase.table
             
-            phr.id <- phrase.table.new$phrase.id
+            phr.id <-  max(phrase.table$phrase.id)
             phr.id <<- phr.id
-            
-            rm(phrase.table.new)
             
             new.phrase <- T
             
@@ -1248,8 +1244,22 @@ server <- function(input, output, session) {
           job.phrase <<- job.phrase
           
         } else if (new.phrase == F) {
-          job.phrase$processed[job.phrase$phrase.id == phr.id] <- TRUE
-          job.phrase <<- job.phrase
+          
+          ## checking whether this phrase has been checked the required number of times
+          required.checks=job.log$nr.of.checks[job.log$job.id==job.id]
+          required.checks=required.checks-1 ## to adjust for the present check
+          
+          successful.checks=nrow(subset(check.phrases, phrase.id==phr.id &
+                        check.id %in% subset(check.log, check.successful==T)$check.id))
+          
+          if(successful.checks>=required.checks){
+            job.phrase$processed[job.phrase$phrase.id == phr.id & job.phrase$job.id==job.id] <- TRUE
+            job.phrase <<- job.phrase
+            
+            
+          }
+          rm(successful.checks, required.checks)
+          
         }
         
         # codes.suggested
@@ -1310,7 +1320,7 @@ server <- function(input, output, session) {
         # Add code.selected
         code.selected.new <- subset(code.suggested, hs.code.6 %in% subset(data.ledger, selected == 1)$hs.code.6 & phrase.id == phr.id)
         if (nrow(code.selected.new) > 0) {
-          code.selected.new$check.id= check.log.new$check.id
+          code.selected.new$check.id= max(check.log$check.id)
           code.selected <- rbind(code.selected, 
                                  code.selected.new[,c("check.id","suggestion.id")])
           code.selected <<- code.selected
@@ -1318,7 +1328,7 @@ server <- function(input, output, session) {
         }
         # Check.phrases
         check.phrases <- rbind(check.phrases, 
-                               data.frame(check.id = check.log.new$check.id,
+                               data.frame(check.id = max(check.log$check.id),
                                                          phrase.id = phr.id))
         check.phrases <<- check.phrases
         
@@ -1329,7 +1339,7 @@ server <- function(input, output, session) {
           
           if (length(removed) > 0) {
             words.removed <- rbind(words.removed, 
-                                   data.frame(check.id = c(rep(check.log.new$check.id, length(words.removed))),
+                                   data.frame(check.id = c(rep(max(check.log$check.id), length(words.removed))),
                                                              words.removed = removed))
             words.removed <<- words.removed
           }
@@ -1342,7 +1352,7 @@ server <- function(input, output, session) {
             
             additional.suggestions.phrases=as.data.frame(strsplit(input$suggestions.search.terms,split=';', fixed=TRUE))
             additional.suggestions <- rbind(additional.suggestions, 
-                                            data.frame(check.id = check.log.new$check.id,
+                                            data.frame(check.id = max(check.log$check.id),
                                                                                term = additional.suggestions.phrases[,1],
                                                                                user.id = users$user.id[users$name == input$users]))
             additional.suggestions <<- additional.suggestions
@@ -1352,7 +1362,7 @@ server <- function(input, output, session) {
         
         # check.certainty
         check.certainty <- rbind(check.certainty, 
-                                 data.frame(check.id = check.log.new$check.id,
+                                 data.frame(check.id = max(check.log$check.id),
                                                              certainty.level = input$radio1))
         check.certainty <<- check.certainty
         
@@ -1384,13 +1394,13 @@ server <- function(input, output, session) {
         
         # Check.phrases
         check.phrases <- rbind(check.phrases, 
-                               data.frame(check.id = check.log.new$check.id,
+                               data.frame(check.id = max(check.log$check.id),
                                           phrase.id = phr.id))
         check.phrases <<- check.phrases
         
         # check.certainty
         check.certainty <- rbind(check.certainty, 
-                                 data.frame(check.id = check.log.new$check.id,
+                                 data.frame(check.id = max(check.log$check.id),
                                             certainty.level = input$radio1))
         
         check.certainty <<- check.certainty
