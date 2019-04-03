@@ -1397,19 +1397,18 @@ server <- function(input, output, session) {
         check.certainty <<- check.certainty
         
         
-        # Check if job is fully processed
-        job.id.temp <- job.phrase$job.id[job.phrase$phrase.id == phr.id]
-        nr.of.checks <- job.log$nr.of.checks[job.log$job.id == job.id.temp]
+        # Check if job is fully processed 
+        # (could be more than one as one phrase may be part of more than one job)
         
-        #get all phrases from check.phrases
-        all.phrases <- job.phrase$phrase.id[job.phrase$phrase.id %in% subset(job.phrase, job.id == job.id.temp)$phrase.id]
-        
-        #tally them up
-        if ((length(unique(all.phrases)) == length(unique(check.phrases$phrase.id[check.phrases$phrase.id %in% all.phrases]))) & all(as.data.frame(table(subset(check.phrases, phrase.id %in% all.phrases)$phrase.id))$Freq >= nr.of.checks)) {
-          job.log$job.processed[job.log$job.id == job.phrase$job.id[job.phrase$phrase.id == phr.id]] <- TRUE
-          job.log <<- job.log
+        for(j.id in unique(subset(job.phrase, phrase.id==phr.id)$job.id)){
+          
+          if(nrow(subset(job.phrase, job.id==j.id & processed==F))==0){
+            job.log$job.processed[job.log$job.id==j.id]=T
+            job.log <<- job.log
+          }
+          
         }
-        rm(job.id.temp)
+        
         
       }
       if (type == "none_found") {
