@@ -1247,7 +1247,9 @@ server <- function(input, output, session) {
           
           ## checking whether this phrase has been checked the required number of times
           required.checks=job.log$nr.of.checks[job.log$job.id==job.id]
-          required.checks=required.checks-1 ## to adjust for the present check
+          
+          ## adjust for the present check which is not in the check.log yet
+          required.checks=required.checks-1 
           
           successful.checks=nrow(subset(check.phrases, phrase.id==phr.id &
                         check.id %in% subset(check.log, check.successful==T)$check.id))
@@ -1277,33 +1279,33 @@ server <- function(input, output, session) {
             suggested.new <- subset(data.ledger, hs.code.6 %in% unique(code.suggested$hs.code.6[code.suggested$phrase.id == old.id]) | selected == 1  | user.generated == 1 | search.generated == 1)
           }
         }
-        if (nrow(suggested.new) > 0) {
+        
+    
+        suggested.new <- subset(suggested.new, ! hs.code.6 %in% subset(code.suggested, phrase.id == phr.id)$hs.code.6)
+        
+        if (nrow(suggested.new) != 0) {
           suggested.new$phrase.id = phr.id
-          # suggested.new$code.by.user <- ifelse(suggested.new$user.generated == 1, TRUE, FALSE)
-          suggested.new <- subset(suggested.new, ! hs.code.6 %in% subset(code.suggested, phrase.id == phr.id)$hs.code.6)
           
-          if (nrow(suggested.new) != 0) {
-            suggested.new$suggestion.id <- seq((max(code.suggested$suggestion.id)+1),(max(code.suggested$suggestion.id))+nrow(suggested.new),1)
-            code.suggested <- rbind(code.suggested, 
-                                    suggested.new[,c("suggestion.id","phrase.id","hs.code.6")])
-            code.suggested <<- code.suggested
+          suggested.new$suggestion.id <- seq((max(code.suggested$suggestion.id)+1),(max(code.suggested$suggestion.id))+nrow(suggested.new),1)
+          code.suggested <- rbind(code.suggested, 
+                                  suggested.new[,c("suggestion.id","phrase.id","hs.code.6")])
+          code.suggested <<- code.suggested
+          
+          if (exists("search.sources")) {
+            search.sources <- subset(search.sources, hs.code.6 %in% suggested.new$hs.code.6[suggested.new$search.generated == 1])
+            search.sources <- merge(search.sources, suggested.new[,c("hs.code.6","suggestion.id")], by="hs.code.6", all.x=T)
+            code.source <- rbind(code.source, 
+                                 search.sources[,c("source.id","suggestion.id")])
+            code.source <<- code.source
+            rm(search.sources)
             
-            if (exists("search.sources")) {
-              search.sources <- subset(search.sources, hs.code.6 %in% suggested.new$hs.code.6[suggested.new$search.generated == 1])
-              search.sources <- merge(search.sources, suggested.new[,c("hs.code.6","suggestion.id")], by="hs.code.6", all.x=T)
-              code.source <- rbind(code.source, 
-                                   search.sources[,c("source.id","suggestion.id")])
-              code.source <<- code.source
-              rm(search.sources)
-              
-            }
-            if (length(suggested.new$hs.code.6[suggested.new$user.generated == 1]) > 0) {
-              suggested.new <- subset(suggested.new, user.generated == 1)
-              suggested.new$source.id <- 99
-              code.source <- rbind(code.source, 
-                                   suggested.new[,c("source.id","suggestion.id")])
-              code.source <<- code.source
-            }
+          }
+          if (length(suggested.new$hs.code.6[suggested.new$user.generated == 1]) > 0) {
+            suggested.new <- subset(suggested.new, user.generated == 1)
+            suggested.new$source.id <- 99
+            code.source <- rbind(code.source, 
+                                 suggested.new[,c("source.id","suggestion.id")])
+            code.source <<- code.source
           }
         }
         
