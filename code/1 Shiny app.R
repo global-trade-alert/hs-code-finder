@@ -1357,24 +1357,21 @@ server <- function(input, output, session) {
       }
       if (type == "none_found") {
         # Check.log
-        check.log.new <- data.frame(check.id = max(check.log$check.id)+1,
-                                    user.id = users$user.id[users$name == input$users],
-                                    time.stamp = Sys.time(),
-                                    check.successful = FALSE,
-                                    job.id = job.phrase$job.id[job.phrase$phrase.id == phr.id])
-        check.log <- rbind(check.log, check.log.new)
+        check.log <- rbind(check.log, data.frame(check.id = max(check.log$check.id)+1,
+                                                 user.id = users$user.id[users$name == input$users],
+                                                 time.stamp = Sys.time(),
+                                                 check.successful = FALSE,
+                                                 job.id = job.phrase$job.id[job.phrase$phrase.id == phr.id]))
         check.log <<- check.log
         
         # Check.phrases
-        check.phrases.new <- data.frame(check.id = check.log.new$check.id,
-                                        phrase.id = phr.id)
-        check.phrases <- rbind(check.phrases, check.phrases.new)
+        check.phrases <- rbind(check.phrases, data.frame(check.id = check.log.new$check.id,
+                                                         phrase.id = phr.id))
         check.phrases <<- check.phrases
         
         # check.certainty
-        check.certainty.new <- data.frame(check.id = check.log.new$check.id,
-                                          certainty.level = input$radio1)
-        check.certainty <- rbind(check.certainty, check.certainty.new)
+        check.certainty <- rbind(check.certainty, data.frame(check.id = check.log.new$check.id,
+                                                             certainty.level = input$radio1))
         check.certainty <<- check.certainty
         
       }
