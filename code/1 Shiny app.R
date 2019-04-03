@@ -1271,6 +1271,8 @@ server <- function(input, output, session) {
             suggested.new <- subset(suggested.new, ! hs.code.6 %in% subset(code.suggested, phrase.id == phr.id)$hs.code.6)
             
           } else if (new.phrase == T) {
+            ## isn't this removing suggestions that may happen to overlap between the old and the new phrase? 
+            ## If so, is this on purpose?
             suggested.new <- subset(data.ledger, hs.code.6 %in% unique(code.suggested$hs.code.6[code.suggested$phrase.id == old.id]) | selected == 1)
           }
         }
@@ -1280,6 +1282,8 @@ server <- function(input, output, session) {
             suggested.new <- subset(suggested.new, ! hs.code.6 %in% subset(code.suggested, phrase.id == phr.id)$hs.code.6)
             
           } else if (new.phrase == T) {
+            ## isn't this removing suggestions that may happen to overlap between the old and the new phrase? 
+            ## If so, is this on purpose?
             suggested.new <- subset(data.ledger, hs.code.6 %in% unique(code.suggested$hs.code.6[code.suggested$phrase.id == old.id]) | selected == 1  | user.generated == 1 | search.generated == 1)
           }
         }
