@@ -18,12 +18,14 @@ plan(multiprocess)
 rm(list = ls())
 
 # setwd("/home/rstudio/Dropbox/GTA cloud")
-setwd("GTA cloud")
+setwd("C:/Users/jfrit/Desktop/Dropbox/GTA cloud")
 # setwd("C:/Users/Piotr Lukaszuk/Dropbox/GTA cloud")
 # setwd("/Users/patrickbuess/Dropbox/Collaborations/GTA cloud")
 
 path="17 Shiny/5 HS code finder/database/GTA HS code database.Rdata"
 
+
+## helpful functions
 save_all <- function() {
   print("SAVE_ALL()")
   save(check.certainty,
@@ -46,7 +48,10 @@ save_all <- function() {
        file = path)
 }
 
-load(file=path)
+assign.global <- function (assignTo, toAssign) {
+  assign(assignTo, toAssign, envir = .GlobalEnv)
+}
+
 
 # # CODE TO REMOVE PHRASES/JOBS/CHECKS MANUALLY
 # load(file=path)
@@ -78,11 +83,7 @@ load(file=path)
 
 
 # Build starting set
-
-# Function to assign to global environment
-assign.global <- function (assignTo, toAssign) {
-  assign(assignTo, toAssign, envir = .GlobalEnv)
-}
+load(file=path)
 
 data.base.0 = hs.codes
 data.base.0$indicator = "<div class='indicator'></div>"
@@ -613,7 +614,7 @@ server <- function(input, output, session) {
     
   })
   
-  # CALL HS CODE FINDER WITH ADJUSTED QUER
+  # CALL HS CODE FINDER WITH ADJUSTED QUERY
   observeEvent(input$search_adjusted, {
     toggleClass("loading","active")
     phrase = tolower(paste(input$query.refine, collapse=" "))
