@@ -1268,6 +1268,8 @@ server <- function(input, output, session) {
         if(type %in% c("standard","clipboard")) {
           if (new.phrase == F) {
             suggested.new <- subset(data.ledger, (user.generated == 1 | search.generated == 1) & selected == 1)
+            suggested.new <- subset(suggested.new, ! hs.code.6 %in% subset(code.suggested, phrase.id == phr.id)$hs.code.6)
+            
           } else if (new.phrase == T) {
             suggested.new <- subset(data.ledger, hs.code.6 %in% unique(code.suggested$hs.code.6[code.suggested$phrase.id == old.id]) | selected == 1)
           }
@@ -1275,13 +1277,15 @@ server <- function(input, output, session) {
         if (type=="unrelated_search") {
           if (new.phrase == F) {
             suggested.new <- subset(data.ledger, (user.generated == 1 | search.generated == 1) & selected == 1)
+            suggested.new <- subset(suggested.new, ! hs.code.6 %in% subset(code.suggested, phrase.id == phr.id)$hs.code.6)
+            
           } else if (new.phrase == T) {
             suggested.new <- subset(data.ledger, hs.code.6 %in% unique(code.suggested$hs.code.6[code.suggested$phrase.id == old.id]) | selected == 1  | user.generated == 1 | search.generated == 1)
           }
         }
         
     
-        suggested.new <- subset(suggested.new, ! hs.code.6 %in% subset(code.suggested, phrase.id == phr.id)$hs.code.6)
+
         
         if (nrow(suggested.new) != 0) {
           suggested.new$phrase.id = phr.id
