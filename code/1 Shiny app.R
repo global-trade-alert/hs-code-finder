@@ -18,9 +18,9 @@ plan(multiprocess)
 rm(list = ls())
 
 # setwd("/home/rstudio/Dropbox/GTA cloud")
-setwd("C:/Users/jfrit/Desktop/Dropbox/GTA cloud")
+# setwd("C:/Users/jfrit/Desktop/Dropbox/GTA cloud")
 # setwd("C:/Users/Piotr Lukaszuk/Dropbox/GTA cloud")
-# setwd("/Users/patrickbuess/Dropbox/Collaborations/GTA cloud")
+setwd("/Users/patrickbuess/Dropbox/Collaborations/GTA cloud")
 
 path="17 Shiny/5 HS code finder/database/GTA HS code database.Rdata"
 
@@ -1086,7 +1086,7 @@ server <- function(input, output, session) {
                               ! phrase.id %in% subset(check.phrases, check.id %in% check.log$check.id[check.log$user.id == users$user.id[users$name == input$users]])$phrase.id
         )
         
-        job.id =max(should.do$job.id)
+        job.id = max(should.do$job.id)
         job.id <<-job.id
         
         should.do <- subset(should.do, job.id == job.id)$phrase.id
@@ -1101,7 +1101,7 @@ server <- function(input, output, session) {
                                 ! phrase.id %in% subset(check.phrases, check.id %in% check.log$check.id[check.log$user.id == users$user.id[users$name == input$users]])$phrase.id
           )
           
-          job.id =max(should.do$job.id)
+          job.id = max(should.do$job.id)
           job.id <<-job.id
           
           should.do <- subset(should.do, job.id == job.id)$phrase.id
@@ -1225,17 +1225,15 @@ server <- function(input, output, session) {
           
           if (! tolower(input$search.field.unrelated) %in% unique(tolower(phrase.table$phrase))) {
             old.id <- phr.id
-            job.id <- max(phrase.table$phrase.id)+1
-            job.id <<- job.id
+            phr.id <- max(phrase.table$phrase.id)+1
+            phr.id <<- phr.id
             
             phrase.table <- rbind(phrase.table, 
-                                  data.frame(phrase.id = job.id,
+                                  data.frame(phrase.id = phr.id,
                                                            phrase = tolower(input$search.field.unrelated),
                                                            source = "unrelated search"))
             phrase.table <<- phrase.table
-            
-            phr.id <-  max(phrase.table$phrase.id)
-            phr.id <<- phr.id
+          
             
             new.phrase <- T
             
@@ -1369,7 +1367,7 @@ server <- function(input, output, session) {
           
           if (length(removed) > 0) {
             words.removed <- rbind(words.removed, 
-                                   data.frame(check.id = c(rep(max(check.log$check.id), length(words.removed))),
+                                   data.frame(check.id = c(rep(max(check.log$check.id), length(removed))),
                                               words.removed = removed))
             words.removed <<- words.removed
           }
