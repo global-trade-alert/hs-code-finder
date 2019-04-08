@@ -23,10 +23,10 @@ plan(multiprocess)
 
 rm(list = ls())
 
-# setwd("/home/rstudio/Dropbox/GTA cloud")
+setwd("/home/rstudio/Dropbox/GTA cloud")
 # setwd("C:/Users/jfrit/Desktop/Dropbox/GTA cloud")
 # setwd("C:/Users/Piotr Lukaszuk/Dropbox/GTA cloud")
-setwd("/Users/patrickbuess/Dropbox/Collaborations/GTA cloud")
+# setwd("/Users/patrickbuess/Dropbox/Collaborations/GTA cloud")
 
 path="17 Shiny/5 HS code finder/database/GTA HS code database.Rdata"
 
@@ -87,8 +87,10 @@ assign.global <- function (assignTo, toAssign) {
 # job.phrase <- subset(job.phrase, ! job.id %in% job.to.remove)
 # check.log <- subset(check.log, ! job.id %in% job.to.remove)
 # 
-# checks.to.remove <- c(817)
+# checks.to.remove <- c(1506,1507,821,823,824,827,828)
 # 
+# additional.suggestions <- subset(additional.suggestions, ! check.id %in% checks.to.remove)
+# words.removed <- subset(words.removed, ! check.id %in% checks.to.remove)
 # code.selected <- subset(code.selected, ! check.id %in% checks.to.remove)
 # check.log <- subset(check.log, ! check.id %in% checks.to.remove)
 # check.phrases <- subset(check.phrases, ! check.id %in% checks.to.remove)
@@ -221,8 +223,8 @@ ui <- fluidPage(
                                                                          actionButton("not.product",
                                                                                       "This is not a good/product"))),
                                                        tags$div(class = "import-tab tab-pane fade", id="import",
-                                                                # actionButton("import_uploaded_file",
-                                                                # "Import"),
+                                                                actionButton("import_uploaded_file",
+                                                                             "Import"),
                                                                 HTML("<p class='search-term'>Import Excel:</p>"),
                                                                 fileInput("import.xlsx", NULL))
                                               ),
@@ -303,14 +305,19 @@ ui <- fluidPage(
                                                          label="Name of Import"),
                                                checkboxInput(inputId = "prioritize",
                                                              label="Prioritize this query"),
-                                               checkboxInput(inputId = "process.by.me",
-                                                             label="Have this query processed by me"),
+                                               # checkboxInput(inputId = "process.by.me",
+                                               #               label="Have this query processed by me"),
                                                numericInput(inputId = "process.by.others",
                                                             value = 0,
                                                             label = "Have this query processed by X others"),
+                                               textInput(inputId = "state.act.id",
+                                                         label = "State Act ID, if existing"),
                                                textInput(inputId = "import.email.adress",
                                                          label = "Notify me when finished importing",
-                                                         placeholder = "Email address"),
+                                                         placeholder = "Email address",
+                                                         value = "your-email"),
+                                               checkboxInput(inputId = "update.email",
+                                                             label = "Update user email adress"),
                                                actionButton(inputId = "finish.import",
                                                             label = "Finish Import"))),
                              tags$div(id="selected_codes_output_old",
@@ -821,36 +828,43 @@ server <- function(input, output, session) {
   
   observeEvent(input$finish.import, {
     
-    if (input$users == "Select") {
-      showNotification("Please select a user to finish import",duration = 5)
-    } else {
-      
-      file = input$import.xlsx
-      importfile <<- read.xlsx(file = "17 Shiny/5 HS code finder/resources/cs52-2018_output.xlsx", sheetIndex = 1)
-      
-      print(importfile)
-      
-      job.log.temp <<- rbind(job.log, data.frame(job.id = max(job.log$job.id)+1,
-                                                 job.type = "import",
-                                                 job.name = input$import.job.name,
-                                                 user.id = users$user.id[users$name == input$users],
-                                                 nr.of.checks = 0,
-                                                 self.check = input$process.by.me,
-                                                 is.priority = input$prioritize,
-                                                 check.hierarchy = F,
-                                                 related.state.act = ""
-      ))
-      
-      job.log <<- job.log.temp
-      print(job.log)
-      
-      # future(
-      #   gta_hs_code_finder(products = unlist(as.character(importfile[1:1,1])))
-      # ) %...>%
-      #   print()
-      # 
-    }})
-  
+    shinyjs::removeClass(selector = ".import-wrap", class = "active")
+    showNotification("Thank you. You will be notified by email once the import is completed.", duration = 60)
+    file = input$import.xlsx
+    
+    # LOAD LOG
+    load("17 Shiny/5 HS code finder/log/importer-log.Rdata")
+    filename = paste0(Sys.Date()," - ",max(importer.log$ticket.number)+1," - ",chosen.user,".xlsx")
+    
+    # UPDATE EMAIL ADRESS
+    if(input$update.email == T) {
+      load(file=path)
+      users$email[users$name == input$users] <- input$import.email.adress
+      users <<- users
+      save_all()
+    }
+    
+    # FILL IMPORTER LOG
+    importer.log.new = data.frame(user.id = users$user.id[users$name == input$users],
+                                  order.email = input$import.email.adress,
+                                  job.name = input$import.job.name,
+                                  ticket.number = max(importer.log$ticket.number)+1,
+                                  time.order = Sys.time(),
+                                  under.preparation = 1,
+                                  xlsx.file = filename,
+                                  is.priority = input$prioritize,
+                                  process.by.others = input$process.by.others,
+                                  related.state.act = input$state.act.id)
+    
+    importer.log <- gta_rbind(list=list(importer.log, importer.log.new))
+    rm(importer.log.new)
+    
+    importfile <- read.xlsx(file = file$datapath, sheetIndex = 1, header = F)
+    
+    write.xlsx(importfile, file=paste0("17 Shiny/5 HS code finder/resources/",filename),sheetName = "sheet",append = F,row.names = F,col.names = F)
+    save(importer.log, file="17 Shiny/5 HS code finder/log/importer-log.Rdata")
+    
+  })
   
   # SELECT ROWS MECHANISM
   selectedRow <- observe(suspended=F, { input$hstable_rows_selected 
@@ -1011,7 +1025,7 @@ server <- function(input, output, session) {
     
     check.phrases <- rbind(check.phrases,
                            data.frame(check.id = max(check.log$check.id),
-                                phrase.id = phr.id))
+                                      phrase.id = phr.id))
     check.phrases <<- check.phrases
     
     save_all()
@@ -1068,6 +1082,9 @@ server <- function(input, output, session) {
   # OBSERVE CHOSEN USER VALUE
   observeEvent(input$users, {
     chosen.user <<- input$users
+    updateTextInput(session,
+                    "import.email.adress",
+                    value = users$email[users$name == input$users])
   })
   
   observeEvent(input$create.user, {
@@ -1098,32 +1115,32 @@ server <- function(input, output, session) {
     all.done = F
     
     if (type == "check.suggestion") {
-    
-    # COUNT REMAINING PHRASES FOR USER PER JOB
-    should.do <- subset(job.log, job.processed == F)
-    should.do$remaining <- 0
-    for(j.id in unique(should.do$job.id)) {
-      should.do$remaining[should.do$job.id == j.id] <- nrow(subset(job.phrase, job.id == j.id & processed == F & ! phrase.id %in% subset(check.phrases, check.id %in% subset(check.log, user.id == users$user.id[users$name == input$users])$check.id)$phrase.id))
-    }
-    should.do <- subset(should.do, remaining != 0)
-    
-    # ORDER JOBS BY PRIORITY AND REMAINING PHRASES, CHOOSE JOB ID FROM ROW 1
-    if (nrow(should.do)>0) {
-      should.do$is.priority <- ifelse(should.do$is.priority, 1, 0)
-      should.do <- should.do[with(should.do, order(-is.priority, remaining)),]
       
-      job.id <- should.do$job.id[1]
-      job.id <<- job.id
+      # COUNT REMAINING PHRASES FOR USER PER JOB
+      should.do <- subset(job.log, job.processed == F)
+      should.do$remaining <- 0
+      for(j.id in unique(should.do$job.id)) {
+        should.do$remaining[should.do$job.id == j.id] <- nrow(subset(job.phrase, job.id == j.id & processed == F & ! phrase.id %in% subset(check.phrases, check.id %in% subset(check.log, user.id == users$user.id[users$name == input$users])$check.id)$phrase.id))
+      }
+      should.do <- subset(should.do, remaining != 0)
       
-      should.do <- job.phrase$phrase.id[job.phrase$job.id == job.id]
-      should.do <<- should.do
+      # ORDER JOBS BY PRIORITY AND REMAINING PHRASES, CHOOSE JOB ID FROM ROW 1
+      if (nrow(should.do)>0) {
+        should.do$is.priority <- ifelse(should.do$is.priority, 1, 0)
+        should.do <- should.do[with(should.do, order(-is.priority, remaining)),]
+        
+        job.id <- should.do$job.id[1]
+        job.id <<- job.id
+        
+        should.do <- job.phrase$phrase.id[job.phrase$job.id == job.id & job.phrase$processed == FALSE & ! job.phrase$phrase.id %in% subset(check.phrases, check.id %in% subset(check.log, user.id == users$user.id[users$name == input$users])$check.id)$phrase.id]
+        should.do <<- should.do
+        
+      } else {
+        showNotification("You are all done, thank you!", duration = 1000)
+        all.done = T
+      }
       
-    } else {
-      showNotification("You are all done, thank you!", duration = 1000)
-      all.done = T
-    }
-    
-    
+      
       if (all.done == F) {
         
         if(length(should.do)>1) {
@@ -1240,10 +1257,10 @@ server <- function(input, output, session) {
             
             phrase.table <- rbind(phrase.table, 
                                   data.frame(phrase.id = phr.id,
-                                                           phrase = tolower(input$search.field.unrelated),
-                                                           source = "unrelated search"))
+                                             phrase = tolower(input$search.field.unrelated),
+                                             source = "unrelated search"))
             phrase.table <<- phrase.table
-          
+            
             
             new.phrase <- T
             
@@ -1258,8 +1275,8 @@ server <- function(input, output, session) {
         if (new.phrase == T | new.job.unrelated == T) {
           job.phrase <- rbind(job.phrase, 
                               data.frame(job.id = job.id,
-                                                     phrase.id = phr.id,
-                                                     processed = TRUE))
+                                         phrase.id = phr.id,
+                                         processed = TRUE))
           job.phrase <<- job.phrase
           
         } else if (new.phrase == F) {
@@ -1314,8 +1331,8 @@ server <- function(input, output, session) {
           }
         }
         
-    
-
+        
+        
         
         if (nrow(suggested.new) != 0) {
           suggested.new$phrase.id = phr.id
@@ -1347,10 +1364,10 @@ server <- function(input, output, session) {
         # Check.log
         check.log <- rbind(check.log, 
                            data.frame(check.id = max(check.log$check.id)+1,
-                                                 user.id = users$user.id[users$name == input$users],
-                                                 time.stamp = Sys.time(),
-                                                 check.successful = TRUE,
-                                                 job.id = job.id))
+                                      user.id = users$user.id[users$name == input$users],
+                                      time.stamp = Sys.time(),
+                                      check.successful = TRUE,
+                                      job.id = job.id))
         check.log <<- check.log
         
         # Add code.selected
@@ -1413,20 +1430,49 @@ server <- function(input, output, session) {
           if(nrow(subset(job.phrase, job.id==j.id & processed==F))==0){
             job.log$job.processed[job.log$job.id==j.id]=T
             job.log <<- job.log
+            
+            if(job.log$job.type[job.log$job.id == j.id] == "import") {
+              load("17 Shiny/5 HS code finder/log/importer-log.Rdata")
+              mail <- importer.log$order.email[tolower(importer.log$job.name) == tolower(job.log$job.name[job.log$job.id == j.id]) & importer.log$user.id == job.log$user.id[job.log$job.id == j.id]]
+              if (length(mail)==0 | is.na(mail)==T) {
+                mail <- users$email[users$user.id == job.log$user.id[job.log$job.id == j.id]]
+              }
+              if (lenth(mail)>0) {
+                
+                sender = "data@globaltradealert.org"  
+                recipients = mail
+                sbjct=paste("[",job.log$job.name[job.log$job.id == j.id],"] Import finished", sep="")
+                message=paste0("Hello \n\nThe job '",job.log$job.name[job.log$job.id == j.id],"' is now fully reviewed.\n\nIn case of questions or suggestions, please reply to this message. \n\nRegards\nGlobal Trade Alert Data")
+                
+                
+                send.mail(from = sender,
+                          to = recipients,
+                          subject=sbjct,
+                          body=message,
+                          html=F,
+                          smtp = list(host.name = "mail.infomaniak.com",
+                                      port=587,
+                                      user.name=sender, 
+                                      passwd="B0d@nstrasse",
+                                      tls=T),
+                          authenticate = T)
+                
+                rm(recipients, message, sbjct, sender)
+              }
+            }
           }
           
         }
-        
         
       }
       if (type == "none_found") {
         # Check.log
         check.log <- rbind(check.log, 
                            data.frame(check.id = max(check.log$check.id)+1,
-                                                 user.id = users$user.id[users$name == input$users],
-                                                 time.stamp = Sys.time(),
-                                                 check.successful = FALSE,
-                                                 job.id = job.id))
+                                      user.id = users$user.id[users$name == input$users],
+                                      time.stamp = Sys.time(),
+                                      check.successful = FALSE,
+                                      job.id = job.id))
         check.log <<- check.log
         
         # Check.phrases
