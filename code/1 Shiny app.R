@@ -1,3 +1,9 @@
+##############################
+#                            #
+#  HS CODE APP PRODUCTION    #
+#                            #
+##############################
+
 require(shiny)
 library(shinyjs)
 library(xlsx)
@@ -46,6 +52,15 @@ save_all <- function() {
        report.services,
        additional.suggestions,
        file = path)
+  
+  # if(exists("check.phrases")){
+  #   if(nrow(check.phrases)>0){
+  #     cp.path=paste(gsub(".Rdata","",path), " - checkphrases ", gsub("\\D","", as.character(Sys.time())), ".Rdata", sep="")
+  #     save(check.phrases, file=cp.path )
+  #   }
+  # }
+  
+  
 }
 
 assign.global <- function (assignTo, toAssign) {
@@ -72,7 +87,7 @@ assign.global <- function (assignTo, toAssign) {
 # job.phrase <- subset(job.phrase, ! job.id %in% job.to.remove)
 # check.log <- subset(check.log, ! job.id %in% job.to.remove)
 # 
-# checks.to.remove <- c()
+# checks.to.remove <- c(817)
 # 
 # code.selected <- subset(code.selected, ! check.id %in% checks.to.remove)
 # check.log <- subset(check.log, ! check.id %in% checks.to.remove)
@@ -785,6 +800,11 @@ server <- function(input, output, session) {
                 <a href='https://eurostat.prod.3ceonline.com/' target='_blank'>
                 <img src='eurostat.png' />
                 </a>
+                </div>",
+                "<div class='foreign_trade'>
+                <a href='https://www.foreign-trade.com/reference/hscode.htm' target='_blank'>
+                <img src='foreign_trade.png' />
+                </a>
                 </div>
                 </div>"
     ))
@@ -989,8 +1009,9 @@ server <- function(input, output, session) {
     
     check.log <<- check.log
     
-    check.phrases <- data.frame(check.id = max(check.log$check.id),
-                                phrase.id = phr.id)
+    check.phrases <- rbind(check.phrases,
+                           data.frame(check.id = max(check.log$check.id),
+                                phrase.id = phr.id))
     check.phrases <<- check.phrases
     
     save_all()
@@ -1077,43 +1098,32 @@ server <- function(input, output, session) {
     all.done = F
     
     if (type == "check.suggestion") {
+    
+    # COUNT REMAINING PHRASES FOR USER PER JOB
+    should.do <- subset(job.log, job.processed == F)
+    should.do$remaining <- 0
+    for(j.id in unique(should.do$job.id)) {
+      should.do$remaining[should.do$job.id == j.id] <- nrow(subset(job.phrase, job.id == j.id & processed == F & ! phrase.id %in% subset(check.phrases, check.id %in% subset(check.log, user.id == users$user.id[users$name == input$users])$check.id)$phrase.id))
+    }
+    should.do <- subset(should.do, remaining != 0)
+    
+    # ORDER JOBS BY PRIORITY AND REMAINING PHRASES, CHOOSE JOB ID FROM ROW 1
+    if (nrow(should.do)>0) {
+      should.do$is.priority <- ifelse(should.do$is.priority, 1, 0)
+      should.do <- should.do[with(should.do, order(-is.priority, remaining)),]
       
-      if (nrow(subset(job.log, job.processed == F & is.priority == T)) > 0) {
-        should.do <- subset(job.phrase, phrase.id %in% 
-                              subset(job.phrase, job.id %in% 
-                                       subset(job.log, job.processed == F & is.priority == T)$job.id
-                              )$phrase.id &
-                              ! phrase.id %in% subset(check.phrases, check.id %in% check.log$check.id[check.log$user.id == users$user.id[users$name == input$users]])$phrase.id
-        )
-        
-        job.id = max(should.do$job.id)
-        job.id <<-job.id
-        
-        should.do <- subset(should.do, job.id == job.id)$phrase.id
-        should.do <<- should.do
-        
-      } else {
-        if (nrow(subset(job.log, job.processed == F & is.priority == F)) > 0) {
-          should.do <- subset(job.phrase, phrase.id %in% 
-                                subset(job.phrase, job.id %in% 
-                                         subset(job.log, job.processed == F & is.priority == F)$job.id
-                                )$phrase.id &
-                                ! phrase.id %in% subset(check.phrases, check.id %in% check.log$check.id[check.log$user.id == users$user.id[users$name == input$users]])$phrase.id
-          )
-          
-          job.id = max(should.do$job.id)
-          job.id <<-job.id
-          
-          should.do <- subset(should.do, job.id == job.id)$phrase.id
-          should.do <<- should.do
-          
-        }
-        else {
-          showNotification("You are all done, thank you!", duration = 1000)
-          all.done = T
-        }
-      }
+      job.id <- should.do$job.id[1]
+      job.id <<- job.id
       
+      should.do <- job.phrase$phrase.id[job.phrase$job.id == job.id]
+      should.do <<- should.do
+      
+    } else {
+      showNotification("You are all done, thank you!", duration = 1000)
+      all.done = T
+    }
+    
+    
       if (all.done == F) {
         
         if(length(should.do)>1) {
