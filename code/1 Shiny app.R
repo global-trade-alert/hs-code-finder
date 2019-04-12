@@ -312,12 +312,12 @@ ui <- fluidPage(
                                                             label = "Have this query processed by X others"),
                                                textInput(inputId = "state.act.id",
                                                          label = "State Act ID, if existing"),
-                                               textInput(inputId = "import.email.adress",
+                                               textInput(inputId = "import.email.address",
                                                          label = "Notify me when finished importing",
                                                          placeholder = "Email address",
                                                          value = "your-email"),
                                                checkboxInput(inputId = "update.email",
-                                                             label = "Update user email adress"),
+                                                             label = "Update user email address"),
                                                actionButton(inputId = "finish.import",
                                                             label = "Finish Import"))),
                              tags$div(id="selected_codes_output_old",
@@ -829,24 +829,24 @@ server <- function(input, output, session) {
   observeEvent(input$finish.import, {
     
     shinyjs::removeClass(selector = ".import-wrap", class = "active")
-    showNotification("Thank you. You will be notified by email once the import is completed.", duration = 60)
+    showNotification("Thank you. You will be notified by email once the import is completed.", duration = 10)
     file = input$import.xlsx
     
     # LOAD LOG
     load("17 Shiny/5 HS code finder/log/importer-log.Rdata")
     filename = paste0(Sys.Date()," - ",max(importer.log$ticket.number)+1," - ",chosen.user,".xlsx")
     
-    # UPDATE EMAIL ADRESS
+    # UPDATE EMAIL ADDRESS
     if(input$update.email == T) {
       load(file=path)
-      users$email[users$name == input$users] <- input$import.email.adress
+      users$email[users$name == input$users] <- input$import.email.address
       users <<- users
       save_all()
     }
     
     # FILL IMPORTER LOG
     importer.log.new = data.frame(user.id = users$user.id[users$name == input$users],
-                                  order.email = input$import.email.adress,
+                                  order.email = input$import.email.address,
                                   job.name = input$import.job.name,
                                   ticket.number = max(importer.log$ticket.number)+1,
                                   time.order = Sys.time(),
@@ -1083,7 +1083,7 @@ server <- function(input, output, session) {
   observeEvent(input$users, {
     chosen.user <<- input$users
     updateTextInput(session,
-                    "import.email.adress",
+                    "import.email.address",
                     value = users$email[users$name == input$users])
   })
   
