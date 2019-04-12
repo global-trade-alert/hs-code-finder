@@ -57,6 +57,80 @@ if(importer.busy>2){
          file = path)
   }
   
+  load_all <- function() {
+    print("LOAD_ALL()")
+    load(file=path)
+    
+    check.certainty <- check.certainty
+    check.certainty <<- check.certainty
+    assign.global("check.certainty", check.certainty)
+    
+    check.log <- check.log
+    check.log <<- check.log
+    assign.global("check.log", check.log)
+    
+    code.selected <- code.selected
+    code.selected <<- code.selected
+    assign.global("code.selected", code.selected)
+    
+    check.phrases <- check.phrases
+    check.phrases <<- check.phrases
+    assign.global("check.phrases", check.phrases)
+    
+    code.source <- code.source
+    code.source <<- code.source
+    assign.global("code.source", code.source)
+    
+    code.suggested <- code.suggested
+    code.suggested <<- code.suggested
+    assign.global("code.suggested", code.suggested)
+    
+    hs.codes <- hs.codes
+    hs.codes <<- hs.codes
+    assign.global("hs.codes", hs.codes)
+    
+    hs.descriptions <- hs.descriptions
+    hs.descriptions <<- hs.descriptions
+    assign.global("hs.descriptions", hs.descriptions)
+    
+    job.log <- job.log
+    job.log <<- job.log
+    assign.global("job.log", job.log)
+    
+    job.phrase <- job.phrase
+    job.phrase <<- job.phrase
+    assign.global("job.phrase", job.phrase)
+    
+    levels.of.certainty <- levels.of.certainty
+    levels.of.certainty <<- levels.of.certainty
+    assign.global("levels.of.certainty", levels.of.certainty)
+    
+    phrase.table <- phrase.table
+    phrase.table <<- phrase.table
+    assign.global("phrase.table", phrase.table)
+    
+    report.services <- report.services
+    report.services <<- report.services
+    assign.global("report.services", report.services)
+    
+    suggestion.sources <- suggestion.sources
+    suggestion.sources <<- suggestion.sources
+    assign.global("suggestion.sources", suggestion.sources)
+    
+    users <- users
+    users <<- users
+    assign.global("users", users)
+    
+    words.removed <- words.removed
+    words.removed <<- words.removed
+    assign.global("words.removed", words.removed)
+    
+    additional.suggestions <- additional.suggestions
+    additional.suggestions <<- additional.suggestions
+    assign.global("additional.suggestions", additional.suggestions)
+    
+  }
+  
   if(sum(importer.log$under.preparation)==0){
     print(paste(Sys.time(), ": no business", sep=""))
     
@@ -183,7 +257,7 @@ if(importer.busy>2){
       
         if (nrow(subset(import.collector, is.na(hs.code)==F))>0) {
         
-          load(file=path)
+        load_all()
           
         import.collector.temp <- subset(import.collector, is.na(hs.code)==F)
         
@@ -207,7 +281,7 @@ if(importer.busy>2){
         importNull = T
       }
       
-        load(file=path)
+        load_all()
         
       if (all(! tolower(unique(import.collector$product.name)) %in% tolower(phrase.table$phrase)) & importNull == T){
         
