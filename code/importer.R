@@ -87,19 +87,38 @@ if(importer.busy>2){
         ## extracting parameters
         kl=importer.log[log.row,]
         
-        # SEND CONFIRMATION EMAIL
+        ## IMPORTING XLSX
+        xlsx.path=paste0("17 Shiny/5 HS code finder/xlsx imports/",kl$xlsx.file)
+        importfile <- read.xlsx(file = xlsx.path, sheetIndex = 1, header = F)
+        importfile <- as.character(importfile$X1)
+        importfile <- importfile[is.na(importfile)==F]
+        
+        
+        # checking if we have at leat one phrase
+        nr.of.phrases=length(importfile)
         
         sender = "data@globaltradealert.org"  
         recipients = kl$order.email
-        sbjct=paste("[",kl$job.name,"] Upload successful: ", sep="")
-        message=paste0("Hello \n\nThank you for uploading new terms. The job ",kl$job.name," will now be processed. You will receive a confirmation email as soons as it's finished. \n\nIn case of questions or suggestions, please reply to this message. \n\nRegards\nGlobal Trade Alert Data")
+        attachment=NULL
         
+        if(nr.of.phrases>0){
+          
+          sbjct=paste("[",kl$job.name,"] Upload successful", sep="")
+          message=paste0("Hello \n\nThank you for uploading new terms. The job ",kl$job.name," will now be processed.\n\nThis job includes ",nr.of.phrases," search phrases (=lines in the XLSX sheet). In case this number is lower than expected, consult the list of successfully imported phrases pasted at the bottom of this email.\n\nYou will receive a confirmation email as soons as it's finished. \n\nIn case of questions or suggestions, please reply to this message. \n\nRegards\nGTA data team\n\n\n\n", paste(importfile, collapse=";"), sep="")
+    
+        } else{
+          recipients=c(recipients, "patrick.buess@student.unisg.ch","johannes.fritz@unsig.ch")
+          sbjct=paste("[",kl$job.name,"] Upload unsuccessful", sep="")
+          message=paste0("Hello \n\nThank you for uploading new terms. Unfortunately something went wrong as we could not import a single phrase from the XLSX you provided. The file we received is attached for reference.\n\nPatrick and Johannes are copied to this message. They should get back to you soon.\n\nRegards\nHS finder app")
+          attachment=xlsx.path
+        }
         
         send.mail(from = sender,
                   to = recipients,
                   subject=sbjct,
                   body=message,
                   html=F,
+                  attach.files = attachment,
                   smtp = list(host.name = "mail.infomaniak.com",
                               port=587,
                               user.name=sender, 
@@ -109,10 +128,15 @@ if(importer.busy>2){
         
         rm(recipients, message, sbjct, sender)
         
-        importfile <- read.xlsx(file = paste0("17 Shiny/5 HS code finder/xlsx imports/",kl$xlsx.file), sheetIndex = 1, header = F)
-        importfile <- as.character(importfile$X1)
-        importfile <- importfile[is.na(importfile)==F]
-
+        
+        
+        ## SEARCHING THE CODES, if there are any
+        if(nr.of.phrases>0){
+          
+          ### I WILL END UP PUTTING THE PROCESSING CODE HERE IN THE LAST COMMIT OF THIS CHECK. But I will check it first.
+          
+        }
+        
         import.collector <- data.frame(product.name = as.character(),
                                        hs.code = as.character(),
                                        nr.sources = as.numeric(),
