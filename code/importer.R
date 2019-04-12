@@ -255,6 +255,7 @@ if(importer.busy>2){
       
         write.xlsx(import.collector, file=paste0("17 Shiny/5 HS code finder/xlsx imports/",gsub("\\.xlsx","",kl$xlsx.file), " - found.xlsx"),row.names = F, col.names = F,sheetName = "found")
       
+        
         if (nrow(subset(import.collector, is.na(hs.code)==F))>0) {
         
           load_all()
@@ -437,7 +438,7 @@ if(importer.busy>2){
         # SEND EMAIL
         sender = "data@globaltradealert.org"
         recipients = kl$order.email
-        sbjct=paste("[",kl$job.name,"] Import successful",sep="")
+        sbjct=paste("[",kl$job.name,"] Import available in the app",sep="")
         message=paste0("Hello \n\nThank you for importing new terms. The job '",kl$job.name,"' is now processed and the terms can be reviewed online. \n\nIn case of questions or suggestions, please reply to this message. \n\nRegards\nGlobal Trade Alert Data")
         
         
