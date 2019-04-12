@@ -153,7 +153,7 @@ if(importer.busy>2){
           }
         }
       
-        write.xlsx(import.collector, file=paste0("17 Shiny/5 HS code finder/resources/Found - ",kl$xlsx.file),row.names = F, col.names = F,sheetName = "found")
+        write.xlsx(import.collector, file=paste0("17 Shiny/5 HS code finder/resources/",gsub("\\.xlsx","",kl$xlsx.file), " - found.xlsx"),row.names = F, col.names = F,sheetName = "found")
       
         if (nrow(subset(import.collector, is.na(hs.code)==F))>0) {
         
