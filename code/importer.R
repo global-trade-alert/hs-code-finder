@@ -109,7 +109,7 @@ if(importer.busy>2){
         
         rm(recipients, message, sbjct, sender)
         
-        importfile <- read.xlsx(file = paste0("17 Shiny/5 HS code finder/resources/",kl$xlsx.file), sheetIndex = 1, header = F)
+        importfile <- read.xlsx(file = paste0("17 Shiny/5 HS code finder/xlsx imports/",kl$xlsx.file), sheetIndex = 1, header = F)
         importfile <- as.character(importfile$X1)
         importfile <- importfile[is.na(importfile)==F]
 
@@ -155,7 +155,7 @@ if(importer.busy>2){
           }
         }
       
-        write.xlsx(import.collector, file=paste0("17 Shiny/5 HS code finder/resources/",gsub("\\.xlsx","",kl$xlsx.file), " - found.xlsx"),row.names = F, col.names = F,sheetName = "found")
+        write.xlsx(import.collector, file=paste0("17 Shiny/5 HS code finder/xlsx imports/",gsub("\\.xlsx","",kl$xlsx.file), " - found.xlsx"),row.names = F, col.names = F,sheetName = "found")
       
         if (nrow(subset(import.collector, is.na(hs.code)==F))>0) {
         

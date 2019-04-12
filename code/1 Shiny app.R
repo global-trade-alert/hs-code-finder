@@ -939,7 +939,7 @@ server <- function(input, output, session) {
     
     importfile <- read.xlsx(file = file$datapath, sheetIndex = 1, header = F)
     
-    write.xlsx(importfile, file=paste0("17 Shiny/5 HS code finder/resources/",filename),sheetName = "sheet",append = F,row.names = F,col.names = F)
+    write.xlsx(importfile, file=paste0("17 Shiny/5 HS code finder/xlsx imports/",filename),sheetName = "sheet",append = F,row.names = F,col.names = F)
     save(importer.log, file="17 Shiny/5 HS code finder/log/importer-log.Rdata")
     
   })
