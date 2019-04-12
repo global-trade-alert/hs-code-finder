@@ -7,6 +7,8 @@ library("data.table")
 library("ggplot2")
 library(mailR)
 rm(list = ls())
+setwd("/home/rstudio/Dropbox/GTA cloud")
+
 # copying log over to the cloud
 # file.copy("/home/rstudio/Dropbox/GTA cloud/17 Shiny/5 HS code finder/code/importer.log",
           # "/home/rstudio/Dropbox/GTA cloud/17 Shiny/5 HS finder/code/importer.log",overwrite = T)
@@ -14,13 +16,13 @@ rm(list = ls())
 ## check if a process is running on the server
 running.processes=system("ps aux", intern=T)
 
-load("/home/rstudio/Dropbox/GTA cloud/17 Shiny/5 HS code finder/log/importer-log.Rdata")
+load("17 Shiny/5 HS code finder/log/importer-log.Rdata")
 importer.busy=sum(as.numeric(grepl("(importer.R)",running.processes, ignore.case = T)))
 
 if(importer.busy>2){
   
   print(paste(Sys.time(), ": importer is busy with order #",min(importer.log$ticket.number[importer.log$under.preparation==1]), sep=""))
-  print(running.processes[grepl("(cdf.R)",running.processes, ignore.case = T)])
+  print(running.processes[grepl("(importer.R)",running.processes, ignore.case = T)])
   
 } else{
   
@@ -28,7 +30,7 @@ if(importer.busy>2){
   ## setup
   # setwd("C:/Users/jfrit/Desktop/Dropbox/GTA cloud/17 Shiny/5 HS code finder")
   # setwd("/Users/patrickbuess/Dropbox/Collaborations/GTA cloud")
-  setwd("/home/rstudio/Dropbox/GTA cloud")
+ 
   source("17 Shiny/5 HS code finder/code/importer utensils.R")
   load("17 Shiny/5 HS code finder/log/importer-log.Rdata")
   path="17 Shiny/5 HS code finder/database/GTA HS code database.Rdata"
