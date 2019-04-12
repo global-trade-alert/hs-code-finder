@@ -376,14 +376,15 @@ ui <- fluidPage(
                                       tags$div(class="import-wrap-inner",
                                                tags$div(class="import-close-button"),
                                                textInput(inputId = "import.job.name",
-                                                         label="Name of Import"),
+                                                         label="Name of import"),
                                                checkboxInput(inputId = "prioritize",
-                                                             label="Prioritize this query"),
+                                                             value=T,
+                                                             label="Prioritize this import"),
                                                # checkboxInput(inputId = "process.by.me",
                                                #               label="Have this query processed by me"),
                                                numericInput(inputId = "process.by.others",
-                                                            value = 0,
-                                                            label = "Have this query processed by X others"),
+                                                            value = 3,
+                                                            label = "Have this query processed by X users"),
                                                textInput(inputId = "state.act.id",
                                                          label = "State Act ID, if existing"),
                                                textInput(inputId = "import.email.address",
@@ -903,14 +904,14 @@ server <- function(input, output, session) {
   observeEvent(input$finish.import, {
     
     shinyjs::removeClass(selector = ".import-wrap", class = "active")
-    showNotification("Thank you. You will be notified by email once the import is completed.", duration = 60)
+    showNotification("Thank you. You will be notified by email once the import is completed.", duration = 10)
     file = input$import.xlsx
     
     # LOAD LOG
     load("17 Shiny/5 HS code finder/log/importer-log.Rdata")
     filename = paste0(Sys.Date()," - ",max(importer.log$ticket.number)+1," - ",chosen.user,".xlsx")
     
-    # UPDATE EMAIL address
+    # UPDATE EMAIL ADDRESS
     if(input$update.email == T) {
       load_all()
       users$email[users$name == input$users] <- input$import.email.address
