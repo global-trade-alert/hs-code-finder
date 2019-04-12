@@ -287,70 +287,8 @@ if(importer.busy>2){
       
         write.xlsx(import.collector, file=paste0("17 Shiny/5 HS code finder/xlsx imports/",gsub("\\.xlsx","",kl$xlsx.file), " - found.xlsx"),row.names = F, col.names = F,sheetName = "found")
       
-        
-        if (nrow(subset(import.collector, is.na(hs.code)==F))>0) {
-        
-          load_all()
-            
-          import.collector.temp <- subset(import.collector, is.na(hs.code)==F)
-          
-          # STORE SEARCH SOURCES
-          search.sources.import <- data.frame(hs.code.6 = character(),
-                                              source.id = numeric(),
-                                              product.name = character())
-          
-          search.sources.import.temp = import.collector[,c("hs.code","source.names","product.name")]
-          search.sources.import.temp <- cSplit(search.sources.import.temp, which(colnames(search.sources.import.temp)=="source.names"), direction="long", sep=";")
-          names(search.sources.import.temp) <- c("hs.code.6","source.name","product.name")
-          search.sources.import.temp <- merge(search.sources.import.temp, suggestion.sources, by="source.name",all.x=T)
-          
-          search.sources.import <- unique(search.sources.import.temp[,c("hs.code.6","source.id","product.name")])
-          search.sources.import <<- search.sources.import
-          rm(search.sources.import.temp, import.collector.temp)
-          
-          importNull = F
-        
-      } else {
-          importNull = T
-      }
-      
+        ## Updating job.log
         load_all()
-        
-      if (all(! tolower(unique(import.collector$product.name)) %in% tolower(phrase.table$phrase)) & importNull == T){
-        
-        # NOTHING TO ADD IF NOTHING ALREADY IN PHRASE TABLE AND importNull == T
-        
-        sender = "data@globaltradealert.org"  
-        recipients = kl$order.email
-        sbjct=paste("[",kl$job.name,"] Import not successful: ", sep="")
-        message=paste0("Hello \n\nThank you for importing new terms. The job ",kl$job.name," is now processed, unfortunately no new HS codes could be found for your suggested terms. \n\nIn case of questions or suggestions, please reply to this message. \n\nRegards\nGTA data team")
-        
-        
-        send.mail(from = sender,
-                  to = recipients,
-                  subject=sbjct,
-                  body=message,
-                  html=F,
-                  smtp = list(host.name = "mail.infomaniak.com",
-                              port=587,
-                              user.name=sender, 
-                              passwd="B0d@nstrasse",
-                              tls=T),
-                  authenticate = T)
-        
-        rm(recipients, message, sbjct, sender)
-        
-        
-        
-      } else {
-        
-        
-        # ADD PHRASE IDs
-        import.names <- as.character(unique(import.collector$product.name))
-        import.collector <- subset(import.collector, hs.code != 0)
-        import.collector <- unique(import.collector[,c(1:2)])
-        names(import.collector) <- c("phrase","hs.code.6")
-        
         job.id.import <- max(job.log$job.id)+1
         job.id.import <<- job.id.import
         
@@ -366,142 +304,104 @@ if(importer.busy>2){
                                     related.state.act = kl$related.state.act,
                                     job.processed = FALSE,
                                     submission.id = Sys.Date()))
+        save_all()
         
+        ## Updating phrase.table
+        load_all()
         
-        # job.log <- rbind(job.log,
-        #                  data.frame(job.id = job.id.import,
-        #                           job.type = "Import",
-        #                           job.name = "input$import.job.name",
-        #                           user.id = 23,
-        #                           nr.of.checks = 4,
-        #                           check.hierarchy = FALSE,
-        #                           is.priority = TRUE,
-        #                           self.check = TRUE,
-        #                           related.state.act = 123121,
-        #                           job.processed = FALSE,
-        #                           submission.id = Sys.Date()))
+        phrase.table$phrase.tl=tolower(phrase.table$phrase)
+        import.collector$phrase.tl=tolower(import.collector$product.name)
         
-        job.log <<- job.log
+        import.collector=merge(import.collector, phrase.table[,c("phrase.tl","phrase.id")], by="phrase", all.x=T)
+        phrase.table$phrase.tl=NULL
         
+        phrase.table.temp=unique(import.collector[,c("product.name","phrase.id")])
         
-        for (term in unique(import.names)) {
-          
-          ic.subset <- subset(import.collector, tolower(phrase) == tolower(term))
-          
-          if (! tolower(term) %in% unique(tolower(phrase.table$phrase)) & nrow(ic.subset) > 0) {
-            
-            phrase.table <- rbind(phrase.table,
-                                  data.frame(phrase.id = max(phrase.table$phrase.id)+1,
-                                             phrase = term,
-                                             source = "original"))
-            phrase.table <<- phrase.table
-            
-            phr.id.import <- max(phrase.table$phrase.id)
-            phr.id.import <<- phr.id.import
-            
-            
-            # Add job.phrases
-            job.phrase <- rbind(job.phrase, 
-                                data.frame(job.id = job.id.import,
-                                           phrase.id = phr.id.import,
-                                           processed = FALSE))
-            job.phrase <<- job.phrase
-            
-            
-            # Add suggested codes
-            suggested.new.import <- ic.subset
-            suggested.new.import$phrase.id = phr.id.import
-            suggested.new.import$suggestion.id <- seq((max(code.suggested$suggestion.id)+1),(max(code.suggested$suggestion.id))+nrow(suggested.new.import),1)
-            code.suggested <- rbind(code.suggested, suggested.new.import[,c("suggestion.id","phrase.id","hs.code.6")])
-            code.suggested <<- code.suggested
-            
-            
-            if (exists("search.sources.import")) {
-              print("Source 1")
-              sources.temp <- subset(search.sources.import, product.name == term)
-              sources.temp <- merge(sources.temp, suggested.new.import[,c("hs.code.6","suggestion.id")], by="hs.code.6", all.x=T)
-              code.source <- rbind(code.source, sources.temp[,c("source.id","suggestion.id")])
-              code.source <<- code.source
-              rm(sources.temp)
-            }
-            
-          } else {
-            
-            if (tolower(term) %in% unique(tolower(phrase.table$phrase))){
-              
-              phr.id.import <- phrase.table$phrase.id[tolower(phrase.table$phrase) == tolower(term)]
-              phr.id.import <<- phr.id.import
-              
-              # Add job.phrases
-              job.phrase <- rbind(job.phrase, 
-                                  data.frame(job.id = job.id.import,
-                                             phrase.id = phr.id.import,
-                                             processed = FALSE))
-              job.phrase <<- job.phrase
-              
-              if (nrow(ic.subset)>0) {
-                suggested.new.import <- ic.subset
-                suggested.new.import$phrase.id <- phr.id.import
-                
-                suggested.new.import$suggestion.id <- seq((max(code.suggested$suggestion.id)+1),(max(code.suggested$suggestion.id))+nrow(suggested.new.import),1)
-                code.suggested <- rbind(code.suggested, suggested.new.import[,c("suggestion.id","phrase.id","hs.code.6")])
-                code.suggested <<- code.suggested
-                
-                
-                if (exists("search.sources.import")) {
-                  sources.temp <- subset(search.sources.import, hs.code.6 %in% unique(suggested.new.import$hs.code.6))
-                  sources.temp <- merge(sources.temp, suggested.new.import[,c("hs.code.6","suggestion.id")], by="hs.code.6", all.x=T)
-                  code.source <- rbind(code.source, sources.temp[,c("source.id","suggestion.id")])
-                  code.source <<- code.source
-                  print(nrow(code.source))
-                  rm(sources.temp)
-                }
-                
-              }
-              
-            }
-            
-          }
-          
-        }
+        new.phrases=subset(phrase.table.temp, is.na(phrase.id))
+        new.phrases$phrase.id=(max(phrase.table$phrase.id)+1):(max(phrase.table$phrase.id)+nrow(new.phrases))
+        
+        phrase.table=rbind(phrase.table,
+                           data.frame(phrase.id=new.phrases$phrase.id,
+                                      phrase=new.phrases$product.name,
+                                      source="xlsx import",
+                                      stringsAsFactors = F))
         
         save_all()
         
-        # SEND EMAIL
-        sender = "data@globaltradealert.org"
-        recipients = kl$order.email
-        sbjct=paste("[",kl$job.name,"] Import available in the app",sep="")
-        message=paste0("Hello \n\nThank you for importing new terms. The job '",kl$job.name,"' is now processed and the terms can be reviewed online. \n\nIn case of questions or suggestions, please reply to this message. \n\nRegards\nGTA data team")
+        phrase.table.temp=rbind(subset(phrase.table.temp, is.na(phrase.id)==F), 
+                               new.phrases)
+        
+        phrase.table.temp=phrase.table.temp[order(phrase.table.temp$phrase.id),]
+        
+        ## Updating job.phrase
+        load_all()
+        job.phrase=rbind(job.phrase,
+                         data.frame(job.id=job.id.import,
+                                    phrase.id=phrase.table.temp$phrase.id,
+                                    processed=F,
+                                    stringsAsFactors = F))
+        
+        save_all()
+        
+        ## Updating code.suggested & code source for new phrases
+        code.suggested.temp=merge(subset(phrase.table.temp, phrase.id %in% new.phrases$phrase.id), 
+                                  import.collector[,c("product.name","hs.code","source.names")], by="product.name", all.x=T)
+        code.suggested.temp=subset(code.suggested.temp, is.na(hs.code)==F)
         
         
-        send.mail(from = sender,
-                  to = recipients,
-                  subject=sbjct,
-                  body=message,
-                  html=F,
-                  smtp = list(host.name = "mail.infomaniak.com",
-                              port=587,
-                              user.name=sender,
-                              passwd="B0d@nstrasse",
-                              tls=T),
-                  authenticate = T)
+        if(nrow(code.suggested.temp)>0){
+          
+          ## Updating code.suggested & code source
+          load_all()
+          
+          ## code.suggested
+          code.suggested.temp$suggestion.id=(max(code.suggested$suggestion.id)+1):(max(code.suggested$suggestion.id)+nrow(code.suggested.temp))
+          
+          code.suggested=rbind(code.suggested,
+                               data.frame(suggestion.id=code.suggested.temp$suggestion.id,
+                                          phrase.id=code.suggested.temp$phrase.id,
+                                          hs.code.6=code.suggested.temp$hs.code,
+                                          stringsAsFactors = F))
+          
+          ## code.source
+          code.source.new=unique(cSplit(code.suggested.temp[,c("suggestion.id","source.names")], 2, direction="long",sep=";"))
+          names(code.source.new)=c("suggestion.id","source.name")
+          code.source.new=merge(code.source.new, suggestion.sources, by="source.name", all.x=T)
+          
+          
+          ## in case there is an unknown source (could be a parsing error)
+          if(nrow(subset(code.source.new, is.na(source.id)))>0){
+            new.src=unique(subset(code.source.new, is.na(source.id))$source.name)
+            
+            suggestion.sources=rbind(suggestion.sources,
+                                     data.frame(source.id=(max(suggestion.sources$source.id)+1):(max(suggestion.sources$source.id)+length(new.src)),
+                                                source.name=new.src,
+                                                stringsAsFactors = F))
+            suggestion.sources<<-suggestion.sources
+            
+            new.src=subset(code.source.new, is.na(source.id))
+            new.src$source.id=NULL
+            new.src=merge(new.src, suggestion.sources, by="source.name", all.x=T)
+            
+            code.source.new=rbind(subset(code.source.new, is.na(source.id)==F),
+                                  new.src)
+            
+          }
+          
+          code.source=rbind(code.source,
+                            code.source.new[,c("suggestion.id", "source.id")])
+          save_all()
+          
+        }
         
-        rm(recipients, message, sbjct, sender)
-        
-        print("BACKGROUND PROCESS IMPORTING ALL DONE")
-        
-      }
-
-    print("ALL DONE IMPORTING")
-
       },
-    error = function(error.msg) {
-      if(error.message[1]==T){
-        error.message <<- c(T, stop.print)
-      } else {
-        error.message <<- c(T,error.msg$message)
-      }
-    })
+      error = function(error.msg) {
+        if(error.message[1]==T){
+          error.message <<- c(T, stop.print)
+        } else {
+          error.message <<- c(T,error.msg$message)
+        }
+      })
       
       if (error.message[1]==T) {
         # SEND EMAIL
@@ -524,16 +424,45 @@ if(importer.busy>2){
                   authenticate = T)
         
         rm(recipients, message, sbjct, sender)
+      } else {
+        
+        
+        # SEND AVAILABILITY EMAIL
+        sender = "data@globaltradealert.org"
+        recipients = kl$order.email
+        sbjct=paste("[",kl$job.name,"] Import available in the app",sep="")
+        message=paste0("Hello \n\nThank you for importing new terms. The job '",kl$job.name,"' is now processed and the terms can be reviewed online. \n\nIn case of questions or suggestions, please reply to this message. \n\nRegards\nGTA data team")
+        
+        
+        send.mail(from = sender,
+                  to = recipients,
+                  subject=sbjct,
+                  body=message,
+                  html=F,
+                  smtp = list(host.name = "mail.infomaniak.com",
+                              port=587,
+                              user.name=sender,
+                              passwd="B0d@nstrasse",
+                              tls=T),
+                  authenticate = T)
+        
+        rm(recipients, message, sbjct, sender)
+        
+        
       }
-    
-     
+      
+      print(paste("Importing complete for job ",kl$job.name, sep="" ))
+      
       update_logs()
-  
+      
     }
+    
+    print("All imports from this round are processed")
     
   }
   
   
 }
-
+        
+        
 

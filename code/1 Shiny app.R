@@ -1361,9 +1361,11 @@ server <- function(input, output, session) {
         } else if (new.phrase == F) {
           
           ## checking whether this phrase has been checked the required number of times
-          successful.checks=nrow(subset(check.phrases, phrase.id==phr.id &
-                                          check.id %in% subset(check.log, 
-                                                               check.successful==T)$check.id))
+          phrase.user.unique <- unique(merge(subset(check.log, 
+                                                    check.successful==T), 
+                                             check.phrases, by="check.id", all.x=T)[,c("user.id","phrase.id")])
+          
+          successful.checks <- nrow(unique(subset(phrase.user.unique, phrase.id == phr.id)))
           
           ## looping over all jobs that happen to include this phrase.
           for(j.id in unique(subset(job.phrase, phrase.id==phr.id)$job.id)){
