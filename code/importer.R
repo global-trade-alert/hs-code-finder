@@ -131,6 +131,26 @@ if(importer.busy>2){
     
   }
   
+  update_logs <- function() {
+    print("updating importer-log.Rdata")
+    load("17 Shiny/5 HS code finder/log/importer-log.Rdata")
+    importer.log$time.finish[log.row]=Sys.time()
+    class(importer.log$time.finish)=c('POSIXt', 'POSIXct')
+    importer.log$under.preparation[log.row]=0
+    save(importer.log, file = "17 Shiny/5 HS code finder/log/importer-log.Rdata")
+    
+    load("17 Shiny/5 HS code finder/log/importer-log.Rdata")
+    
+    print("Closing sink")
+    sink()
+    sink(type="message")
+    
+    print(paste("Updating round count to",rnd+1))
+    rnd=rnd+1 
+  }
+  
+  
+  
   if(sum(importer.log$under.preparation)==0){
     print(paste(Sys.time(), ": no business", sep=""))
     
@@ -179,38 +199,50 @@ if(importer.busy>2){
           
           sbjct=paste("[",kl$job.name,"] Upload successful", sep="")
           message=paste0("Hello \n\nThank you for uploading new terms. The job ",kl$job.name," will now be processed.\n\nThis job includes ",nr.of.phrases," search phrases (=lines in the XLSX sheet). In case this number is lower than expected, consult the list of successfully imported phrases pasted at the bottom of this email.\n\nYou will receive a confirmation email as soons as it's finished. \n\nIn case of questions or suggestions, please reply to this message. \n\nRegards\nGTA data team\n\n\n\n", paste(importfile, collapse=";"), sep="")
-    
+          send.mail(from = sender,
+                    to = recipients,
+                    subject=sbjct,
+                    body=message,
+                    html=F,
+                    attach.files = attachment,
+                    smtp = list(host.name = "mail.infomaniak.com",
+                                port=587,
+                                user.name=sender, 
+                                passwd="B0d@nstrasse",
+                                tls=T),
+                    authenticate = T)
+          
+          rm(recipients, message, sbjct, sender)
+          update_logs()
+          break()
+          
         } else{
+          
           recipients=c(recipients, "patrick.buess@student.unisg.ch","johannes.fritz@unsig.ch")
           sbjct=paste("[",kl$job.name,"] Upload unsuccessful", sep="")
           message=paste0("Hello \n\nThank you for uploading new terms. Unfortunately something went wrong as we could not import a single phrase from the XLSX you provided. The file we received is attached for reference.\n\nPatrick and Johannes are copied to this message. They should get back to you soon.\n\nRegards\nHS finder app")
           attachment=xlsx.path
+          send.mail(from = sender,
+                    to = recipients,
+                    subject=sbjct,
+                    body=message,
+                    html=F,
+                    attach.files = attachment,
+                    smtp = list(host.name = "mail.infomaniak.com",
+                                port=587,
+                                user.name=sender, 
+                                passwd="B0d@nstrasse",
+                                tls=T),
+                    authenticate = T)
+          
+          rm(recipients, message, sbjct, sender)
         }
         
-        send.mail(from = sender,
-                  to = recipients,
-                  subject=sbjct,
-                  body=message,
-                  html=F,
-                  attach.files = attachment,
-                  smtp = list(host.name = "mail.infomaniak.com",
-                              port=587,
-                              user.name=sender, 
-                              passwd="B0d@nstrasse",
-                              tls=T),
-                  authenticate = T)
-        
-        rm(recipients, message, sbjct, sender)
+       
         
         
         
         ## SEARCHING THE CODES, if there are any
-        if(nr.of.phrases>0){
-          
-          ### I WILL END UP PUTTING THE PROCESSING CODE HERE IN THE LAST COMMIT OF THIS CHECK. But I will check it first.
-          
-        }
-        
         import.collector <- data.frame(product.name = as.character(),
                                        hs.code = as.character(),
                                        nr.sources = as.numeric(),
@@ -291,7 +323,7 @@ if(importer.busy>2){
         sender = "data@globaltradealert.org"  
         recipients = kl$order.email
         sbjct=paste("[",kl$job.name,"] Import not successful: ", sep="")
-        message=paste0("Hello \n\nThank you for importing new terms. The job ",kl$job.name," is now processed, unfortunately no new HS codes could be found for your suggested terms. \n\nIn case of questions or suggestions, please reply to this message. \n\nRegards\nGlobal Trade Alert Data")
+        message=paste0("Hello \n\nThank you for importing new terms. The job ",kl$job.name," is now processed, unfortunately no new HS codes could be found for your suggested terms. \n\nIn case of questions or suggestions, please reply to this message. \n\nRegards\nGTA data team")
         
         
         send.mail(from = sender,
@@ -439,7 +471,7 @@ if(importer.busy>2){
         sender = "data@globaltradealert.org"
         recipients = kl$order.email
         sbjct=paste("[",kl$job.name,"] Import available in the app",sep="")
-        message=paste0("Hello \n\nThank you for importing new terms. The job '",kl$job.name,"' is now processed and the terms can be reviewed online. \n\nIn case of questions or suggestions, please reply to this message. \n\nRegards\nGlobal Trade Alert Data")
+        message=paste0("Hello \n\nThank you for importing new terms. The job '",kl$job.name,"' is now processed and the terms can be reviewed online. \n\nIn case of questions or suggestions, please reply to this message. \n\nRegards\nGTA data team")
         
         
         send.mail(from = sender,
@@ -476,7 +508,7 @@ if(importer.busy>2){
         sender = "data@globaltradealert.org"
         recipients = c("patrick.buess@student.unisg.ch", "fritz.johannes@gmail.com")
         sbjct=paste("[",kl$job.name,"] Import unsuccessful",sep="")
-        message=paste0("Hello \n\n The job '",kl$job.name,"' ended with an error. The message is: \n\n",error.message[2],"\n\nRegards\nGlobal Trade Alert Data")
+        message=paste0("Hello \n\n The job '",kl$job.name,"' ended with an error. The message is: \n\n",error.message[2],"\n\nRegards\nGTA data team")
         
         
         send.mail(from = sender,
@@ -494,19 +526,8 @@ if(importer.busy>2){
         rm(recipients, message, sbjct, sender)
       }
     
-      ## updating log
-      load("17 Shiny/5 HS code finder/log/importer-log.Rdata")
-      importer.log$time.finish[log.row]=Sys.time()
-      class(importer.log$time.finish)=c('POSIXt', 'POSIXct')
-      importer.log$under.preparation[log.row]=0
-        
-      
-      ## Storing updated log
-      save(importer.log, file = "17 Shiny/5 HS code finder/log/importer-log.Rdata")
-      load("17 Shiny/5 HS code finder/log/importer-log.Rdata")
-      sink()
-      sink(type="message")
-      rnd=rnd+1 
+     
+      update_logs()
   
     }
     
