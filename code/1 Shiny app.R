@@ -30,8 +30,11 @@ setwd("/home/rstudio/Dropbox/GTA cloud")
 
 path="17 Shiny/5 HS code finder/database/GTA HS code database.Rdata"
 
-
 ## helpful functions
+assign.global <- function (assignTo, toAssign) {
+  assign(assignTo, toAssign, envir = .GlobalEnv)
+}
+
 save_all <- function() {
   print("SAVE_ALL()")
   save(check.certainty,
@@ -60,16 +63,87 @@ save_all <- function() {
   #   }
   # }
   
+}
+
+load_all <- function() {
+  print("LOAD_ALL()")
+  load(file=path)
+  
+  check.certainty <- check.certainty
+  check.certainty <<- check.certainty
+  assign.global("check.certainty", check.certainty)
+  
+  check.log <- check.log
+  check.log <<- check.log
+  assign.global("check.log", check.log)
+  
+  code.selected <- code.selected
+  code.selected <<- code.selected
+  assign.global("code.selected", code.selected)
+  
+  check.phrases <- check.phrases
+  check.phrases <<- check.phrases
+  assign.global("check.phrases", check.phrases)
+  
+  code.source <- code.source
+  code.source <<- code.source
+  assign.global("code.source", code.source)
+  
+  code.suggested <- code.suggested
+  code.suggested <<- code.suggested
+  assign.global("code.suggested", code.suggested)
+  
+  hs.codes <- hs.codes
+  hs.codes <<- hs.codes
+  assign.global("hs.codes", hs.codes)
+  
+  hs.descriptions <- hs.descriptions
+  hs.descriptions <<- hs.descriptions
+  assign.global("hs.descriptions", hs.descriptions)
+  
+  job.log <- job.log
+  job.log <<- job.log
+  assign.global("job.log", job.log)
+  
+  job.phrase <- job.phrase
+  job.phrase <<- job.phrase
+  assign.global("job.phrase", job.phrase)
+  
+  levels.of.certainty <- levels.of.certainty
+  levels.of.certainty <<- levels.of.certainty
+  assign.global("levels.of.certainty", levels.of.certainty)
+  
+  phrase.table <- phrase.table
+  phrase.table <<- phrase.table
+  assign.global("phrase.table", phrase.table)
+  
+  report.services <- report.services
+  report.services <<- report.services
+  assign.global("report.services", report.services)
+  
+  suggestion.sources <- suggestion.sources
+  suggestion.sources <<- suggestion.sources
+  assign.global("suggestion.sources", suggestion.sources)
+  
+  users <- users
+  users <<- users
+  assign.global("users", users)
+  
+  words.removed <- words.removed
+  words.removed <<- words.removed
+  assign.global("words.removed", words.removed)
+  
+  additional.suggestions <- additional.suggestions
+  additional.suggestions <<- additional.suggestions
+  assign.global("additional.suggestions", additional.suggestions)
   
 }
 
-assign.global <- function (assignTo, toAssign) {
-  assign(assignTo, toAssign, envir = .GlobalEnv)
-}
+
 
 
 # # CODE TO REMOVE PHRASES/JOBS/CHECKS MANUALLY
-# load(file=path)
+# load_all()
 # phrase.to.remove <- c(1270)
 # 
 # phrase.table <- subset(phrase.table, ! phrase.id %in% phrase.to.remove)
@@ -100,7 +174,7 @@ assign.global <- function (assignTo, toAssign) {
 
 
 # Build starting set
-load(file=path)
+load_all()
 
 data.base.0 = hs.codes
 data.base.0$indicator = "<div class='indicator'></div>"
@@ -829,16 +903,16 @@ server <- function(input, output, session) {
   observeEvent(input$finish.import, {
     
     shinyjs::removeClass(selector = ".import-wrap", class = "active")
-    showNotification("Thank you. You will be notified by email once the import is completed.", duration = 10)
+    showNotification("Thank you. You will be notified by email once the import is completed.", duration = 60)
     file = input$import.xlsx
     
     # LOAD LOG
     load("17 Shiny/5 HS code finder/log/importer-log.Rdata")
     filename = paste0(Sys.Date()," - ",max(importer.log$ticket.number)+1," - ",chosen.user,".xlsx")
     
-    # UPDATE EMAIL ADDRESS
+    # UPDATE EMAIL address
     if(input$update.email == T) {
-      load(file=path)
+      load_all()
       users$email[users$name == input$users] <- input$import.email.address
       users <<- users
       save_all()
@@ -1005,7 +1079,7 @@ server <- function(input, output, session) {
   
   # Report terms which are not a product 
   observeEvent(input$not.product, {
-    load(file=path)
+    load_all()
     
     report.services <<- rbind(report.services, 
                               data.frame(phrase.id = phr.id,
@@ -1093,13 +1167,13 @@ server <- function(input, output, session) {
     if (name %in% unique(users$name)) {
       showNotification("This name already exists",duration = 5)
     } else {
-      load(file=path)
+      load_all()
       users <<- rbind(users, data.frame(user.id = max(users$user.id)+1,
                                         name = name,
                                         gta.layer = "core",
                                         email = "name@mail.com"))
       save_all()
-      load(file=path)
+      load_all()
       updateSelectInput(session, "users", choices = unique(users$name),selected = name)
       reset("username")
     }
@@ -1111,6 +1185,7 @@ server <- function(input, output, session) {
   
   refresh_names <- function(type="check.suggestion") {
     print("REFRESH_NAMES()")
+    load_all()
     
     all.done = F
     
@@ -1195,7 +1270,7 @@ server <- function(input, output, session) {
   
   save_selection <- function(type) {
     print("SAVE_SELECTION()")
-    load(file=path) 
+    load_all() 
     if(input$users=="Select"){
       showNotification("Please select or create a user before saving your selection",duration = 1000)
     } else if (is.null(input$radio1)==T) {
@@ -1502,7 +1577,7 @@ server <- function(input, output, session) {
         
         future({ gta_hs_code_finder(products = tolower(paste(query.refine.future, collapse=" ")))}) %...>%  {
           found.temp <- .
-          load(file=path)
+          load_all()
           codes <- code.suggested$hs.code.6[code.suggested$phrase.id == phr.id.future]
           new.codes <- subset(found.temp, ! hs.code %in% codes)
           new.codes <- new.codes[,c("hs.code","source.names")]
@@ -1525,7 +1600,7 @@ server <- function(input, output, session) {
       }
       
       if (type %in% c("clipboard","unrelated_search")) {
-        runjs("var copyText = docu,ment.getElementById('selected_codes_output');
+        runjs("var copyText = document.getElementById('selected_codes_output');
               copyText.select();
               document.execCommand('copy');
               //alert('Copied the text: ' + copyText.value);
@@ -1547,7 +1622,7 @@ server <- function(input, output, session) {
       refresh_names()
     }
     
-    }
+  }
   
   }
 
