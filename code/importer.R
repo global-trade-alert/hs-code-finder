@@ -257,28 +257,28 @@ if(importer.busy>2){
       
         if (nrow(subset(import.collector, is.na(hs.code)==F))>0) {
         
-        load_all()
+          load_all()
+            
+          import.collector.temp <- subset(import.collector, is.na(hs.code)==F)
           
-        import.collector.temp <- subset(import.collector, is.na(hs.code)==F)
-        
-        # STORE SEARCH SOURCES
-        search.sources.import <- data.frame(hs.code.6 = character(),
-                                            source.id = numeric(),
-                                            product.name = character())
-        
-        search.sources.import.temp = import.collector[,c("hs.code","source.names","product.name")]
-        search.sources.import.temp <- cSplit(search.sources.import.temp, which(colnames(search.sources.import.temp)=="source.names"), direction="long", sep=";")
-        names(search.sources.import.temp) <- c("hs.code.6","source.name","product.name")
-        search.sources.import.temp <- merge(search.sources.import.temp, suggestion.sources, by="source.name",all.x=T)
-        
-        search.sources.import <- unique(search.sources.import.temp[,c("hs.code.6","source.id","product.name")])
-        search.sources.import <<- search.sources.import
-        rm(search.sources.import.temp, import.collector.temp)
-        
-        importNull = F
+          # STORE SEARCH SOURCES
+          search.sources.import <- data.frame(hs.code.6 = character(),
+                                              source.id = numeric(),
+                                              product.name = character())
+          
+          search.sources.import.temp = import.collector[,c("hs.code","source.names","product.name")]
+          search.sources.import.temp <- cSplit(search.sources.import.temp, which(colnames(search.sources.import.temp)=="source.names"), direction="long", sep=";")
+          names(search.sources.import.temp) <- c("hs.code.6","source.name","product.name")
+          search.sources.import.temp <- merge(search.sources.import.temp, suggestion.sources, by="source.name",all.x=T)
+          
+          search.sources.import <- unique(search.sources.import.temp[,c("hs.code.6","source.id","product.name")])
+          search.sources.import <<- search.sources.import
+          rm(search.sources.import.temp, import.collector.temp)
+          
+          importNull = F
         
       } else {
-        importNull = T
+          importNull = T
       }
       
         load_all()
