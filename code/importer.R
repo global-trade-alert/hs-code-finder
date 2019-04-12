@@ -30,8 +30,8 @@ if(importer.busy>2){
   ## setup
   # setwd("C:/Users/jfrit/Desktop/Dropbox/GTA cloud/17 Shiny/5 HS code finder")
   # setwd("/Users/patrickbuess/Dropbox/Collaborations/GTA cloud")
- 
-  source("17 Shiny/5 HS code finder/code/importer utensils.R")
+  # source("17 Shiny/5 HS code finder/code/importer utensils.R")
+  
   load("17 Shiny/5 HS code finder/log/importer-log.Rdata")
   path="17 Shiny/5 HS code finder/database/GTA HS code database.Rdata"
   ## helpful functions
