@@ -1437,7 +1437,7 @@ server <- function(input, output, session) {
               if (length(mail)==0 | is.na(mail)==T) {
                 mail <- users$email[users$user.id == job.log$user.id[job.log$job.id == j.id]]
               }
-              if (lenth(mail)>0) {
+              if (length(mail)>0) {
                 
                 sender = "data@globaltradealert.org"  
                 recipients = mail
