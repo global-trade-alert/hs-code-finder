@@ -897,7 +897,7 @@ server <- function(input, output, session) {
   
   observeEvent(input$import_uploaded_file, {
     file = input$import.xlsx
-    importfile = read.xlsx(file = file$datapath, sheetIndex = 1)
+    importfile = read.xlsx(file = file$datapath, sheetIndex = 1, header = F)
     shinyjs::addClass(selector = ".import-wrap", class = "active")
   })
   
