@@ -6,7 +6,7 @@
 
 require(shiny)
 library(shinyjs)
-library(xlsx)
+library(openxlsx)
 library(DT)
 library(shinyWidgets)
 library(gtalibrary)
@@ -376,23 +376,22 @@ ui <- fluidPage(
                                       tags$div(class="import-wrap-inner",
                                                tags$div(class="import-close-button"),
                                                textInput(inputId = "import.job.name",
-                                                         label="Name of import"),
+                                                         label="Name of Import"),
                                                checkboxInput(inputId = "prioritize",
-                                                             value=T,
-                                                             label="Prioritize this import"),
+                                                             label="Prioritize this query"),
                                                # checkboxInput(inputId = "process.by.me",
                                                #               label="Have this query processed by me"),
                                                numericInput(inputId = "process.by.others",
-                                                            value = 3,
-                                                            label = "Have this query processed by X users"),
+                                                            value = 0,
+                                                            label = "Have this query processed by X others"),
                                                textInput(inputId = "state.act.id",
                                                          label = "State Act ID, if existing"),
-                                               textInput(inputId = "import.email.address",
+                                               textInput(inputId = "import.email.adress",
                                                          label = "Notify me when finished importing",
                                                          placeholder = "Email address",
                                                          value = "your-email"),
                                                checkboxInput(inputId = "update.email",
-                                                             label = "Update user email address"),
+                                                             label = "Update user email adress"),
                                                actionButton(inputId = "finish.import",
                                                             label = "Finish Import"))),
                              tags$div(id="selected_codes_output_old",
@@ -897,34 +896,31 @@ server <- function(input, output, session) {
   
   observeEvent(input$import_uploaded_file, {
     file = input$import.xlsx
-    importfile = read.xlsx(file = file$datapath, sheetIndex = 1, header = F)
+    importfile = read.xlsx(xlsxFile = file$datapath, sheet = 1, rowNames = F, colNames = F)
     shinyjs::addClass(selector = ".import-wrap", class = "active")
   })
   
   observeEvent(input$finish.import, {
     
     shinyjs::removeClass(selector = ".import-wrap", class = "active")
-    showNotification("Thank you. You will be notified by email once the import is completed.", duration = 10)
+    showNotification("Thank you. You will be notified by email once the import is completed.", duration = 60)
     file = input$import.xlsx
     
     # LOAD LOG
     load("17 Shiny/5 HS code finder/log/importer-log.Rdata")
-    filename = paste0(max(importer.log$ticket.number)+1,
-                      input$import.job.name,
-                      chosen.user,
-                      ".xlsx", sep=" - ")
+    filename = paste0(Sys.Date()," - ",max(importer.log$ticket.number)+1," - ",chosen.user,".xlsx")
     
-    # UPDATE EMAIL ADDRESS
+    # UPDATE EMAIL ADRESS
     if(input$update.email == T) {
       load_all()
-      users$email[users$name == input$users] <- input$import.email.address
+      users$email[users$name == input$users] <- input$import.email.adress
       users <<- users
       save_all()
     }
     
     # FILL IMPORTER LOG
     importer.log.new = data.frame(user.id = users$user.id[users$name == input$users],
-                                  order.email = input$import.email.address,
+                                  order.email = input$import.email.adress,
                                   job.name = input$import.job.name,
                                   ticket.number = max(importer.log$ticket.number)+1,
                                   time.order = Sys.time(),
@@ -937,9 +933,9 @@ server <- function(input, output, session) {
     importer.log <- gta_rbind(list=list(importer.log, importer.log.new))
     rm(importer.log.new)
     
-    importfile <- read.xlsx(file = file$datapath, sheetIndex = 1, header = F)
+    importfile <- read.xlsx(xlsxFile = file$datapath, sheet = 1, colNames = F, rowNames = F)
     
-    write.xlsx(importfile, file=paste0("17 Shiny/5 HS code finder/xlsx imports/",filename),sheetName = "sheet",append = F,row.names = F,col.names = F)
+    write.xlsx(importfile, file=paste0("17 Shiny/5 HS code finder/xlsx imports/",filename), sheetName = "sheet", append = F, rowNames = F, colNames = F)
     save(importer.log, file="17 Shiny/5 HS code finder/log/importer-log.Rdata")
     
   })
@@ -1161,7 +1157,7 @@ server <- function(input, output, session) {
   observeEvent(input$users, {
     chosen.user <<- input$users
     updateTextInput(session,
-                    "import.email.address",
+                    "import.email.adress",
                     value = users$email[users$name == input$users])
   })
   
@@ -1628,7 +1624,7 @@ server <- function(input, output, session) {
       refresh_names()
     }
     
-  }
+    }
   
   }
 
