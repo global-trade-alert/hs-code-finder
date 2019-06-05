@@ -1,7 +1,8 @@
+library(gtalibrary)
 rm(list = ls())
 
-# setwd("GTA cloud")
-setwd("C:/Users/Piotr Lukaszuk/Dropbox/GTA cloud")
+
+gta_setwd()
 
 load("17 Shiny/5 HS code finder/database/GTA HS code database.Rdata")
 
