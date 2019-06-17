@@ -31,112 +31,9 @@ setwd("/home/rstudio/Dropbox/GTA cloud")
 path="17 Shiny/5 HS code finder/database/GTA HS code database.Rdata"
 
 ## helpful functions
-assign.global <- function (assignTo, toAssign) {
-  assign(assignTo, toAssign, envir = .GlobalEnv)
-}
-
-save_all <- function() {
-  print("SAVE_ALL()")
-  save(check.certainty,
-       check.log,
-       check.phrases,
-       code.selected,
-       code.source,
-       code.suggested,
-       hs.codes,
-       hs.descriptions,
-       job.log,
-       job.phrase,
-       levels.of.certainty,
-       phrase.table,
-       suggestion.sources,
-       users,
-       words.removed,
-       report.services,
-       additional.suggestions,
-       file = path)
-  
-  # if(exists("check.phrases")){
-  #   if(nrow(check.phrases)>0){
-  #     cp.path=paste(gsub(".Rdata","",path), " - checkphrases ", gsub("\\D","", as.character(Sys.time())), ".Rdata", sep="")
-  #     save(check.phrases, file=cp.path )
-  #   }
-  # }
-  
-}
-
-load_all <- function() {
-  print("LOAD_ALL()")
-  load(file=path)
-  
-  check.certainty <- check.certainty
-  check.certainty <<- check.certainty
-  assign.global("check.certainty", check.certainty)
-  
-  check.log <- check.log
-  check.log <<- check.log
-  assign.global("check.log", check.log)
-  
-  code.selected <- code.selected
-  code.selected <<- code.selected
-  assign.global("code.selected", code.selected)
-  
-  check.phrases <- check.phrases
-  check.phrases <<- check.phrases
-  assign.global("check.phrases", check.phrases)
-  
-  code.source <- code.source
-  code.source <<- code.source
-  assign.global("code.source", code.source)
-  
-  code.suggested <- code.suggested
-  code.suggested <<- code.suggested
-  assign.global("code.suggested", code.suggested)
-  
-  hs.codes <- hs.codes
-  hs.codes <<- hs.codes
-  assign.global("hs.codes", hs.codes)
-  
-  hs.descriptions <- hs.descriptions
-  hs.descriptions <<- hs.descriptions
-  assign.global("hs.descriptions", hs.descriptions)
-  
-  job.log <- job.log
-  job.log <<- job.log
-  assign.global("job.log", job.log)
-  
-  job.phrase <- job.phrase
-  job.phrase <<- job.phrase
-  assign.global("job.phrase", job.phrase)
-  
-  levels.of.certainty <- levels.of.certainty
-  levels.of.certainty <<- levels.of.certainty
-  assign.global("levels.of.certainty", levels.of.certainty)
-  
-  phrase.table <- phrase.table
-  phrase.table <<- phrase.table
-  assign.global("phrase.table", phrase.table)
-  
-  report.services <- report.services
-  report.services <<- report.services
-  assign.global("report.services", report.services)
-  
-  suggestion.sources <- suggestion.sources
-  suggestion.sources <<- suggestion.sources
-  assign.global("suggestion.sources", suggestion.sources)
-  
-  users <- users
-  users <<- users
-  assign.global("users", users)
-  
-  words.removed <- words.removed
-  words.removed <<- words.removed
-  assign.global("words.removed", words.removed)
-  
-  additional.suggestions <- additional.suggestions
-  additional.suggestions <<- additional.suggestions
-  assign.global("additional.suggestions", additional.suggestions)
-  
+## HS app functions
+for(fct in list.files("17 Shiny/5 HS code finder/code/functions", pattern = ".R", full.names=T)){
+  source(fct)
 }
 
 
@@ -1086,7 +983,10 @@ server <- function(input, output, session) {
                                          user.id = users$user.id[users$name == input$users]))
     
     job.phrase$processed[job.phrase$phrase.id == phr.id] <- TRUE
+    phrase.table$nr.completed.jobs[phrase.table$phrase.id==phr.id]=phrase.table$nr.completed.jobs[phrase.table$phrase.id==phr.id]+1
+    
     job.phrase <<- job.phrase
+    phrase.table <<- phrase.table
     
     check.log <- rbind(check.log, 
                        data.frame(check.id = max(check.log$check.id)+1,
@@ -1313,7 +1213,8 @@ server <- function(input, output, session) {
             phrase.table <- rbind(phrase.table, 
                                   data.frame(phrase.id = max(phrase.table$phrase.id)+1,
                                              phrase = tolower(paste(input$query.refine, collapse = " ")),
-                                             source = "adjusted"))
+                                             source = "adjusted",
+                                             nr.completed.jobs=0))
             phrase.table <<- phrase.table
             
             phr.id <- max(phrase.table$phrase.id)
@@ -1333,7 +1234,8 @@ server <- function(input, output, session) {
             phrase.table <- rbind(phrase.table, 
                                   data.frame(phrase.id = phr.id,
                                              phrase = tolower(input$search.field.unrelated),
-                                             source = "unrelated search"))
+                                             source = "unrelated search",
+                                             nr.completed.jobs=0))
             phrase.table <<- phrase.table
             
             
@@ -1374,7 +1276,8 @@ server <- function(input, output, session) {
               job.phrase$processed[job.phrase$phrase.id == phr.id & job.phrase$job.id==j.id] <- TRUE
               job.phrase <<- job.phrase
               
-              
+              phrase.table$nr.completed.jobs[phrase.table$phrase.id==phr.id]=phrase.table$nr.completed.jobs[phrase.table$phrase.id==phr.id]+1
+              phrase.table <<- phrase.table
             }
             rm(required.checks)
             
@@ -1415,8 +1318,10 @@ server <- function(input, output, session) {
           suggested.new$phrase.id = phr.id
           
           suggested.new$suggestion.id <- seq((max(code.suggested$suggestion.id)+1),(max(code.suggested$suggestion.id))+nrow(suggested.new),1)
+          suggested.new$probability=NA
+          
           code.suggested <- rbind(code.suggested, 
-                                  suggested.new[,c("suggestion.id","phrase.id","hs.code.6")])
+                                  suggested.new[,c("suggestion.id","phrase.id","hs.code.6","probability")])
           code.suggested <<- code.suggested
           
           if (exists("search.sources")) {
@@ -1507,36 +1412,9 @@ server <- function(input, output, session) {
           if(nrow(subset(job.phrase, job.id==j.id & processed==F))==0){
             job.log$job.processed[job.log$job.id==j.id]=T
             job.log <<- job.log
+            save_all()
             
-            if(job.log$job.type[job.log$job.id == j.id] == "import") {
-              load("17 Shiny/5 HS code finder/log/importer-log.Rdata")
-              mail <- importer.log$order.email[tolower(importer.log$job.name) == tolower(job.log$job.name[job.log$job.id == j.id]) & importer.log$user.id == job.log$user.id[job.log$job.id == j.id]]
-              if (length(mail)==0 | is.na(mail)==T) {
-                mail <- users$email[users$user.id == job.log$user.id[job.log$job.id == j.id]]
-              }
-              if (length(mail)>0) {
-                
-                sender = "data@globaltradealert.org"  
-                recipients = mail
-                sbjct=paste("[",job.log$job.name[job.log$job.id == j.id],"] Import finished", sep="")
-                message=paste0("Hello \n\nThe job '",job.log$job.name[job.log$job.id == j.id],"' is now fully reviewed.\n\nIn case of questions or suggestions, please reply to this message. \n\nRegards\nGlobal Trade Alert Data")
-                
-                
-                send.mail(from = sender,
-                          to = recipients,
-                          subject=sbjct,
-                          body=message,
-                          html=F,
-                          smtp = list(host.name = "mail.infomaniak.com",
-                                      port=587,
-                                      user.name=sender, 
-                                      passwd="B0d@nstrasse",
-                                      tls=T),
-                          authenticate = T)
-                
-                rm(recipients, message, sbjct, sender)
-              }
-            }
+            gta_hs_process_completed_job(processed.job=j.id)
           }
           
         }
@@ -1586,7 +1464,8 @@ server <- function(input, output, session) {
           new.codes$phrase.id <- phr.id.future
           new.codes$suggestion.id <- seq(max(code.suggested$suggestion.id)+1,max(code.suggested$suggestion.id)+nrow(new.codes),1)
           names(new.codes) <- c("hs.code.6","source.names","phrase.id","suggestion.id")
-          code.suggested <- rbind(code.suggested, new.codes[,c("hs.code.6","phrase.id","suggestion.id")])
+          new.codes$probability=NA
+          code.suggested <- rbind(code.suggested, new.codes[,c("hs.code.6","phrase.id","suggestion.id", "probability")])
           code.suggested <<- code.suggested
           
           new.codes <- new.codes[,c("source.names","suggestion.id")]
