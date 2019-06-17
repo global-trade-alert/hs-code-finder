@@ -31,7 +31,7 @@ gta_hs_process_completed_job<- function(processed.job=NULL){
   }
   
   sender = "data@globaltradealert.org"  
-  sbjct=paste("[",job.log$job.name[job.log$job.id == processed.job],"] Processing finished", sep="")
+  sbjct=paste("[HS-app ticket #",processed.job,"; ",job.log$job.name[job.log$job.id == processed.job],"] Processing finished", sep="")
   
   if(nrow(none.found)==0){
     review.results="Our colleagues found at least one HS code for all submitted phrases."
@@ -44,8 +44,22 @@ gta_hs_process_completed_job<- function(processed.job=NULL){
                          sep="")
   }
   
-  message=paste0("Hello \n\nThe job '",job.log$job.name[job.log$job.id == processed.job],"' is now fully reviewed.\n\n",review.results,"\n\nIn case of questions or suggestions, please reply to this message. \n\nRegards\nGlobal Trade Alert Data")
+  related.sa=job.log$related.state.act[job.log$job.id == processed.job]
   
+  if(is.na(related.sa)){
+    mention.sa=""
+  } else {
+    mention.sa=paste("The related state act is: ",related.sa,".", sep="")
+  }
+
+  message=paste0("Hello \n\nThe job '",
+                 job.log$job.name[job.log$job.id == processed.job],
+                 "' is now fully reviewed.",
+                 mention.sa,
+                 "\n\n",
+                 review.results,
+                 "\n\nIn case of questions or suggestions, please reply to this message. \n\nRegards\nGlobal Trade Alert Data")
+    
   library(mailR)
   send.mail(from = sender,
             to = recipient,
