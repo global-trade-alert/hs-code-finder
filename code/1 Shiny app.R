@@ -32,7 +32,7 @@ path="17 Shiny/5 HS code finder/database/GTA HS code database.Rdata"
 
 ## helpful functions
 ## HS app functions
-for(fct in list.files("17 Shiny/5 HS code finder/code/functions", pattern = ".R")){
+for(fct in list.files("17 Shiny/5 HS code finder/code/functions", pattern = ".R", full.names=T)){
   source(fct)
 }
 
