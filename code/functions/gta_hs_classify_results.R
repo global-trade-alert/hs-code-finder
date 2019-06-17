@@ -25,17 +25,19 @@ gta_hs_classify_results<- function(variable.df="classifier.input",
   ## estimating the unsure cases
   estimate=estimation.set[,setdiff(names(estimation.set), c("phrase.id","suggestion.id","hs.code.6","nr.times.chosen","nr.of.checks","selection.share"))]
   
-  
-  
   estimate$train.id=NULL
   estimate$evaluation=NULL
   
   estimation.set$probability= round(predict(hs.classifier, estimate)$pred[,1],3)
-  
-
   estimation.set$relevant=as.numeric(estimation.set$probability>=relevance.threshold)
-  load(source.data)
+
+  ##  Updating database for processed suggestions
+  load_all()
+  code.suggested=rbind(subset(code.suggested, (! phrase.id %in% estimation.set$phrase.id & ! suggestion.id %in% estimation.set$suggestion.id)),
+                       unique(estimation.set[,c(names(code.suggested))]))
+  save_all()
   
+    
   estimation.set=merge(estimation.set, phrase.table[,c("phrase.id","phrase")], by="phrase.id")
   estimation.set=merge(estimation.set, job.phrase[,c("phrase.id","job.id")], by="phrase.id")
   classification.result=unique(estimation.set[,c("job.id","phrase","hs.code.6","probability","relevant")])

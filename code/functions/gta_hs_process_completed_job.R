@@ -19,7 +19,7 @@ gta_hs_process_completed_job<- function(processed.job=NULL){
   
   none.found=subset(classification.result, ! phrase %in% subset(classification.result, relevant==1)$phrase)
   if(nrow(none.found)>0){
-    xlsx::write.xlsx(unique(none.found[,c("job.id","phrase")]), file=paste(result.path, ".xlsx", sep=""), sheetName = "Unclassified phrases", row.names=F, append=T)
+    xlsx::write.xlsx(unique(none.found[,c("phrase")]), file=paste(result.path, ".xlsx", sep=""), sheetName = "Unclassified phrases", row.names=F, append=T)
   }
   
   
@@ -40,7 +40,7 @@ gta_hs_process_completed_job<- function(processed.job=NULL){
                          length(unique(subset(classification.result, relevant==1)$phrase)),
                          " of the submitted phrases.\nHowever, they could not classify ",
                          length(unique(none.found$phrase)),
-                         " phrases.",
+                         " phrases. You may want to re-submit the 'Unclassified' sheet in the attached XLSX for another check.",
                          sep="")
   }
   
