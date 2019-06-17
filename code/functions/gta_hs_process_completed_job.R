@@ -11,6 +11,7 @@ gta_hs_process_completed_job<- function(processed.job=NULL){
   result.path=paste("17 Shiny/5 HS code finder/results/Job ",processed.job," - Classification result", sep="")
   
   classifier.variables=gta_hs_create_classifier_variables(job.ids=processed.job)
+  classifier.variables<<-classifier.variables
   classification.result=gta_hs_classify_results("classifier.variables")
   save(classification.result, file=paste(result.path, ".Rdata", sep=""))
   
@@ -74,7 +75,7 @@ gta_hs_process_completed_job<- function(processed.job=NULL){
                         tls=T),
             authenticate = T)
   
-  rm(recipient, message, sbjct, sender)
+  rm(recipient, message, sbjct, sender, classifier.variables,classification.result)
   
   
 }
