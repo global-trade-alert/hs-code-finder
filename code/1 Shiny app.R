@@ -31,6 +31,11 @@ setwd("/home/rstudio/Dropbox/GTA cloud")
 path="17 Shiny/5 HS code finder/database/GTA HS code database.Rdata"
 
 ## helpful functions
+## HS app functions
+for(fct in list.files("17 Shiny/5 HS code finder/code/functions", pattern = ".R")){
+  source(fct)
+}
+
 assign.global <- function (assignTo, toAssign) {
   assign(assignTo, toAssign, envir = .GlobalEnv)
 }
@@ -1507,36 +1512,9 @@ server <- function(input, output, session) {
           if(nrow(subset(job.phrase, job.id==j.id & processed==F))==0){
             job.log$job.processed[job.log$job.id==j.id]=T
             job.log <<- job.log
+            save_all()
             
-            if(job.log$job.type[job.log$job.id == j.id] == "import") {
-              load("17 Shiny/5 HS code finder/log/importer-log.Rdata")
-              mail <- importer.log$order.email[tolower(importer.log$job.name) == tolower(job.log$job.name[job.log$job.id == j.id]) & importer.log$user.id == job.log$user.id[job.log$job.id == j.id]]
-              if (length(mail)==0 | is.na(mail)==T) {
-                mail <- users$email[users$user.id == job.log$user.id[job.log$job.id == j.id]]
-              }
-              if (length(mail)>0) {
-                
-                sender = "data@globaltradealert.org"  
-                recipients = mail
-                sbjct=paste("[",job.log$job.name[job.log$job.id == j.id],"] Import finished", sep="")
-                message=paste0("Hello \n\nThe job '",job.log$job.name[job.log$job.id == j.id],"' is now fully reviewed.\n\nIn case of questions or suggestions, please reply to this message. \n\nRegards\nGlobal Trade Alert Data")
-                
-                
-                send.mail(from = sender,
-                          to = recipients,
-                          subject=sbjct,
-                          body=message,
-                          html=F,
-                          smtp = list(host.name = "mail.infomaniak.com",
-                                      port=587,
-                                      user.name=sender, 
-                                      passwd="B0d@nstrasse",
-                                      tls=T),
-                          authenticate = T)
-                
-                rm(recipients, message, sbjct, sender)
-              }
-            }
+            gta_hs_process_completed_job(processed.job=j.id)
           }
           
         }
