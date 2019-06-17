@@ -983,7 +983,10 @@ server <- function(input, output, session) {
                                          user.id = users$user.id[users$name == input$users]))
     
     job.phrase$processed[job.phrase$phrase.id == phr.id] <- TRUE
+    phrase.table$nr.completed.jobs[phrase.table$phrase.id==phr.id]=phrase.table$nr.completed.jobs[phrase.table$phrase.id==phr.id]+1
+    
     job.phrase <<- job.phrase
+    phrase.table <<- phrase.table
     
     check.log <- rbind(check.log, 
                        data.frame(check.id = max(check.log$check.id)+1,
@@ -1210,7 +1213,8 @@ server <- function(input, output, session) {
             phrase.table <- rbind(phrase.table, 
                                   data.frame(phrase.id = max(phrase.table$phrase.id)+1,
                                              phrase = tolower(paste(input$query.refine, collapse = " ")),
-                                             source = "adjusted"))
+                                             source = "adjusted",
+                                             nr.completed.jobs=0))
             phrase.table <<- phrase.table
             
             phr.id <- max(phrase.table$phrase.id)
@@ -1230,7 +1234,8 @@ server <- function(input, output, session) {
             phrase.table <- rbind(phrase.table, 
                                   data.frame(phrase.id = phr.id,
                                              phrase = tolower(input$search.field.unrelated),
-                                             source = "unrelated search"))
+                                             source = "unrelated search",
+                                             nr.completed.jobs=0))
             phrase.table <<- phrase.table
             
             
@@ -1271,7 +1276,8 @@ server <- function(input, output, session) {
               job.phrase$processed[job.phrase$phrase.id == phr.id & job.phrase$job.id==j.id] <- TRUE
               job.phrase <<- job.phrase
               
-              
+              phrase.table$nr.completed.jobs[phrase.table$phrase.id==phr.id]=phrase.table$nr.completed.jobs[phrase.table$phrase.id==phr.id]+1
+              phrase.table <<- phrase.table
             }
             rm(required.checks)
             
@@ -1312,8 +1318,10 @@ server <- function(input, output, session) {
           suggested.new$phrase.id = phr.id
           
           suggested.new$suggestion.id <- seq((max(code.suggested$suggestion.id)+1),(max(code.suggested$suggestion.id))+nrow(suggested.new),1)
+          suggested.new$probability=NA
+          
           code.suggested <- rbind(code.suggested, 
-                                  suggested.new[,c("suggestion.id","phrase.id","hs.code.6")])
+                                  suggested.new[,c("suggestion.id","phrase.id","hs.code.6","probability")])
           code.suggested <<- code.suggested
           
           if (exists("search.sources")) {
@@ -1456,7 +1464,8 @@ server <- function(input, output, session) {
           new.codes$phrase.id <- phr.id.future
           new.codes$suggestion.id <- seq(max(code.suggested$suggestion.id)+1,max(code.suggested$suggestion.id)+nrow(new.codes),1)
           names(new.codes) <- c("hs.code.6","source.names","phrase.id","suggestion.id")
-          code.suggested <- rbind(code.suggested, new.codes[,c("hs.code.6","phrase.id","suggestion.id")])
+          new.codes$probability=NA
+          code.suggested <- rbind(code.suggested, new.codes[,c("hs.code.6","phrase.id","suggestion.id", "probability")])
           code.suggested <<- code.suggested
           
           new.codes <- new.codes[,c("source.names","suggestion.id")]
