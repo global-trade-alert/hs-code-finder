@@ -8,7 +8,11 @@ gta_hs_classify_results<- function(variable.df="classifier.input",
   
   eval(parse(text=paste("estimation.set<<-",variable.df, sep="")))
   
+  agreed.parts=subset(estimation.set, selection.share %in% c(0,1))
+  agreed.parts$probability=1
+  agreed.parts$relevant=agreed.parts$selection.share
   
+  estimation.set=subset(estimation.set, ! selection.share %in% c(0,1))
    
   if(is.null(path.to.cloud)==F){
     setwd(path.to.cloud)
@@ -31,6 +35,9 @@ gta_hs_classify_results<- function(variable.df="classifier.input",
   estimation.set$probability= round(predict(hs.classifier, estimate)$pred[,1],3)
   estimation.set$relevant=as.numeric(estimation.set$probability>=relevance.threshold)
 
+  ## adding estimates & agreed cases
+  estimation.set=rbind(estimation.set, agreed.parts)
+  
   ##  Updating database for processed suggestions
   load_all()
   
