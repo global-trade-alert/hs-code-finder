@@ -319,7 +319,7 @@ if(importer.busy>1){
       } else {
         
         
-        # SEND AVAILABILITY EMAIL
+        # SEND AVAILABILITY EMAIL TO USER
         sender = "data@globaltradealert.org"
         recipients = kl$order.email
         sbjct=paste("[",kl$job.name,"] Import available in the app",sep="")
@@ -337,6 +337,49 @@ if(importer.busy>1){
                               passwd="B0d@nstrasse",
                               tls=T),
                   authenticate = T)
+        
+        rm(recipients, message, sbjct, sender)
+        
+        # SEND AVAILABILITY EMAIL TO UPWORK
+        sender = "data@globaltradealert.org"
+        sbjct=paste("GTA/UpWork HS code classification: App updated",sep="")
+        message=paste0("Hello \n\nThank you for your patience. We have just updated the HS code app.\n\nThere are now ",nr.left,"products awaiting classification.\n\nRegards\nJohannes\nhttp://hs.globaltradealert.org/")
+       
+        nr.left=length(unique(subset(job.phrase, processed==F & job.id %in% subset(job.log, job.processed==F)$job.id)$phrase.id))
+        
+        source("17 Shiny/5 HS code finder/setup/uw.R")
+         
+        if(nr.left>0){
+          for(email.to in recipients){
+            
+            send.mail(from = sender,
+                      to = email.to,
+                      subject=sbjct,
+                      body=message,
+                      html=F,
+                      smtp = list(host.name = "mail.infomaniak.com",
+                                  port=587,
+                                  user.name=sender,
+                                  passwd="B0d@nstrasse",
+                                  tls=T),
+                      authenticate = T)
+            
+          }
+        } else {
+          
+          
+          send.mail(from = sender,
+                    to = "fritz.johannes@gmail.com",
+                    subject="HS app: Job import did not update DB somewhow",
+                    body="Hi\n\nWhile it says that the import of an XLSX into the DB was successful, there are now unprocessed phrases in job.phrase.\n\nPlease check, JF",
+                    html=F,
+                    smtp = list(host.name = "mail.infomaniak.com",
+                                port=587,
+                                user.name=sender,
+                                passwd="B0d@nstrasse",
+                                tls=T),
+                    authenticate = T)
+        }
         
         rm(recipients, message, sbjct, sender)
         
