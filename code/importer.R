@@ -326,7 +326,7 @@ if(importer.busy>2){
         }
       })
       
-      if (error.message[1]==T) {
+      if (error.message[1]) {
         # SEND EMAIL
         sender = "data@globaltradealert.org"
         recipients = c("patrick.buess@student.unisg.ch", "fritz.johannes@gmail.com")
@@ -374,10 +374,10 @@ if(importer.busy>2){
         # SEND AVAILABILITY EMAIL TO UPWORK
         sender = "data@globaltradealert.org"
         sbjct=paste("GTA/UpWork HS code classification: App updated",sep="")
-        message=paste0("Hello \n\nThank you for your patience. We have just updated the HS code app.\n\nThere are now ",nr.left,"products awaiting classification.\n\nRegards\nJohannes\nhttp://hs.globaltradealert.org/")
-       
-        nr.left=length(unique(subset(job.phrase, processed==F & job.id %in% subset(job.log, job.processed==F)$job.id)$phrase.id))
         
+        nr.left=length(unique(subset(job.phrase, processed==F & job.id %in% subset(job.log, job.processed==F)$job.id)$phrase.id))
+        message=paste0("Hello \n\nThank you for your patience. We have just updated the HS code app.\n\nThere are now ",nr.left," products awaiting classification.\n\nRegards\nJohannes\nhttp://hs.globaltradealert.org/")
+       
         source("17 Shiny/5 HS code finder/setup/uw.R")
          
         if(nr.left>0){
