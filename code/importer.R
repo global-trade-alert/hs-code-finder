@@ -57,7 +57,7 @@ if(importer.busy>1){
       # first come, first served.
       log.row=min(which(importer.log$under.preparation==1))
       
-      logpath=paste("17 Shiny/5 HS code finder/results/",Sys.Date()," - HS code finder import #", importer.log$ticket.number[log.row],".txt",sep="")
+      logpath=paste("17 Shiny/5 HS code finder/log/",Sys.Date()," - HS code finder import #", importer.log$ticket.number[log.row],".txt",sep="")
       con <- file(logpath)
       sink(con, append=T)
       sink(con, append=T, type="message")
