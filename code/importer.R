@@ -219,13 +219,16 @@ if(importer.busy>2){
         
         
         ## checking whether existing phrases have been processed
+        ## i.e. have been processed & received at least 1 valid HS code per phrase
         if(nrow(subset(phrase.table.temp, is.na(phrase.id)==F))>0){
           old.phrases=subset(phrase.table.temp, is.na(phrase.id)==F)
           
-          op.procssed=logical(nrow(old.phrases))
+          op.processed=logical(nrow(old.phrases))
           
           for(i in 1:nrow(old.phrases)){
-            op.procssed[i]=T %in% subset(job.phrase, phrase.id %in% old.phrases$phrase.id[i])$processed
+            
+            op.processed[i]=max(subset(code.suggested, phrase.id==old.phrases$phrase.id[i])$probability, na.rm=T)>.5
+            
           }
                              
         }
@@ -251,7 +254,7 @@ if(importer.busy>2){
           job.phrase=rbind(job.phrase,
                            data.frame(job.id=job.id.import,
                                       phrase.id=old.phrases$phrase.id,
-                                      processed=op.procssed,
+                                      processed=op.processed,
                                       stringsAsFactors = F))
           
           job.phrase=rbind(job.phrase,
