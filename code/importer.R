@@ -141,7 +141,7 @@ if(importer.busy>1){
         print("FIRST ROUND")
         for(term in importfile) {
           import.collector.temp <- gta_hs_code_finder(products = term,
-                                                      sources <- c("eurostat", "eu.customs", "zauba", "e.to.china", "google", "hsbianma", "eximguru", "cybex"),
+                                                      sources <- c("eurostat", "eu.customs", "zauba", "e.to.china", "google", "eximguru", "cybex"),
                                                       check.archive = T,
                                                       archive.location = "17 Shiny/5 HS code finder/database/GTA HS code database.Rdata")
           if (is.data.frame(import.collector.temp)==T) {
@@ -162,7 +162,7 @@ if(importer.busy>1){
           scd.terms <- unique(subset(import.collector, is.na(hs.code)==T)$product.name)
           for(term in scd.terms) {
             import.collector.temp <- gta_hs_code_finder(products = term,
-                                                        sources <- c("eurostat", "eu.customs", "zauba", "e.to.china", "google", "hsbianma", "eximguru", "cybex"),
+                                                        sources <- c("eurostat", "eu.customs", "zauba", "e.to.china", "google", "eximguru", "cybex"),
                                                         check.archive = T,
                                                         archive.location = "17 Shiny/5 HS code finder/database/GTA HS code database.Rdata")
             if (is.data.frame(import.collector.temp)==T) {
