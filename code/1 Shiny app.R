@@ -808,7 +808,7 @@ server <- function(input, output, session) {
     load("17 Shiny/5 HS code finder/log/importer-log.Rdata")
     filename = paste0(Sys.Date()," - ",max(importer.log$ticket.number)+1," - ",chosen.user,".xlsx")
     
-    # UPDATE EMAIL ADRESS
+    # UPDATE EMAIL ADDRESS
     if(input$update.email == T) {
       load_all()
       users$email[users$name == input$users] <- input$import.email.adress

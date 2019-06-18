@@ -19,7 +19,7 @@ running.processes=system("ps aux", intern=T)
 load("17 Shiny/5 HS code finder/log/importer-log.Rdata")
 importer.busy=sum(as.numeric(grepl("(importer.R)",running.processes, ignore.case = T)))
 
-if(importer.busy>2){
+if(importer.busy>1){
   
   print(paste(Sys.time(), ": importer is busy with order #",min(importer.log$ticket.number[importer.log$under.preparation==1]), sep=""))
   print(running.processes[grepl("(importer.R)",running.processes, ignore.case = T)])
@@ -187,7 +187,7 @@ if(importer.busy>2){
                                     job.type = "import",
                                     job.name = kl$job.name,
                                     user.id = kl$user.id,
-                                    nr.of.checks = kl$process.by.others,
+                                    nr.of.checks = max(1,kl$process.by.others),
                                     check.hierarchy = FALSE,
                                     is.priority = kl$is.priority,
                                     self.check = TRUE,
@@ -202,7 +202,7 @@ if(importer.busy>2){
         phrase.table$phrase.tl=tolower(phrase.table$phrase)
         import.collector$phrase.tl=tolower(import.collector$product.name)
         
-        import.collector=merge(import.collector, phrase.table[,c("phrase.tl","phrase.id")], by="phrase", all.x=T)
+        import.collector=merge(import.collector, phrase.table[,c("phrase.tl","phrase.id")], by="phrase.tl", all.x=T)
         phrase.table$phrase.tl=NULL
         
         phrase.table.temp=unique(import.collector[,c("product.name","phrase.id")])
@@ -214,6 +214,7 @@ if(importer.busy>2){
                            data.frame(phrase.id=new.phrases$phrase.id,
                                       phrase=new.phrases$product.name,
                                       source="xlsx import",
+                                      nr.completed.jobs=0,
                                       stringsAsFactors = F))
         
         save_all(path)
@@ -251,6 +252,7 @@ if(importer.busy>2){
                                data.frame(suggestion.id=code.suggested.temp$suggestion.id,
                                           phrase.id=code.suggested.temp$phrase.id,
                                           hs.code.6=code.suggested.temp$hs.code,
+                                          probability=NA,
                                           stringsAsFactors = F))
           
           ## code.source
