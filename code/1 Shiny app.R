@@ -1254,7 +1254,7 @@ server <- function(input, output, session) {
           job.phrase <- rbind(job.phrase, 
                               data.frame(job.id = job.id,
                                          phrase.id = phr.id,
-                                         processed = TRUE))
+                                         processed = FALSE))
           job.phrase <<- job.phrase
           
         } else if (new.phrase == F) {
