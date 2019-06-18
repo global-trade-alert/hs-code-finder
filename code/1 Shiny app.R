@@ -40,7 +40,7 @@ for(fct in list.files("17 Shiny/5 HS code finder/code/functions", pattern = ".R"
 
 
 # # CODE TO REMOVE PHRASES/JOBS/CHECKS MANUALLY
-# load_all()
+# load_all(path)
 # phrase.to.remove <- c(1270)
 # 
 # phrase.table <- subset(phrase.table, ! phrase.id %in% phrase.to.remove)
@@ -67,11 +67,11 @@ for(fct in list.files("17 Shiny/5 HS code finder/code/functions", pattern = ".R"
 # check.phrases <- subset(check.phrases, ! check.id %in% checks.to.remove)
 # check.certainty <- subset(check.certainty, ! check.id %in% checks.to.remove)
 # 
-# save_all()
+# save_all(path)
 
 
 # Build starting set
-load_all()
+load_all(path)
 
 data.base.0 = hs.codes
 data.base.0$indicator = "<div class='indicator'></div>"
@@ -809,10 +809,10 @@ server <- function(input, output, session) {
     
     # UPDATE EMAIL ADRESS
     if(input$update.email == T) {
-      load_all()
+      load_all(path)
       users$email[users$name == input$users] <- input$import.email.adress
       users <<- users
-      save_all()
+      save_all(path)
     }
     
     # FILL IMPORTER LOG
@@ -976,7 +976,7 @@ server <- function(input, output, session) {
   
   # Report terms which are not a product 
   observeEvent(input$not.product, {
-    load_all()
+    load_all(path)
     
     report.services <<- rbind(report.services, 
                               data.frame(phrase.id = phr.id,
@@ -1002,7 +1002,7 @@ server <- function(input, output, session) {
                                       phrase.id = phr.id))
     check.phrases <<- check.phrases
     
-    save_all()
+    save_all(path)
     refresh_names()
   })
   
@@ -1067,13 +1067,13 @@ server <- function(input, output, session) {
     if (name %in% unique(users$name)) {
       showNotification("This name already exists",duration = 5)
     } else {
-      load_all()
+      load_all(path)
       users <<- rbind(users, data.frame(user.id = max(users$user.id)+1,
                                         name = name,
                                         gta.layer = "core",
                                         email = "name@mail.com"))
-      save_all()
-      load_all()
+      save_all(path)
+      load_all(path)
       updateSelectInput(session, "users", choices = unique(users$name),selected = name)
       reset("username")
     }
@@ -1085,7 +1085,7 @@ server <- function(input, output, session) {
   
   refresh_names <- function(type="check.suggestion") {
     print("REFRESH_NAMES()")
-    load_all()
+    load_all(path)
     
     all.done = F
     
@@ -1170,7 +1170,7 @@ server <- function(input, output, session) {
   
   save_selection <- function(type) {
     print("SAVE_SELECTION()")
-    load_all() 
+    load_all(path) 
     if(input$users=="Select"){
       showNotification("Please select or create a user before saving your selection",duration = 1000)
     } else if (is.null(input$radio1)==T) {
@@ -1412,7 +1412,7 @@ server <- function(input, output, session) {
           if(nrow(subset(job.phrase, job.id==j.id & processed==F))==0){
             job.log$job.processed[job.log$job.id==j.id]=T
             job.log <<- job.log
-            save_all()
+            save_all(path)
             
             gta_hs_process_completed_job(processed.job=j.id)
           }
@@ -1446,7 +1446,7 @@ server <- function(input, output, session) {
       }
       
       
-      save_all()
+      save_all(path)
       
       
       if (type != "unrelated_search") {
@@ -1457,7 +1457,7 @@ server <- function(input, output, session) {
         
         future({ gta_hs_code_finder(products = tolower(paste(query.refine.future, collapse=" ")))}) %...>%  {
           found.temp <- .
-          load_all()
+          load_all(path)
           codes <- code.suggested$hs.code.6[code.suggested$phrase.id == phr.id.future]
           new.codes <- subset(found.temp, ! hs.code %in% codes)
           new.codes <- new.codes[,c("hs.code","source.names")]
@@ -1474,7 +1474,7 @@ server <- function(input, output, session) {
           new.codes <- merge(new.codes, suggestion.sources, by="source.name", all.x=T)
           code.source <- rbind(code.source, new.codes[,c("source.id","suggestion.id")])
           code.source <<- code.source
-          save_all()
+          save_all(path)
           print("ALL DONE ASYNC")
         }
         

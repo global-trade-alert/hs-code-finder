@@ -2,7 +2,7 @@ assign.global <- function (assignTo, toAssign) {
   assign(assignTo, toAssign, envir = .GlobalEnv)
 }
 
-save_all <- function() {
+save_all <- function(path) {
   print("SAVE_ALL()")
   save(check.certainty,
        check.log,
@@ -32,7 +32,7 @@ save_all <- function() {
   
 }
 
-load_all <- function() {
+load_all <- function(path) {
   print("LOAD_ALL()")
   load(file=path)
   
