@@ -19,7 +19,7 @@ running.processes=system("ps aux", intern=T)
 load("17 Shiny/5 HS code finder/log/importer-log.Rdata")
 importer.busy=sum(as.numeric(grepl("(importer.R)",running.processes, ignore.case = T)))
 
-if(importer.busy>1){
+if(importer.busy>2){
   
   print(paste(Sys.time(), ": importer is busy with order #",min(importer.log$ticket.number[importer.log$under.preparation==1]), sep=""))
   print(running.processes[grepl("(importer.R)",running.processes, ignore.case = T)])
@@ -103,9 +103,7 @@ if(importer.busy>1){
                     authenticate = T)
           
           rm(recipients, message, sbjct, sender)
-          update_logs()
-          break()
-          
+
         } else{
           
           recipients=c(recipients, "patrick.buess@student.unisg.ch","johannes.fritz@unsig.ch")
@@ -219,6 +217,19 @@ if(importer.busy>1){
         
         save_all(path)
         
+        
+        ## checking whether existing phrases have been processed
+        if(nrow(subset(phrase.table.temp, is.na(phrase.id)==F))>0){
+          old.phrases=subset(phrase.table.temp, is.na(phrase.id)==F)
+          
+          op.procssed=logical(nrow(old.phrases))
+          
+          for(i in 1:nrow(old.phrases)){
+            op.procssed[i]=T %in% subset(job.phrase, phrase.id %in% old.phrases$phrase.id[i])$processed
+          }
+                             
+        }
+        
         phrase.table.temp=rbind(subset(phrase.table.temp, is.na(phrase.id)==F), 
                                new.phrases)
         
@@ -226,11 +237,31 @@ if(importer.busy>1){
         
         ## Updating job.phrase
         load_all(path)
-        job.phrase=rbind(job.phrase,
-                         data.frame(job.id=job.id.import,
-                                    phrase.id=phrase.table.temp$phrase.id,
-                                    processed=F,
-                                    stringsAsFactors = F))
+        
+        if(nrow(new.phrases)==nrow(phrase.table.temp)){
+          
+          job.phrase=rbind(job.phrase,
+                           data.frame(job.id=job.id.import,
+                                      phrase.id=phrase.table.temp$phrase.id,
+                                      processed=F,
+                                      stringsAsFactors = F))
+          
+        } else {
+          
+          job.phrase=rbind(job.phrase,
+                           data.frame(job.id=job.id.import,
+                                      phrase.id=old.phrases$phrase.id,
+                                      processed=op.procssed,
+                                      stringsAsFactors = F))
+          
+          job.phrase=rbind(job.phrase,
+                           data.frame(job.id=job.id.import,
+                                      phrase.id=new.phrases$phrase.id,
+                                      processed=F,
+                                      stringsAsFactors = F))
+          
+        }
+
         
         save_all(path)
         
