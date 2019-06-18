@@ -17,6 +17,7 @@ library(splitstackshape)
 library(promises)
 library(future)
 library(clipr)
+library(gtalibrary)
 # library(profvis)
 plan(multiprocess)
 # gta_update_library()
@@ -273,14 +274,14 @@ ui <- fluidPage(
                                       tags$div(class="import-wrap-inner",
                                                tags$div(class="import-close-button"),
                                                textInput(inputId = "import.job.name",
-                                                         label="Name of Import"),
+                                                         label="Specify a task name"),
                                                checkboxInput(inputId = "prioritize",
                                                              label="Prioritize this query"),
                                                # checkboxInput(inputId = "process.by.me",
                                                #               label="Have this query processed by me"),
                                                numericInput(inputId = "process.by.others",
-                                                            value = 0,
-                                                            label = "Have this query processed by X others"),
+                                                            value = 3,
+                                                            label = "X users should check these products"),
                                                textInput(inputId = "state.act.id",
                                                          label = "State Act ID, if existing"),
                                                textInput(inputId = "import.email.adress",
@@ -288,9 +289,9 @@ ui <- fluidPage(
                                                          placeholder = "Email address",
                                                          value = "your-email"),
                                                checkboxInput(inputId = "update.email",
-                                                             label = "Update user email adress"),
+                                                             label = "Update user email address"),
                                                actionButton(inputId = "finish.import",
-                                                            label = "Finish Import"))),
+                                                            label = "Finish import"))),
                              tags$div(id="selected_codes_output_old",
                                       tags$div(class="old-codes-close-button"),
                                       textAreaInput("selected_codes_output_old_area",
@@ -807,7 +808,7 @@ server <- function(input, output, session) {
     load("17 Shiny/5 HS code finder/log/importer-log.Rdata")
     filename = paste0(Sys.Date()," - ",max(importer.log$ticket.number)+1," - ",chosen.user,".xlsx")
     
-    # UPDATE EMAIL ADRESS
+    # UPDATE EMAIL ADDRESS
     if(input$update.email == T) {
       load_all(path)
       users$email[users$name == input$users] <- input$import.email.adress
