@@ -39,13 +39,13 @@ gta_hs_classify_results<- function(variable.df="classifier.input",
   estimation.set=rbind(estimation.set, agreed.parts)
   
   ##  Updating database for processed suggestions
-  load_all()
+  load_all(path)
   
   code.suggested=rbind(subset(code.suggested, (! suggestion.id %in% estimation.set$suggestion.id)),
                        unique(estimation.set[,c(names(code.suggested))]))
   
   assign.global("code.suggested",code.suggested)
-  save_all()
+  save_all(path)
   
     
   estimation.set=merge(estimation.set, phrase.table[,c("phrase.id","phrase")], by="phrase.id")
