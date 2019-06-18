@@ -1187,11 +1187,11 @@ server <- function(input, output, session) {
           job.log <- rbind(job.log, 
                            data.frame(job.id = max(job.log$job.id)+1,
                                       job.type = "Own search",
-                                      job.name = input$search.field.unrelated,
+                                      job.name = paste("Search for",input$search.field.unrelated),
                                       user.id = users$user.id[users$name == input$users],
-                                      nr.of.checks = 1,
+                                      nr.of.checks = 3,
                                       check.hierarchy = FALSE,
-                                      is.priority = FALSE,
+                                      is.priority = TRUE,
                                       self.check = FALSE,
                                       related.state.act = NA,
                                       job.processed = FALSE,
@@ -1414,8 +1414,10 @@ server <- function(input, output, session) {
             job.log$job.processed[job.log$job.id==j.id]=T
             job.log <<- job.log
             save_all(path)
-            
+          
             gta_hs_process_completed_job(processed.job=j.id)
+          
+            
           }
           
         }
