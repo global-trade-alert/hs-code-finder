@@ -125,3 +125,23 @@ remove_all<- function(x){
      report.services,
      additional.suggestions)
 }
+
+
+
+update_logs <- function() {
+  print("updating importer-log.Rdata")
+  load("17 Shiny/5 HS code finder/log/importer-log.Rdata")
+  importer.log$time.finish[log.row]=Sys.time()
+  class(importer.log$time.finish)=c('POSIXt', 'POSIXct')
+  importer.log$under.preparation[log.row]=0
+  save(importer.log, file = "17 Shiny/5 HS code finder/log/importer-log.Rdata")
+  
+  load("17 Shiny/5 HS code finder/log/importer-log.Rdata")
+  
+  print("Closing sink")
+  sink()
+  sink(type="message")
+  
+  print(paste("Updating round count to",rnd+1))
+  rnd=rnd+1 
+}
