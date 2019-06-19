@@ -139,9 +139,10 @@ if(importer.busy>2){
         print("FIRST ROUND")
         for(term in importfile) {
           import.collector.temp <- gta_hs_code_finder(products = term,
-                                                      sources <- c("eurostat", "eu.customs", "zauba", "e.to.china", "google", "eximguru", "cybex"),
+                                                      sources = c("eurostat", "eu.customs", "zauba", "e.to.china", "google", "eximguru", "cybex"),
                                                       check.archive = T,
-                                                      archive.location = "17 Shiny/5 HS code finder/database/GTA HS code database.Rdata")
+                                                      archive.location = "17 Shiny/5 HS code finder/database/GTA HS code database.Rdata",
+                                                      wait.time = 15)
           if (is.data.frame(import.collector.temp)==T) {
             if (nrow(import.collector.temp)>0) {
               import.collector <- rbind(import.collector, import.collector.temp)
@@ -160,9 +161,10 @@ if(importer.busy>2){
           scd.terms <- unique(subset(import.collector, is.na(hs.code)==T)$product.name)
           for(term in scd.terms) {
             import.collector.temp <- gta_hs_code_finder(products = term,
-                                                        sources <- c("eurostat", "eu.customs", "zauba", "e.to.china", "google", "eximguru", "cybex"),
+                                                        sources = c("eurostat", "eu.customs", "zauba", "e.to.china", "google", "eximguru", "cybex"),
                                                         check.archive = T,
-                                                        archive.location = "17 Shiny/5 HS code finder/database/GTA HS code database.Rdata")
+                                                        archive.location = "17 Shiny/5 HS code finder/database/GTA HS code database.Rdata",
+                                                        wait.time = 15)
             if (is.data.frame(import.collector.temp)==T) {
               if (nrow(import.collector.temp)>0) {
                 import.collector <- subset(import.collector, product.name != term)
