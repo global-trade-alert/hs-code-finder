@@ -21,6 +21,7 @@ save_all <- function(path) {
        words.removed,
        report.services,
        additional.suggestions,
+       phrases.to.import,
        file = path)
   
   # if(exists("check.phrases")){
@@ -103,6 +104,11 @@ load_all <- function(path) {
   additional.suggestions <- additional.suggestions
   additional.suggestions <<- additional.suggestions
   assign.global("additional.suggestions", additional.suggestions)
+  
+  
+  phrases.to.import <- phrases.to.import
+  phrases.to.import <<- phrases.to.import
+  assign.global("phrases.to.import", phrases.to.import)
   
 }
 
