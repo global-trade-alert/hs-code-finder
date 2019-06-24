@@ -152,6 +152,8 @@ if(importer.busy>2){
         phrases.to.import=rbind(phrases.to.import, 
                                 data.frame(job.id=job.id.import,
                                            phrase=imported.phrases,
+                                           search.underway=F,
+                                           search.concluded=F,
                                            stringsAsFactors = F))
         
         save_all(path)
