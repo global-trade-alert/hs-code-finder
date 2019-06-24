@@ -94,8 +94,14 @@ if(hs.search.busy>2){
                                       source.data=path)
         
         
+        
         ## adding found HS codes for unprocessed phrases, if any
         if(! this.phrase$phrase.processed){
+          
+          ## mark job as unprocessed
+          load_all(path)
+          job.log$job.processed[job.log$job.id %in% this.phrase.jobs]=F
+          save_all(path)
           
           if(is.data.frame(search.result) & nrow(search.result)>0){
             
