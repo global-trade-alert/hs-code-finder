@@ -15,7 +15,7 @@ running.processes=system("ps aux", intern=T)
 
 hs.search.busy=sum(as.numeric(grepl("(hs-search.R)",running.processes, ignore.case = T)))
 
-if(hs.search.busy>2){
+if(hs.search.busy>=1){
   
   print(paste(Sys.time(), ": HS Search is busy"))
   print(running.processes[grepl("(hs-search.R)",running.processes, ignore.case = T)])
