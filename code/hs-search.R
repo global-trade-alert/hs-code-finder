@@ -111,7 +111,7 @@ if(hs.search.busy>2){
           if(this.phrase$phrase.id %in% unique(code.suggested$phrase.id)){
             load_all(path)
             hs.already.suggested=unique(subset(code.suggested, phrase.id==this.phrase$phrase.id)$hs.code.6)
-            search.result=subset(search.result, hs.code.6 %in% hs.already.suggested)
+            search.result=subset(search.result, ! hs.code %in% hs.already.suggested)
             
           }
           
