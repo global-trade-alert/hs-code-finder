@@ -816,6 +816,15 @@ server <- function(input, output, session) {
       save_all(path)
     }
     
+    
+    # UPDATE EMAIL ADDRESS #2 : in case we don't have one on file
+    if(is.na(users$email[users$name == input$users])) {
+      load_all(path)
+      users$email[users$name == input$users] <- input$import.email.adress
+      users <<- users
+      save_all(path)
+    }
+    
     # FILL IMPORTER LOG
     importer.log.new = data.frame(user.id = users$user.id[users$name == input$users],
                                   order.email = input$import.email.adress,
