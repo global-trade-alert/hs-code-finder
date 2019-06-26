@@ -50,6 +50,8 @@ if(hs.search.busy>2){
       ## Start search for a phrase
       this.phrase=search.phrases[1]
       this.phrase.jobs=unique(subset(phrases.to.import, phrase==this.phrase)$job.id)
+      this.job.name=paste(unique(subset(job.log, job.id %in% this.phrase.jobs)$job.name), collapse="; ")
+      this.job.email=unique(subset(users, user.id %in% subset(job.log, job.id %in% this.phrase.jobs )$user.id)$email)
       phrases.to.import$search.underway[phrases.to.import$phrase==this.phrase]=T
       save_all(path)
       
@@ -164,8 +166,8 @@ if(hs.search.busy>2){
         
         ## updating phrase import status
         load_all(path)
-        phrases.to.import$search.underway[phrases.to.import$phrase==this.phrase]=F
-        phrases.to.import$search.concluded[phrases.to.import$phrase==this.phrase]=T
+        phrases.to.import$search.underway[phrases.to.import$phrase==this.phrase$phrase]=F
+        phrases.to.import$search.concluded[phrases.to.import$phrase==this.phrase$phrase]=T
         save_all(path)
         
         
@@ -185,8 +187,8 @@ if(hs.search.busy>2){
         # ERROR EMAIL
         sender = "data@globaltradealert.org"
         recipients = c("patrick.buess@student.unisg.ch", "fritz.johannes@gmail.com")
-        sbjct=paste("[",kl$job.name,"] Import unsuccessful",sep="")
-        message=paste0("Hello \n\n The job '",kl$job.name,"' ended with an error. The message is: \n\n",error.message[2],"\n\nRegards\nGTA data team")
+        sbjct=paste("[",this.job.name,"] Import unsuccessful",sep="")
+        message=paste0("Hello \n\n The job '",this.job.name,"' ended with an error. The message is: \n\n",error.message[2],"\n\nRegards\nGTA data team")
         
         
         send.mail(from = sender,
@@ -217,9 +219,9 @@ if(hs.search.busy>2){
         
         # SEND AVAILABILITY EMAIL TO USER
         sender = "data@globaltradealert.org"
-        recipients = kl$order.email
-        sbjct=paste("[",kl$job.name,"] Import available in the app",sep="")
-        message=paste0("Hello \n\nThank you for importing new terms. The job '",kl$job.name,"' is now processed and the terms can be reviewed online. \n\nIn case of questions or suggestions, please reply to this message. \n\nRegards\nGTA data team")
+        recipients = this.job.email
+        sbjct=paste("[",this.job.name,"] Import available in the app",sep="")
+        message=paste0("Hello \n\nThank you for importing new terms. The job '",this.job.name,"' is now processed and the terms can be reviewed online. \n\nIn case of questions or suggestions, please reply to this message. \n\nRegards\nGTA data team")
         
         
         send.mail(from = sender,
@@ -238,30 +240,30 @@ if(hs.search.busy>2){
         
         
         # SEND AVAILABILITY EMAIL TO UPWORK
-        sender = "data@globaltradealert.org"
-        sbjct=paste("GTA/UpWork HS code classification: App updated",sep="")
-        
-        nr.left=length(unique(subset(job.phrase, processed==F & job.id %in% subset(job.log, job.processed==F)$job.id)$phrase.id))
-        message=paste0("Hello \n\nThank you for your patience. We have just updated the HS code app.\n\nThere are now ",nr.left," products awaiting classification.\n\nRegards\nJohannes\nhttp://hs.globaltradealert.org/")
-        
-        source("17 Shiny/5 HS code finder/setup/uw.R")
-        
-        if(nr.left>0){
-          for(email.to in recipients){
-            
-            send.mail(from = sender,
-                      to = email.to,
-                      subject=sbjct,
-                      body=message,
-                      html=F,
-                      smtp = list(host.name = "mail.infomaniak.com",
-                                  port=587,
-                                  user.name=sender,
-                                  passwd="B0d@nstrasse",
-                                  tls=T),
-                      authenticate = T)
-            }
-          }
+        # sender = "data@globaltradealert.org"
+        # sbjct=paste("GTA/UpWork HS code classification: App updated",sep="")
+        # 
+        # nr.left=length(unique(subset(job.phrase, processed==F & job.id %in% subset(job.log, job.processed==F)$job.id)$phrase.id))
+        # message=paste0("Hello \n\nThank you for your patience. We have just updated the HS code app.\n\nThere are now ",nr.left," products awaiting classification.\n\nRegards\nJohannes\nhttp://hs.globaltradealert.org/")
+        # 
+        # source("17 Shiny/5 HS code finder/setup/uw.R")
+        # 
+        # if(nr.left>0){
+        #   for(email.to in recipients){
+        #     
+        #     send.mail(from = sender,
+        #               to = email.to,
+        #               subject=sbjct,
+        #               body=message,
+        #               html=F,
+        #               smtp = list(host.name = "mail.infomaniak.com",
+        #                           port=587,
+        #                           user.name=sender,
+        #                           passwd="B0d@nstrasse",
+        #                           tls=T),
+        #               authenticate = T)
+        #     }
+        #   }
         }
       
       print(paste("Processed: ",this.phrase$phrase))
