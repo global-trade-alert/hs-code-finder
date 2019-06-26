@@ -27,15 +27,22 @@ gta_hs_remove_job<- function(remove.job.ids=NULL,
       stop(paste("Job",i,"is not in the job.log."))
     }
   }
+
   
-  job.phrase=subset(job.phrase, ! job.id %in% remove.jobs)
+  job.log=subset(job.log, ! job.id %in% remove.jobs)
+  assign.global("job.log",job.log)
+  
+  job.phrase=subset(job.phrase, job.id %in% job.log$job.id)
   assign.global("job.phrase",job.phrase)
   
-  check.log=subset(check.log, ! job.id %in% remove.jobs)
+  check.log=subset(check.log, job.id %in% job.log$job.id)
   assign.global("check.log",check.log)
   
   phrase.table=subset(phrase.table, phrase.id %in% job.phrase$phrase.id)
   assign.global("phrase.table",phrase.table)
+  
+  phrases.to.import=subset(phrases.to.import, job.id %in% job.log$job.id)
+  assign.global("phrases.to.import",phrases.to.import)
   
   code.suggested=subset(code.suggested, is.na(hs.code.6)==F & phrase.id %in% phrase.table$phrase.id)
   assign.global("code.suggested",code.suggested)
@@ -48,14 +55,11 @@ gta_hs_remove_job<- function(remove.job.ids=NULL,
   
   check.phrases=subset(check.phrases, phrase.id %in% phrase.table$phrase.id)
   assign.global("check.phrases",check.phrases)
-  
-  job.log=subset(job.log, ! job.id %in% remove.jobs)
-  assign.global("job.log",job.log)
 
   additional.suggestions=subset(additional.suggestions, check.id %in% check.phrases$check.id)
   assign.global("additional.suggestions",additional.suggestions)
   
-  save_all(path)
+  save_all(source.data)
   
   print(paste("Removed job(s)",paste(remove.jobs, collapse=","), "successfully."))
 }
