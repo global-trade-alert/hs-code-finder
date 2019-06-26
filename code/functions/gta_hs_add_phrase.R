@@ -1,4 +1,4 @@
-gta_hs_remove_job<- function(add.job.id=NULL,
+gta_hs_add_phrase<- function(add.job.id=NULL,
                              phrase.to.add=NULL,
                              phrase.source=NULL,
                              path.to.cloud=NULL,
