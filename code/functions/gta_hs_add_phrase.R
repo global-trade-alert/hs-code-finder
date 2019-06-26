@@ -23,13 +23,16 @@ gta_hs_add_phrase<- function(add.job.id=NULL,
   
   load_all(source.data)
   
-  if(tolower(this.phrase) %in% tolower(phrase.table$phrase)){
+  if(tolower(phrase.to.add) %in% tolower(phrase.table$phrase)){
+    
+    pt.row=min(which(tolower(phrase.table$phrase)==tolower(phrase.to.add)))
+    
     ## existing phrases
     is.new=F
     
-    new.phrase.id=unique(subset(phrase.table, tolower(phrase)==phrase.to.add)$phrase.id)
+    new.phrase.id=phrase.table$phrase.id[pt.row]
     
-    if(new.phrase.id %in% unique(code.suggested$phrase.id)){
+    if(new.phrase.id %in% unique(subset(code.suggested, is.na(probability)==F)$phrase.id)){
       is.processed=max(subset(code.suggested, phrase.id %in% new.phrase.id)$probability, na.rm=T)>.5
     } else {
       is.processed=F
@@ -69,11 +72,17 @@ gta_hs_add_phrase<- function(add.job.id=NULL,
     }
     
     #### update job.phrase
-    job.phrase=rbind(job.phrase,
-                     data.frame(job.id=add.job.id,
-                                phrase.id=new.phrase.id,
-                                processed=is.processed,
-                                stringsAsFactors = F))
+    if(nrow(subset(job.phrase, job.id==add.job.id & phrase.id==new.phrase.id))>0){
+      job.phrase$processed[job.phrase$job.id==add.job.id & job.phrase$phrase.id==new.phrase.id]=is.processed
+      
+    }else{
+      job.phrase=rbind(job.phrase,
+                       data.frame(job.id=add.job.id,
+                                  phrase.id=new.phrase.id,
+                                  processed=is.processed,
+                                  stringsAsFactors = F))
+    }
+
     
     assign.global("job.phrase",job.phrase)
     
