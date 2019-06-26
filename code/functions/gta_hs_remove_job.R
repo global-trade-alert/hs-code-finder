@@ -29,15 +29,31 @@ gta_hs_remove_job<- function(remove.job.ids=NULL,
   }
   
   job.phrase=subset(job.phrase, ! job.id %in% remove.jobs)
+  assign.global("job.phrase",job.phrase)
+  
   check.log=subset(check.log, ! job.id %in% remove.jobs)
+  assign.global("check.log",check.log)
+  
   phrase.table=subset(phrase.table, phrase.id %in% job.phrase$phrase.id)
+  assign.global("phrase.table",phrase.table)
+  
   code.suggested=subset(code.suggested, is.na(hs.code.6)==F & phrase.id %in% phrase.table$phrase.id)
-  code.selected=subset(code.selected, phrase.id %in% phrase.table$phrase.id)
+  assign.global("code.suggested",code.suggested)
+  
+  code.selected=subset(code.selected, suggestion.id %in% code.suggested$suggestion.id)
+  assign.global("code.selected",code.selected)
+  
   code.source=subset(code.source, suggestion.id %in% code.suggested$suggestion.id)
+  assign.global("code.source",code.source)
+  
   check.phrases=subset(check.phrases, phrase.id %in% phrase.table$phrase.id)
+  assign.global("check.phrases",check.phrases)
+  
   job.log=subset(job.log, ! job.id %in% remove.jobs)
-  check.phrases=subset(check.phrases, phrase.id %in% phrase.table$phrase.id)
+  assign.global("job.log",job.log)
+
   additional.suggestions=subset(additional.suggestions, check.id %in% check.phrases$check.id)
+  assign.global("additional.suggestions",additional.suggestions)
   
   save_all(path)
   
