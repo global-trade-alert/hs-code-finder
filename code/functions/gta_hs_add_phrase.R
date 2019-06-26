@@ -28,7 +28,13 @@ gta_hs_add_phrase<- function(add.job.id=NULL,
     is.new=F
     
     new.phrase.id=unique(subset(phrase.table, tolower(phrase)==phrase.to.add)$phrase.id)
-    is.processed=max(subset(code.suggested, phrase.id %in% new.phrase.id)$probability, na.rm=T)>.5
+    
+    if(new.phrase.id %in% unique(code.suggested$phrase.id)){
+      is.processed=max(subset(code.suggested, phrase.id %in% new.phrase.id)$probability, na.rm=T)>.5
+    } else {
+      is.processed=F
+    }
+    
     
     
     phrase.jobs=max(c(subset(phrase.table, tolower(phrase)==phrase.to.add)$nr.completed.jobs,0), na.rm=T)
