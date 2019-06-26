@@ -51,6 +51,8 @@ gta_hs_add_phrase<- function(add.job.id=NULL,
                                 nr.completed.jobs=phrase.jobs,
                                 stringsAsFactors = F))
   
+  assign.global("phrase.table",phrase.table)
+  
   
   if(update.job.phrase){
     
@@ -67,7 +69,10 @@ gta_hs_add_phrase<- function(add.job.id=NULL,
                                 processed=is.processed,
                                 stringsAsFactors = F))
     
+    assign.global("job.phrase",job.phrase)
+    
   }
+  
   
   save_all(source.data)
   
