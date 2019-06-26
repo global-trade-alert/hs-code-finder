@@ -47,10 +47,10 @@ if(importer.busy>2){
   }else{
     
     max.rnds=sum(importer.log$under.preparation)
-    rnd=1
+    rnd=0
     ## if nothing is running, then start the oven.
-    while(sum(importer.log$under.preparation)>0 & rnd<=max.rnds){
-      
+    while(sum(importer.log$under.preparation)>0 & rnd<max.rnds){
+      rnd=rnd+1
       error.message <- c(F)
       
       tryCatch({
@@ -157,6 +157,9 @@ if(importer.busy>2){
                                            stringsAsFactors = F))
         
         save_all(path)
+        
+        importer.log$under.preparation[log.row]=1
+        save(importer.log, file="17 Shiny/5 HS code finder/log/importer-log.Rdata")
         
         
         
