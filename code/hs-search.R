@@ -103,6 +103,17 @@ if(hs.search.busy>2){
           job.log$job.processed[job.log$job.id %in% this.phrase.jobs]=F
           save_all(path)
           
+          
+          ## check whether suggestions have been made in an earlier job for this phrase
+          search.result$hs.code=as.numeric(search.result$hs.code)
+          if(this.phrase$phrase.id %in% unique(code.suggested$phrase.id)){
+            load_all(path)
+            hs.already.suggested=unique(subset(code.suggested, phrase.id==this.phrase$phrase.id)$hs.code.6)
+            search.result=subset(search.result, hs.code.6 %in% hs.already.suggested)
+            
+          }
+          
+          ## add what's left of the search result, if anything
           if(is.data.frame(search.result) & nrow(search.result)>0){
             
             this.sug.id=(max(code.suggested$suggestion.id)+1):(max(code.suggested$suggestion.id)+nrow(search.result))
