@@ -11,11 +11,31 @@ setwd("/home/rstudio/Dropbox/GTA cloud")
 
 
 ## check if a process is running on the server
+search.time.allowance=5
 running.processes=system("ps aux", intern=T)
 
 hs.search.busy=sum(as.numeric(grepl("(hs-search.R)",running.processes, ignore.case = T)))
 
-if(hs.search.busy>=1){
+if(hs.search.busy>=2){
+  
+  ## looking for broken searches
+  run.not.finished=subset(phrases.to.import, (search.underway==T & search.concluded==F & difftime(Sys.time(), run.time, units="mins")>search.time.allowance))
+  others=subset(phrases.to.import, ! (search.underway==T & search.concluded==F & difftime(Sys.time(), run.time, units="mins")>search.time.allowance))
+  
+  if(nrow(run.not.finished)>0){
+    run.not.finished$search.underway=F
+    
+    phrases.to.import=rbind(others, run.not.finished)
+    save_all(path)
+    
+    ## abort stuck process
+    process.to.kill=as.numeric(gsub("\\D","",str_extract(running.processes[grepl("hs-search.R", running.processes)][1], "^rstudio +?\\d+")))
+    system(paste("kill -9", process.to.kill), intern=T)
+  }
+  
+  rm(run.not.finished, others)
+  
+  phrases.to.import$search.underway[]=F
   
   print(paste(Sys.time(), ": HS Search is busy"))
   print(running.processes[grepl("(hs-search.R)",running.processes, ignore.case = T)])
@@ -53,6 +73,8 @@ if(hs.search.busy>=1){
       this.job.name=paste(unique(subset(job.log, job.id %in% this.phrase.jobs)$job.name), collapse="; ")
       this.job.email=unique(subset(users, user.id %in% subset(job.log, job.id %in% this.phrase.jobs )$user.id)$email)
       phrases.to.import$search.underway[phrases.to.import$phrase==this.phrase]=T
+      phrases.to.import$run.time[phrases.to.import$phrase==this.phrase]=Sys.time()
+      phrases.to.import$nr.attempts[phrases.to.import$phrase==this.phrase]=phrases.to.import$nr.attempts[phrases.to.import$phrase==this.phrase]+1
       save_all(path)
       
       ## initialise data collection
@@ -187,8 +209,8 @@ if(hs.search.busy>=1){
         # ERROR EMAIL
         sender = "data@globaltradealert.org"
         recipients = c("patrick.buess@student.unisg.ch", "fritz.johannes@gmail.com")
-        sbjct=paste("[",this.job.name,"] Import unsuccessful",sep="")
-        message=paste0("Hello \n\n The job '",this.job.name,"' ended with an error. The message is: \n\n",error.message[2],"\n\nRegards\nGTA data team")
+        sbjct=paste("[",this.job.name,"] HS search unsuccessful",sep="")
+        message=paste0("Hello \n\n The HS search for '",this.phrase$phrase,"' in job '",this.job.name,"' ended with an error. The message is: \n\n",error.message[2],"\n\nRegards\nGTA data team")
         
         
         send.mail(from = sender,

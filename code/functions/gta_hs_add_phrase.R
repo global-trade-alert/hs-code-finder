@@ -50,15 +50,16 @@ gta_hs_add_phrase<- function(add.job.id=NULL,
     new.phrase.id=max(phrase.table$phrase.id, na.rm = T)+1
     
     phrase.jobs=0
+    
+    
+    phrase.table=rbind(phrase.table,
+                       data.frame(phrase.id=new.phrase.id,
+                                  phrase=phrase.to.add,
+                                  source=phrase.source,
+                                  nr.completed.jobs=phrase.jobs,
+                                  stringsAsFactors = F))
+    
     }
-  
-  
-  phrase.table=rbind(phrase.table,
-                     data.frame(phrase.id=new.phrase.id,
-                                phrase=phrase.to.add,
-                                source=phrase.source,
-                                nr.completed.jobs=phrase.jobs,
-                                stringsAsFactors = F))
   
   assign.global("phrase.table",phrase.table)
   

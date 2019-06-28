@@ -154,6 +154,8 @@ if(importer.busy>2){
                                            phrase=imported.phrases,
                                            search.underway=F,
                                            search.concluded=F,
+                                           run.time=NA,
+                                           nr.attempts=0,
                                            stringsAsFactors = F))
         
         save_all(path)
