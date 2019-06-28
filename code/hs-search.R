@@ -29,8 +29,8 @@ load_all(path)
 if(hs.search.busy>=3){
   
   ## looking for broken searches
-  run.not.finished=subset(phrases.to.import, (search.underway==T & search.concluded==F & difftime(Sys.time(), run.time, units="mins")>search.time.allowance))
-  others=subset(phrases.to.import, ! (search.underway==T & search.concluded==F & difftime(Sys.time(), run.time, units="mins")>search.time.allowance))
+  run.not.finished=subset(phrases.to.import, (search.underway==T & search.concluded==F & difftime(Sys.time(), as.POSIXct(phrases.to.import$run.time[1], origin="1970-01-01"), units="mins")>search.time.allowance & is.na(run.time)==F))
+  others=subset(phrases.to.import, ! (search.underway==T & search.concluded==F & difftime(Sys.time(), as.POSIXct(phrases.to.import$run.time[1], origin="1970-01-01"), units="mins")>search.time.allowance & is.na(run.time)==F))
   
   if(nrow(run.not.finished)>0){
     run.not.finished$search.underway=F
@@ -43,12 +43,12 @@ if(hs.search.busy>=3){
     system(paste("kill -9", process.to.kill), intern=T)
   }
   
-  if(nrow(run.not.finished)==0){
-    ## abort stuck process
-    process.to.kill=as.numeric(gsub("\\D","",str_extract(running.processes[grepl("hs-search.R", running.processes)][1], "^rstudio +?\\d+")))
-    system(paste("kill -9", process.to.kill), intern=T)
-  }
-  
+  # if(nrow(run.not.finished)==0){
+  #   ## abort stuck process
+  #   process.to.kill=as.numeric(gsub("\\D","",str_extract(running.processes[grepl("hs-search.R", running.processes)][1], "^rstudio +?\\d+")))
+  #   system(paste("kill -9", process.to.kill), intern=T)
+  # }
+  # 
   
   rm(run.not.finished, others)
   
