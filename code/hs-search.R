@@ -42,15 +42,7 @@ if(hs.search.busy>=2){
   
 } else {
   
-  ## setup
-  path="17 Shiny/5 HS code finder/database/GTA HS code database.Rdata"
-  for(fct in list.files("17 Shiny/5 HS code finder/code/functions", pattern = ".R", full.names=T)){
-    source(fct)
-  }
-  
-  
   ## updating phrases to import
-  load_all(path)
   search.phrases=unique(subset(phrases.to.import, search.underway==F & search.concluded==F)$phrase)
   
   
