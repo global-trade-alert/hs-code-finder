@@ -262,30 +262,30 @@ if(hs.search.busy>=2){
         
         
         # SEND AVAILABILITY EMAIL TO UPWORK
-        # sender = "data@globaltradealert.org"
-        # sbjct=paste("GTA/UpWork HS code classification: App updated",sep="")
-        # 
-        # nr.left=length(unique(subset(job.phrase, processed==F & job.id %in% subset(job.log, job.processed==F)$job.id)$phrase.id))
-        # message=paste0("Hello \n\nThank you for your patience. We have just updated the HS code app.\n\nThere are now ",nr.left," products awaiting classification.\n\nRegards\nJohannes\nhttp://hs.globaltradealert.org/")
-        # 
-        # source("17 Shiny/5 HS code finder/setup/uw.R")
-        # 
-        # if(nr.left>0){
-        #   for(email.to in recipients){
-        #     
-        #     send.mail(from = sender,
-        #               to = email.to,
-        #               subject=sbjct,
-        #               body=message,
-        #               html=F,
-        #               smtp = list(host.name = "mail.infomaniak.com",
-        #                           port=587,
-        #                           user.name=sender,
-        #                           passwd="B0d@nstrasse",
-        #                           tls=T),
-        #               authenticate = T)
-        #     }
-        #   }
+        sender = "data@globaltradealert.org"
+        sbjct=paste("GTA/UpWork HS code classification: App updated",sep="")
+
+        nr.left=length(unique(subset(job.phrase, processed==F & job.id %in% subset(job.log, job.processed==F)$job.id)$phrase.id))
+        message=paste0("Hello \n\nThank you for your patience. We have just updated the HS code app.\n\nThere are now ",nr.left," products awaiting classification.\n\nRegards\nJohannes\nhttp://hs.globaltradealert.org/")
+
+        source("17 Shiny/5 HS code finder/setup/uw.R")
+
+        if(nr.left>0){
+          for(email.to in recipients){
+
+            send.mail(from = sender,
+                      to = email.to,
+                      subject=sbjct,
+                      body=message,
+                      html=F,
+                      smtp = list(host.name = "mail.infomaniak.com",
+                                  port=587,
+                                  user.name=sender,
+                                  passwd="B0d@nstrasse",
+                                  tls=T),
+                      authenticate = T)
+            }
+          }
         }
       
       print(paste("Processed: ",this.phrase$phrase))
