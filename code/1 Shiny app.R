@@ -74,7 +74,7 @@ for(fct in list.files("17 Shiny/5 HS code finder/code/functions", pattern = ".R"
 # Build starting set
 load_all(path)
 
-data.base.0 = hs.codes
+data.base.0 = hs.codes.app
 data.base.0$indicator = "<div class='indicator'></div>"
 data.base.0 <- merge(data.base.0, hs.descriptions, by="hs.id", all.x=T)
 data.base.0 <- data.base.0[,c("indicator","hs.code.6","hs.description.6","hs.description.4","hs.code.4","hs.code.2","hs.id")]

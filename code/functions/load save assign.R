@@ -10,7 +10,7 @@ save_all <- function(path) {
        code.selected,
        code.source,
        code.suggested,
-       hs.codes,
+       hs.codes.app,
        hs.descriptions,
        job.log,
        job.phrase,
@@ -61,9 +61,9 @@ load_all <- function(path) {
   code.suggested <<- code.suggested
   assign.global("code.suggested", code.suggested)
   
-  hs.codes <- hs.codes
-  hs.codes <<- hs.codes
-  assign.global("hs.codes", hs.codes)
+  hs.codes.app <- hs.codes.app
+  hs.codes.app <<- hs.codes.app
+  assign.global("hs.codes.app", hs.codes.app)
   
   hs.descriptions <- hs.descriptions
   hs.descriptions <<- hs.descriptions
@@ -119,7 +119,7 @@ remove_all<- function(x){
      code.selected,
      code.source,
      code.suggested,
-     hs.codes,
+     hs.codes.app,
      hs.descriptions,
      job.log,
      job.phrase,

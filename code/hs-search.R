@@ -5,6 +5,7 @@ library("xlsx")
 library("gtalibrary")
 library("data.table")
 library("ggplot2")
+library(stringr)
 library(mailR)
 rm(list = ls())
 setwd("/home/rstudio/Dropbox/GTA cloud")
@@ -16,7 +17,16 @@ running.processes=system("ps aux", intern=T)
 
 hs.search.busy=sum(as.numeric(grepl("(hs-search.R)",running.processes, ignore.case = T)))
 
-if(hs.search.busy>=2){
+
+## setup
+path="17 Shiny/5 HS code finder/database/GTA HS code database.Rdata"
+for(fct in list.files("17 Shiny/5 HS code finder/code/functions", pattern = ".R", full.names=T)){
+  source(fct)
+}
+load_all(path)
+
+
+if(hs.search.busy>=3){
   
   ## looking for broken searches
   run.not.finished=subset(phrases.to.import, (search.underway==T & search.concluded==F & difftime(Sys.time(), run.time, units="mins")>search.time.allowance))
@@ -32,6 +42,13 @@ if(hs.search.busy>=2){
     process.to.kill=as.numeric(gsub("\\D","",str_extract(running.processes[grepl("hs-search.R", running.processes)][1], "^rstudio +?\\d+")))
     system(paste("kill -9", process.to.kill), intern=T)
   }
+  
+  if(nrow(run.not.finished)==0){
+    ## abort stuck process
+    process.to.kill=as.numeric(gsub("\\D","",str_extract(running.processes[grepl("hs-search.R", running.processes)][1], "^rstudio +?\\d+")))
+    system(paste("kill -9", process.to.kill), intern=T)
+  }
+  
   
   rm(run.not.finished, others)
   
