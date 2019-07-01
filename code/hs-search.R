@@ -13,6 +13,7 @@ setwd("/home/rstudio/Dropbox/GTA cloud")
 
 ## check if a process is running on the server
 search.time.allowance=5
+nr.parallel.processes=50000
 running.processes=system("ps aux", intern=T)
 
 hs.search.busy=sum(as.numeric(grepl("(hs-search.R)",running.processes, ignore.case = T)))
@@ -26,7 +27,7 @@ for(fct in list.files("17 Shiny/5 HS code finder/code/functions", pattern = ".R"
 load_all(path)
 
 
-if(hs.search.busy>=3){
+if(hs.search.busy>=nr.parallel.processes){
   
   ## looking for broken searches
   run.not.finished=subset(phrases.to.import, (search.underway==T & search.concluded==F & difftime(Sys.time(), as.POSIXct(phrases.to.import$run.time[1], origin="1970-01-01"), units="mins")>search.time.allowance & is.na(run.time)==F))
