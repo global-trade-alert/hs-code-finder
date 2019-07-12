@@ -1133,13 +1133,23 @@ server <- function(input, output, session) {
     if (name %in% unique(users$name)) {
       showNotification("This name already exists",duration = 5)
     } else {
-      load_all(path)
-      users <<- rbind(users, data.frame(user.id = max(users$user.id)+1,
+      # load_all(path)
+      
+      this.user.id=gta_sql_get_value("SELECT MAX(user_id) FROM users;")
+      
+      users.update <- data.frame(user.id = this.user.id+1,
                                         name = name,
                                         gta.layer = "core",
-                                        email = "name@mail.com"))
-      save_all(path)
-      load_all(path)
+                                        email = "name@mail.com",
+                                 stringsAsFactors = F)
+      
+      gta_sql_append_table(append.table="users",
+                           append.by.df = "users.update")
+      rm(users.update, this.user.id)
+      # save_all(path)
+      
+      # load_all(path)
+      users<<-gta_sql_load_table("users")
       updateSelectInput(session, "users", choices = unique(users$name),selected = name)
       reset("username")
     }
