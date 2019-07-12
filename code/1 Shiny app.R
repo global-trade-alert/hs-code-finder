@@ -835,14 +835,18 @@ server <- function(input, output, session) {
                                   process.by.others = input$process.by.others,
                                   related.state.act = input$state.act.id)
     
-    importer.log <- gta_rbind(list=list(importer.log, importer.log.new))
+    gta_sql_append_table(append.table = "importer.log",
+                         append.by.df = "importer.log.new")
+    
+    
+    # importer.log <- gta_rbind(list=list(importer.log, importer.log.new))
+    # save(importer.log, file="17 Shiny/5 HS code finder/log/importer-log.Rdata")
     rm(importer.log.new)
     
     importfile <- read.xlsx(xlsxFile = file$datapath, sheet = 1, colNames = F, rowNames = F)
     
     write.xlsx(importfile, file=paste0("17 Shiny/5 HS code finder/xlsx imports/",filename), sheetName = "sheet", append = F, rowNames = F, colNames = F)
-    save(importer.log, file="17 Shiny/5 HS code finder/log/importer-log.Rdata")
-    
+  
   })
   
   # SELECT ROWS MECHANISM
