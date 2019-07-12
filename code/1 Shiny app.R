@@ -988,33 +988,87 @@ server <- function(input, output, session) {
   
   # Report terms which are not a product 
   observeEvent(input$not.product, {
-    load_all(path)
+    # load_all(path)
     
-    report.services <<- rbind(report.services, 
-                              data.frame(phrase.id = phr.id,
-                                         user.id = users$user.id[users$name == input$users]))
+    report.services.update <<- data.frame(phrase.id = phr.id,
+                                         user.id = users$user.id[users$name == input$users],
+                                         stringsAsFactors = F)
     
-    job.phrase$processed[job.phrase$phrase.id == phr.id] <- TRUE
-    phrase.table$nr.completed.jobs[phrase.table$phrase.id==phr.id]=phrase.table$nr.completed.jobs[phrase.table$phrase.id==phr.id]+1
+    gta_sql_append_table(append.table = "report.services",
+                         append.by.df = "report.services.update")
+    rm(report.services.update)
     
-    job.phrase <<- job.phrase
-    phrase.table <<- phrase.table
     
-    check.log <- rbind(check.log, 
-                       data.frame(check.id = max(check.log$check.id)+1,
-                                  user.id = users$user.id[users$name == input$users],
+    # job.phrase$processed[job.phrase$phrase.id == phr.id] <- TRUE
+    # job.phrase <<- job.phrase
+    sql <- "UPDATE job_phrase SET processed = ?newvalue WHERE phrase_id = ?forwhom;"
+    query <- sqlInterpolate(pool, 
+                            sql, 
+                            forwhom = phr.id,
+                            newvalue = 0)
+    
+    gta_sql_update_table(query)
+    rm(query)
+    
+    
+    
+    # phrase.table$nr.completed.jobs[phrase.table$phrase.id==phr.id]=phrase.table$nr.completed.jobs[phrase.table$phrase.id==phr.id]+1
+    # phrase.table <<- phrase.table
+    
+    sql <- "SELECT nr_completed_jobs FROM phrase_table WHERE phrase_id = ?fromwhom;"
+    query <- sqlInterpolate(pool, 
+                            sql, 
+                            fromwhom = phr.id)
+    
+    nr.completed.sofar=gta_sql_get_value(query)
+    rm(query)
+    
+    
+    sql <- "UPDATE phrase_table SET nr_completed_jobs = ?newvalue WHERE phrase_id = ?forwhom;"
+    query <- sqlInterpolate(pool, 
+                            sql, 
+                            forwhom = phr.id,
+                            newvalue = nr.completed.sofar+1)
+    
+    gta_sql_update_table(query)
+    rm(query)
+    
+    
+    
+    
+    
+    # check.log <<- check.log
+    check.log.update <- data.frame(user.id = users$user.id[users$name == input$users],
                                   time.stamp = Sys.time(),
                                   check.successful = TRUE,
-                                  job.id = job.phrase$job.id[job.phrase$phrase.id == phr.id]))
+                                  job.id = job.phrase$job.id[job.phrase$phrase.id == phr.id],
+                                  stringsAsFactors = F)
+    gta_sql_append_table(append.table = "check.log",
+                         append.by.df = "check.log.update")
+    rm(check.log.update)
     
-    check.log <<- check.log
     
-    check.phrases <- rbind(check.phrases,
-                           data.frame(check.id = max(check.log$check.id),
-                                      phrase.id = phr.id))
-    check.phrases <<- check.phrases
     
-    save_all(path)
+    # check.phrases <<- check.phrases
+    sql <- "SELECT MAX(check_id) FROM check_log WHERE user_id = ?fromwhom;" # the WHERE condition is a safeguard in case another user saves at the exact same time
+    query <- sqlInterpolate(pool, 
+                            sql, 
+                            fromwhom = users$user.id[users$name == input$users])
+    
+    this.check.id=gta_sql_get_value(query)
+    rm(query)
+    
+    
+    check.phrases.update <- data.frame(check.id = this.check.id,
+                                      phrase.id = phr.id,
+                                      stringsAsFactors = F)
+    
+    gta_sql_append_table(append.table = "check.phrases",
+                         append.by.df = "check.phrases.update")
+    
+    rm(check.phrases.update, this.check.id)
+    
+    # save_all(path)
     refresh_names()
   })
   
