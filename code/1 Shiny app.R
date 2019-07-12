@@ -1295,15 +1295,21 @@ server <- function(input, output, session) {
           
           if (! tolower(paste(input$query.refine, collapse=" ")) %in% unique(tolower(phrase.table$phrase))) {
             old.id <- phr.id
-            phrase.table <- rbind(phrase.table, 
-                                  data.frame(phrase.id = max(phrase.table$phrase.id)+1,
+            
+            this.phrase.id=gta_sql_get_value("SELECT MAX(phrase_id) FROM phrase_table;")
+            
+            
+            phr.id <- this.phrase.id+1
+            phr.id <<- phr.id
+            
+            phrase.table.update <- data.frame(phrase.id = phr.id,
                                              phrase = tolower(paste(input$query.refine, collapse = " ")),
                                              source = "adjusted",
-                                             nr.completed.jobs=0))
-            phrase.table <<- phrase.table
-            
-            phr.id <- max(phrase.table$phrase.id)
-            phr.id <<- phr.id
+                                             nr.completed.jobs=0,
+                                             stringsAsFactors = F)
+            gta_sql_append_table(append.table = "phrase.table",
+                                 append.by.df = "phrase.table.update")
+            rm(phrase.table.update, this.phrase.id)
             
             new.phrase <- T
           }
