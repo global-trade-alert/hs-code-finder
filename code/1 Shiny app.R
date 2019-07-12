@@ -37,9 +37,6 @@ for(fct in list.files("17 Shiny/5 HS code finder/code/functions", pattern = ".R"
   source(fct)
 }
 
-
-
-
 # # CODE TO REMOVE PHRASES/JOBS/CHECKS MANUALLY
 # load_all(path)
 # phrase.to.remove <- c(1270)
@@ -1520,4 +1517,15 @@ server <- function(input, output, session) {
   }
 
 
-shinyApp(ui = ui, server = server)
+
+
+
+shinyApp(ui = ui, 
+         server = server, 
+         onStart = function() {
+           gta_sql_pool_open()
+           
+           onStop(function() {
+             gta_sql_pool_close()
+           })
+         })
