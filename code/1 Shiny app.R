@@ -806,22 +806,23 @@ server <- function(input, output, session) {
     filename = paste0(Sys.Date()," - ",max(importer.log$ticket.number)+1," - ",chosen.user,".xlsx")
     
     # UPDATE EMAIL ADDRESS
-    if(input$update.email == T) {
-      load_all(path)
-      users$email[users$name == input$users] <- input$import.email.adress
-      users <<- users
-      save_all(path)
-    }
-    
-    
     # UPDATE EMAIL ADDRESS #2 : in case we don't have one on file
-    if(is.na(users$email[users$name == input$users])) {
-      load_all(path)
-      users$email[users$name == input$users] <- input$import.email.adress
-      users <<- users
-      save_all(path)
+    if(((input$update.email == T)|(is.na(users$email[users$name == input$users])))) {
+      
+      # users$email[users$name == input$users] <- input$import.email.adress
+      
+      sql <- "UPDATE users SET email = ?newvalue WHERE user_id = ?forwhom;"
+      query <- sqlInterpolate(pool, 
+                              sql, 
+                              forwhom = input$users,
+                              newvalue = input$import.email.adress)
+      
+      gta_sql_update_table(query)
+
     }
     
+    
+
     # FILL IMPORTER LOG
     importer.log.new = data.frame(user.id = users$user.id[users$name == input$users],
                                   order.email = input$import.email.adress,
