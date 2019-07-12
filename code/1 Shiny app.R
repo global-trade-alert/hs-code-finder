@@ -1259,8 +1259,12 @@ server <- function(input, output, session) {
         
         if(type=="unrelated_search") {
           
-          job.log <- rbind(job.log, 
-                           data.frame(job.id = max(job.log$job.id)+1,
+          this.job.id=gta_sql_get_value("SELECT MAX(job_id) FROM job_log;")
+          
+          job.id <- this.job.id+1
+          job.id <<- job.id
+          
+          job.log.update <- data.frame(job.id = this.job.id+1,
                                       job.type = "Own search",
                                       job.name = paste("Search for",input$search.field.unrelated),
                                       user.id = users$user.id[users$name == input$users],
@@ -1270,10 +1274,15 @@ server <- function(input, output, session) {
                                       self.check = FALSE,
                                       related.state.act = NA,
                                       job.processed = FALSE,
-                                      submission.id = Sys.Date()))
-          job.log <<- job.log
-          job.id <- max(job.log$job.id)
-          job.id <<- job.id
+                                      submission.id = Sys.Date(),
+                                      stringsAsFactors = F)
+          
+          gta_sql_append_table(append.table = "job.log",
+                               append.by.df = "job.log.update")
+          
+          rm(job.log.update,this.job.id)
+          
+          job.log <<- gta_sql_load_table("job.log")
           
           new.job.unrelated <- T
           
