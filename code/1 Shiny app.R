@@ -802,7 +802,7 @@ server <- function(input, output, session) {
     file = input$import.xlsx
     
     # LOAD LOG
-    load("17 Shiny/5 HS code finder/log/importer-log.Rdata")
+    importer.log=gta_sql_load_table("importer.log")
     filename = paste0(Sys.Date()," - ",max(importer.log$ticket.number)+1," - ",chosen.user,".xlsx")
     
     # UPDATE EMAIL ADDRESS
