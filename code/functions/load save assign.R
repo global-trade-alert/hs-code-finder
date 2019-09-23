@@ -135,14 +135,35 @@ remove_all<- function(x){
 
 
 update_logs <- function() {
-  print("updating importer-log.Rdata")
-  load("17 Shiny/5 HS code finder/log/importer-log.Rdata")
-  importer.log$time.finish[log.row]=Sys.time()
-  class(importer.log$time.finish)=c('POSIXt', 'POSIXct')
-  importer.log$under.preparation[log.row]=0
-  save(importer.log, file = "17 Shiny/5 HS code finder/log/importer-log.Rdata")
+  print("updating importer-log")
+  # load("17 Shiny/5 HS code finder/log/importer-log.Rdata")
+  sql <- "UPDATE hs_importer_log SET time_finish = ?newvalue WHERE ticket_number = ?forwhom;"
+  query <- sqlInterpolate(pool, 
+                          sql, 
+                          forwhom = log.row,
+                          newvalue = as.character(Sys.time()))
   
-  load("17 Shiny/5 HS code finder/log/importer-log.Rdata")
+  gta_sql_update_table(query)
+  
+  # importer.log$time.finish[log.row]=Sys.time()
+  # class(importer.log$time.finish)=c('POSIXt', 'POSIXct')
+  # importer.log$under.preparation[log.row]=0
+  sql <- "UPDATE hs_importer_log SET time_finish = ?newvalue WHERE ticket_number = ?forwhom;"
+  query <- sqlInterpolate(pool, 
+                          sql, 
+                          forwhom = log.row,
+                          newvalue = as.character(Sys.time()))
+  
+  gta_sql_update_table(query)
+  
+  sql <- "UPDATE hs_importer_log SET under_preparation = false WHERE ticket_number = ?forwhom;"
+  query <- sqlInterpolate(pool, 
+                          sql, 
+                          forwhom = log.row)
+  
+  gta_sql_update_table(query)
+  # save(importer.log, file = "17 Shiny/5 HS code finder/log/importer-log.Rdata")
+  # load("17 Shiny/5 HS code finder/log/importer-log.Rdata")
   
   print("Closing sink")
   sink()
@@ -151,3 +172,42 @@ update_logs <- function() {
   print(paste("Updating round count to",rnd+1))
   rnd=rnd+1 
 }
+
+# Change encoding of character columns in a dataframe to UTF 8
+change_encoding <- function(df = NULL) {
+  for (col in colnames(df)){
+    if (is.character(df[,col])) {
+      Encoding(df[[col]]) <- "UTF-8"} }
+  return(df)
+}
+
+# FUNCTION NECESSARY FOR CREATING RED TO GREEN GRADIENT FOR PROBABILITY INDICATOR
+redToGreen <- function(prob=0) {
+  rgb = c()
+  for (p in prob) {
+    if (is.na(p)==F) {
+      p <- as.numeric(p)
+      
+      if (p < 0.5) {
+        red = 255
+      } else {
+        red = 255/0.5*(1-p)
+      }
+      
+      if (p > 0.5) {
+        green = 255
+      } else {
+        green = 255/0.5*(p)
+      }
+      
+      blue = 0
+      color = paste0("rgba(",red,",",green,",",blue,")")
+      rm(blue, green, red)
+      rgb = c(rgb,color)
+    }
+  }
+  return(rgb)
+}
+
+
+

@@ -1,23 +1,30 @@
-gta_hs_process_completed_job<- function(processed.job=NULL){
- 
+gta_hs_process_completed_job<- function(processed.job=NULL, path = NULL){
+  
   library(gtalibrary)
   
   if(is.null(processed.job)){
-    
     stop("gta_hs_process_completed_job: No ID for the processed job is specified.")
   }
   
-  ## classifying results
-  result.path=paste("17 Shiny/5 HS code finder/results/Job ",processed.job," - Classification result", sep="")
+  if(is.null(path)){
+    stop("Please specify a path to the database.")
+  }
   
-  load_all(path)
+  ## classifying results
+  result.path=paste(path,"results/Job ",processed.job," - Classification result", sep="")
+  
+  # load_all(path)
+  job.log <- change_encoding(gta_sql_load_table("job_log"))
+  job.log <<- job.log
+  users <- change_encoding(gta_sql_load_table("user_log",table.prefix = "gta_"))
+  users <<- users
   
   if(job.log$nr.of.checks[job.log$job.id==processed.job]>1){
     
     
     classifier.variables=gta_hs_create_classifier_variables(job.ids=processed.job)
     classifier.variables<<-classifier.variables
-    classification.result=gta_hs_classify_results("classifier.variables")
+    classification.result=gta_hs_classify_results("classifier.variables", source.data = paste0(path,"database/HS classifier.Rdata"))
     save(classification.result, file=paste(result.path, ".Rdata", sep=""))
     
     ## XLSX with one sheet for those phrase with zero results, and those with 1 or more results.
@@ -30,7 +37,7 @@ gta_hs_process_completed_job<- function(processed.job=NULL){
     
     
     ## emailing it out
-    recipient=users$email[users$user.id==job.log$user.id[job.log$job.id==processed.job]]
+    recipient=users$user.email[users$user.id==job.log$user.id[job.log$job.id==processed.job]]
     
     if(is.na(recipient)){
       recipient="fritz.johannes@gmail.com"

@@ -18,7 +18,24 @@ gta_hs_create_classifier_variables<- function(job.ids=NULL,
   }
   
   
-  load(source.data)
+  # load(source.data)
+  
+  job.phrase <- gta_sql_load_table("job_phrase")
+  job.phrase <<- job.phrase
+  job.log <- gta_sql_load_table("job_log")
+  job.log <<- job.log
+  code.suggested <- gta_sql_load_table("code_suggested")
+  code.suggested <<- code.suggested
+  check.phrases <- gta_sql_load_table("check_phrases")
+  check.phrases <<- check.phrases
+  check.certainty <- gta_sql_load_table("check_certainty")
+  check.certainty <<- check.certainty
+  levels.of.certainty <- gta_sql_load_table("levels_of_certainty")
+  levels.of.certainty <<- levels.of.certainty
+  check.log <- gta_sql_load_table("check_log")
+  check.log <<- check.log
+  code.selected <- gta_sql_load_table("code_selected")
+  code.selected <<- code.selected
   
   if(is.null(job.ids)){
     job.ids=unique(job.log$job.id[job.log$job.processed==T & job.log$nr.of.checks>=job.checks])

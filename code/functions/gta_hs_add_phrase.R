@@ -1,27 +1,29 @@
 gta_hs_add_phrase<- function(add.job.id=NULL,
                              phrase.to.add=NULL,
                              phrase.source=NULL,
-                             path.to.cloud=NULL,
-                             update.job.phrase=T,
-                             source.data="17 Shiny/5 HS code finder/database/GTA HS code database.Rdata"){
- 
+                             update.job.phrase=T){
   
-  if(is.null(phrase.source)){
-    
-    stop("Please specify the phrase.source e.g. 'XLSX import'.")
-  }
+  # if(is.null(phrase.source)){
+  #   
+  #   stop("Please specify the phrase.source e.g. 'XLSX import'.")
+  # }
   
-  if(! is.null(path.to.cloud)){
-    setwd(path.to.cloud)
-  } else {
-    if(grepl(" cloud", getwd())){
-      gta_setwd()
-    } else{
-      stop("You are not in the GTA cloud folder, please specify 'path.to.cloud' or use setwd() yourself.")
-    }
-  }
+  # if(! is.null(path.to.cloud)){
+  #   setwd(path.to.cloud)
+  # } else {
+  #   if(grepl(" cloud", getwd())){
+  #     gta_setwd()
+  #   } else{
+  #     stop("You are not in the GTA cloud folder, please specify 'path.to.cloud' or use setwd() yourself.")
+  #   }
+  # }
   
-  load_all(source.data)
+  # load_all(source.data)
+  
+  phrase.table <- change_encoding(gta_sql_load_table("phrase_table"))
+  phrase.table <<- phrase.table
+  code.suggested <- change_encoding(gta_sql_load_table("code_suggested"))
+  code.suggested <<- code.suggested
   
   if(tolower(phrase.to.add) %in% tolower(phrase.table$phrase)){
     
@@ -38,8 +40,6 @@ gta_hs_add_phrase<- function(add.job.id=NULL,
       is.processed=F
     }
     
-    
-    
     phrase.jobs=max(c(subset(phrase.table, tolower(phrase)==phrase.to.add)$nr.completed.jobs,0), na.rm=T)
     
   } else {
@@ -52,16 +52,26 @@ gta_hs_add_phrase<- function(add.job.id=NULL,
     phrase.jobs=0
     
     
-    phrase.table=rbind(phrase.table,
-                       data.frame(phrase.id=new.phrase.id,
+    print(new.phrase.id)
+    print(phrase.to.add)
+    print(phrase.source)
+    print(phrase.jobs)
+    
+    phrase.table.update = data.frame(phrase.id=new.phrase.id,
                                   phrase=phrase.to.add,
                                   source=phrase.source,
                                   nr.completed.jobs=phrase.jobs,
-                                  stringsAsFactors = F))
+                                  stringsAsFactors = F)
+    phrase.table.update <<- phrase.table.update
+    
+    gta_sql_append_table(append.table = "phrase.table",
+                         append.by.df = "phrase.table.update")
+    
+    rm(phrase.table.update)
     
     }
   
-  assign.global("phrase.table",phrase.table)
+  # assign.global("phrase.table",phrase.table)
   
   
   if(update.job.phrase){
@@ -73,24 +83,43 @@ gta_hs_add_phrase<- function(add.job.id=NULL,
     }
     
     #### update job.phrase
+    job.phrase <- change_encoding(gta_sql_load_table("job_phrase"))
+    job.phrase <<- job.phrase
+    
     if(nrow(subset(job.phrase, job.id==add.job.id & phrase.id==new.phrase.id))>0){
-      job.phrase$processed[job.phrase$job.id==add.job.id & job.phrase$phrase.id==new.phrase.id]=is.processed
+      
+      sql <- "UPDATE hs_job_phrase SET processed = ?newvalue WHERE (job_id = ?jobID AND phrase_id = ?phraseID);"
+      query <- sqlInterpolate(pool, 
+                              sql, 
+                              newvalue = is.processed,
+                              jobID = add.job.id,
+                              phraseID = new.phrase.id)
+      
+      gta_sql_update_table(query)
+      
+      # job.phrase$processed[job.phrase$job.id==add.job.id & job.phrase$phrase.id==new.phrase.id]=is.processed
       
     }else{
-      job.phrase=rbind(job.phrase,
-                       data.frame(job.id=add.job.id,
+      
+      job.phrase.update=data.frame(job.id=add.job.id,
                                   phrase.id=new.phrase.id,
                                   processed=is.processed,
-                                  stringsAsFactors = F))
+                                  stringsAsFactors = F)
+      job.phrase.update <<- job.phrase.update
+      
+      gta_sql_append_table(append.table = "job.phrase",
+                           append.by.df = "job.phrase.update")
+      
+      rm(job.phrase.update)
     }
 
     
-    assign.global("job.phrase",job.phrase)
+    # assign.global("job.phrase",job.phrase)
     
   }
   
   
-  save_all(source.data)
+  # save_all(source.data)
   
   print(paste("Added phrase",paste(phrase.to.add, collapse=","), "successfully."))
   
@@ -103,3 +132,4 @@ gta_hs_add_phrase<- function(add.job.id=NULL,
   return(output.list)
 
 }
+      
