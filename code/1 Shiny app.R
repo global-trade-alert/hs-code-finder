@@ -1,6 +1,6 @@
 ##############################
 #                            #
-#  HS CODE APP PRODUCTION    #
+#  HS CODE APP DEVELOPMENT   #
 #                            #
 ##############################
 
@@ -19,24 +19,33 @@ library(future)
 library(clipr)
 library(gtalibrary)
 library(gtasql)
+library(RMySQL)
+library(pool)
+library(keyring)
+library(RMariaDB)
+library
 # library(profvis)
 plan(multiprocess)
 # gta_update_library()
 
 rm(list = ls())
 
-setwd("/home/rstudio/Dropbox/GTA cloud")
+# gta_setwd()
+# setwd("/home/rstudio/Dropbox/GTA cloud")
 # setwd("C:/Users/jfrit/Desktop/Dropbox/GTA cloud")
 # setwd("C:/Users/Piotr Lukaszuk/Dropbox/GTA cloud")
-# setwd("/Users/patrickbuess/Dropbox/Collaborations/GTA cloud")
+setwd("/Users/patrickbuess/Dropbox/Collaborations/GTA cloud")
 
-path="17 Shiny/5 HS code finder/database/GTA HS code database.Rdata"
+# path="0 dev/hs-code-finder-pb/database/GTA HS code database.Rdata"
+wdpath="0 dev/hs-code-finder-pb/"
 
 ## helpful functions
 ## HS app functions
-for(fct in list.files("17 Shiny/5 HS code finder/code/functions", pattern = ".R", full.names=T)){
+for(fct in list.files(paste0(wdpath,"/code/functions"), pattern = ".R", full.names=T)){
   source(fct)
 }
+
+gta_sql_pool_open(table.prefix = "hs_", got.keyring = F)
 
 # # CODE TO REMOVE PHRASES/JOBS/CHECKS MANUALLY
 # load_all(path)
@@ -70,11 +79,11 @@ for(fct in list.files("17 Shiny/5 HS code finder/code/functions", pattern = ".R"
 
 
 # Build starting set
-load_all(path)
+# load_all(path)
 
-data.base.0 = hs.codes.app
+data.base.0 = gta_sql_load_table("codes_app")
 data.base.0$indicator = "<div class='indicator'></div>"
-data.base.0 <- merge(data.base.0, hs.descriptions, by="hs.id", all.x=T)
+data.base.0 <- merge(data.base.0, gta_sql_load_table("descriptions"), by="hs.id", all.x=T)
 data.base.0 <- data.base.0[,c("indicator","hs.code.6","hs.description.6","hs.description.4","hs.code.4","hs.code.2","hs.id")]
 data.base.0 <- data.base.0
 
@@ -99,6 +108,11 @@ userinput = F
 nonefound.check = F
 searchinput = F
 
+# Load table users
+users <- change_encoding(gta_sql_load_table("user_log", table.prefix = "gta_"))
+users <<- users
+levels.of.certainty <- change_encoding(gta_sql_load_table("levels_of_certainty"))
+levels.of.certainty <<- levels.of.certainty
 
 ui <- fluidPage(
   useShinyjs(),
@@ -120,90 +134,36 @@ ui <- fluidPage(
                                  "Create"),
                     selectInput("users",
                                 label=NULL,
-                                choices = c("Choose User"="Select",unique(users$name)),
+                                choices = c("Choose User"="Select",unique(users$user.login)),
                                 multiple = F)),
            tags$div(class="logo",
+                    tags$div(class="import-button",
+                             actionButton("import.toggle.button",
+                                          "Import Values")),
                     img(src="gta logo-white.svg"))),
   
   tags$div(class="overall-wrap",
            tags$div(class = "settings",
                     tags$div(class = "settings-inner",
-                             tags$div(class="app-switcher",
-                                      tags$div(class="tab-nav-wrapper",  
-                                               tags$ul(class="tab-list nav",
-                                                       tags$li(class="active check-suggestions",
-                                                               HTML("<a data-toggle='tab' href='#term'>Check <br/>suggestions</a>")
-                                                       ),
-                                                       tags$li(class="search",
-                                                               HTML("<a data-toggle='tab' href='#search'>Search <br/>codes</a>")
-                                                       ),
-                                                       tags$li(class="import-search-terms",
-                                                               HTML("<a data-toggle='tab' href='#import'>Import <br/>search terms</a>")
-                                                       )))),
-                             conditionalPanel(condition = "output.condSearchTerm",
-                                              tags$div(class = "search-field app-switcher-search",
-                                                       
-                                                       tags$div(class="search-tab tab-pane fade", id="search",
-                                                                tags$div(class="tab-nav-wrapper",
-                                                                         tags$ul(class="tab-list nav",
-                                                                                 tags$li(id="related-search", class="active",
-                                                                                         HTML("<a data-toggle='tab' href='#related'>Related to <br/>suggestion</a>")
-                                                                                 ),
-                                                                                 tags$li(id="unrelated-search", class="",
-                                                                                         HTML("<a data-toggle='tab' href='#unrelated'>Own search</a>")))),
-                                                                tags$div(class="related tab-pane fade active in", id="related",
-                                                                         
-                                                                         HTML("<p class='search-term'>Search term:</p>"),
-                                                                         actionButton("call_hs_code_finder",
-                                                                                      "Search"),
-                                                                         # USE LATER WHEN SEARCH IS REQUIRED
-                                                                         textInput(inputId = 'search.field',
-                                                                                   label = NULL,
-                                                                                   placeholder = "Search...")),
-                                                                tags$div(class="unrelated tab-pane fade", id="unrelated",
-                                                                         
-                                                                         HTML("<p class='search-term'>Search term:</p>"),
-                                                                         actionButton("call_hs_code_finder_unrelated",
-                                                                                      "Search"),
-                                                                         # USE LATER WHEN SEARCH IS REQUIRED
-                                                                         textInput(inputId = 'search.field.unrelated',
-                                                                                   label = NULL,
-                                                                                   placeholder = "Search..."),
-                                                                         tags$div(class="selection-unrelated-wrap",
-                                                                                  # tags$p("These are your selected values:"),
-                                                                                  textAreaInput("unrelated_selected_codes",
-                                                                                                label=NULL,
-                                                                                                placeholder="")
-                                                                         ))),
-                                                       
-                                                       tags$div(class = "refine-query tab-pane active fade in", id="term",
-                                                                HTML("<p class='search-term'>Search term:</p>"),
-                                                                actionButton("call_names_refresh",
-                                                                             "Refresh"),
-                                                                checkboxGroupButtons("query.refine",
-                                                                                     label=NULL,
-                                                                                     choices = query,
-                                                                                     selected = query),
-                                                                conditionalPanel(condition = "output.showFinderCheck",
-                                                                                 tags$div(class="finder_check",
-                                                                                          uiOutput("finder_check_text"),
-                                                                                          uiOutput("finder_check_button"))),
-                                                                tags$div(class="not-a-product",
-                                                                         # tags$p("This is not a good/product, but a service:"),
-                                                                         actionButton("not.product",
-                                                                                      "This is not a good/product"))),
-                                                       tags$div(class = "import-tab tab-pane fade", id="import",
-                                                                actionButton("import_uploaded_file",
-                                                                             "Import"),
-                                                                HTML("<p class='search-term'>Import Excel:</p>"),
-                                                                fileInput("import.xlsx", NULL))
-                                              ),
-                                              tags$div(class = "refresh-button",
-                                                       actionButton("names.refresh",
-                                                                    "Next term"))),
-                             # USE TO DISPLAY SELECTION
-                             # tags$div(class = "choices",
-                             #          htmlOutput('selected')),
+                             tags$div(class = "refine-query", id="term",
+                                      HTML("<p class='search-term'>Search term:</p>"),
+                                      actionButton("call_names_refresh",
+                                                   "Refresh"),
+                                      checkboxGroupButtons("query.refine",
+                                                           label=NULL,
+                                                           choices = query,
+                                                           selected = query),
+                                      conditionalPanel(condition = "output.showFinderCheck",
+                                                       tags$div(class="finder_check",
+                                                                uiOutput("finder_check_text"),
+                                                                uiOutput("finder_check_button"))),
+                                      tags$div(class="not-a-product",
+                                               # tags$p("This is not a good/product, but a service:"),
+                                               actionButton("not.product",
+                                                            "This is not a good/product"))),
+                             tags$div(class = "refresh-button",
+                                      actionButton("names.refresh",
+                                                   "Next term")),
                              tags$div(class="settings-bottom",
                                       tags$div(class="scroll",
                                                tags$div(class="suggestions",
@@ -245,8 +205,6 @@ ui <- fluidPage(
                                                             "Save selection"),
                                                actionButton("save_selection_clipboard",
                                                             "Save selection & Copy CSV to clipboard"),
-                                               actionButton("save_selection_clipboard_unrelated",
-                                                            "Save selection & Copy CSV to clipboard"),
                                                tags$div(class="chrome_message",
                                                         tags$p("*Copying to clipboard works on Chrome only.")))),
                              tags$div(id="save-selection-unrelated", class = "save-selection-unrelated",
@@ -271,34 +229,42 @@ ui <- fluidPage(
                              tags$div(class="import-wrap",
                                       tags$div(class="import-wrap-inner",
                                                tags$div(class="import-close-button"),
-                                               textInput(inputId = "import.job.name",
-                                                         label="Specify a task name"),
-                                               checkboxInput(inputId = "prioritize",
-                                                             label="Prioritize this query"),
-                                               # checkboxInput(inputId = "process.by.me",
-                                               #               label="Have this query processed by me"),
-                                               numericInput(inputId = "process.by.others",
-                                                            value = 3,
-                                                            label = "X users should check these products"),
-                                               textInput(inputId = "state.act.id",
-                                                         label = "State Act ID, if existing"),
-                                               textInput(inputId = "import.email.adress",
-                                                         label = "Notify me when finished importing",
-                                                         placeholder = "Email address",
-                                                         value = "your-email"),
-                                               checkboxInput(inputId = "update.email",
-                                                             label = "Update user email address"),
-                                               actionButton(inputId = "finish.import",
+                                               tags$div(class="app-switcher",
+                                                        tags$div(class="tab-nav-wrapper",  
+                                                                 tags$ul(class="tab-list nav",
+                                                                         tags$li(class="active import-excel toggle-importer", id="import-toggle-excel",
+                                                                                 HTML("<a data-toggle='tab' href='#import'>Import Excel</a>")
+                                                                         ),
+                                                                         tags$li(class="search toggle-importer", id="import-toggle-manual",
+                                                                                 HTML("<a data-toggle='tab' href='#search'>Add values</a>")
+                                                                         )))),
+                                               tags$div(class="import-wrap-settings",
+                                                        textInput(inputId = "import.job.name",
+                                                                  label="Specify a task name"),
+                                                        checkboxInput(inputId = "prioritize",
+                                                                      label="Prioritize this query"),
+                                                        numericInput(inputId = "process.by.others",
+                                                                     value = 3,
+                                                                     label = "X users should check these products"),
+                                                        textInput(inputId = "state.act.id",
+                                                                  label = "State Act ID, if existing"),
+                                                        textInput(inputId = "import.email.adress",
+                                                                  label = "Notify me when finished importing",
+                                                                  placeholder = "Email address"),
+                                                        checkboxInput(inputId = "update.email",
+                                                                      label = "Update user email address")),
+                                               tags$div(class = "import-tab tab-pane fade active in", id="import",
+                                                        fileInput("import.xlsx", NULL)),
+                                               tags$div(class = "search-tab tab-pane fade", id="search",
+                                                        textAreaInput("manual.import.values",
+                                                                      "Input values manually:")),
+                                               actionButton(inputId = "finish_import",
                                                             label = "Finish import"))),
                              tags$div(id="selected_codes_output_old",
                                       tags$div(class="old-codes-close-button"),
                                       textAreaInput("selected_codes_output_old_area",
                                                     label = "These are your selected values from the query before:",
                                                     value= ""))
-                             # SAVE TO CLIPBOARD FUNCTIONALITY
-                             # tags$div(class="clipboard",
-                             #          rclipboardSetup(),
-                             #          uiOutput("clip")
                              
                     )),
            
@@ -334,6 +300,11 @@ ui <- fluidPage(
                        var hscode = $(this).find(".hs4code").html();
                        Shiny.setInputValue("checkGroupSelect", hscode, {priority: "event"});
                        console.log(hscode);
+           });'),
+           tags$script('$( document ).on("click", ".toggle-importer", function(){
+                       var importType = jQuery(this).attr("id");
+                       Shiny.setInputValue("checkImporterToggle", importType, {priority: "event"});
+                       console.log(importType);
            });'),
            tags$script('$( document ).on("click", ".toggle-continue", function(){
                        Shiny.setInputValue("updateSelectedCodesOutput", "go", {priority: "event"});
@@ -373,9 +344,9 @@ ui <- fluidPage(
                             $('#related-search').addClass('active');
                             $('.save-selection').removeClass('unrelated-search')
            });"))
-                )
+  )
   
-                             )
+)
 
 ######## SERVER #########
 library(dplyr)
@@ -385,20 +356,11 @@ server <- function(input, output, session) {
   print("START APP")
   
   data.base <- data.base.0
+  data.base.backup <<- data.base.0
   data.subset <- data.subset.0
+  data.subset.backup <<- data.subset.0
   data.ledger <- data.ledger.0
-  
-  # Add clipboard buttons
-  # output$clip <- renderUI({
-  # rclipButton("clipbtn", "Copy to Clipboard", printSelected(), icon("clipboard"))
-  # })
-  
-  # Workaround for execution within RStudio
-  # observeEvent(input$clipbtn, clipr::write_clip(printSelected()))
-  
-  # observeEvent(input$checkGroupSelect, {
-  # showNotification(input$checkGroupSelect)
-  # })
+  data.ledger.backup <<- data.ledger.0
   
   # FUNCTION TO GET LIST OF SELECTED ROWS
   initialSelectAll <- T
@@ -432,263 +394,57 @@ server <- function(input, output, session) {
   output$hstable <- DT::renderDataTable(DT::datatable(
     names(),
     rownames = FALSE,
-    # colnames = c("Code","","","Name","",""),
     escape = FALSE,
     extensions = "RowGroup",
     
     selection = list(mode="multiple", 
                      selected =   selected.rows()),
     # USE TO SELECT WHEN SEARCH FIELD IS ACTIVE
-    # as.numeric(row.names(data.subset)[data.subset$hs.code.6 %in% data.base$hs.code.6[data.base$selected == 1]])
     options = list(
       pageLength = 10000,
-      columnDefs = list(list(visible = FALSE, targets = c(3,4,5,6)), list(sortable=FALSE, targets = c(0))),
+      columnDefs = list(list(visible = FALSE, targets = c(4,5,6,7)), list(sortable=FALSE, targets = c(0))),
       rowGroup = list(startRender= JS ("function ( rows, group ) {
-                                       var name =  rows.data().pluck(3);
+                                       var name =  rows.data().pluck(4);
                                        return $('<tr/>')
                                        .append( '<td><div></div></td>' )
                                        .append( '<td class=\\'hs4code\\' colspan=\\'1\\'>'+group+'</td>' )
+                                       .append( '<td class=\\'probability\\' colspan=\\'1\\'></td>' )
                                        .append( '<td colspan=\\'4\\'>'+name[0]+'</td>' );}"),
-                      dataSrc=4),
+                      dataSrc=5),
       language = list(
         zeroRecords = "The HS code finder could not identify any HS codes for the term. Can you help?")
-      )),
+    )),
     server = T)
   
-  # CALL HS CODE FINDER
-  observeEvent(input$call_hs_code_finder, {
-    toggleClass("loading","active")
-    
-    phrase = tolower(input$search.field)
-    
-    if (phrase %in% unique(tolower(phrase.table$phrase))) {
-      data.returned <- subset(data.base, hs.code.6 %in% subset(code.suggested, phrase.id == phrase.table$phrase.id[tolower(phrase.table$phrase)==phrase])$hs.code.6)
-      toggleClass("loading","active")
-      
-      data.returned$indicator <- "<div class='indicator search'></div>"
-      
-      #Adjust ledger
-      ledger.temp <- data.ledger
-      ledger.temp$search.generated[ledger.temp$hs.code.6 %in% unique(data.returned$hs.code.6)] <- 1
-      ledger.temp$search.generated[! ledger.temp$hs.code.6 %in% unique(data.returned$hs.code.6) & ledger.temp$search.generated != 1] <- 0
-      ledger.temp$selected[ledger.temp$hs.code.6 %in% unique(data.returned$hs.code.6)] <- 1 
-      ledger.temp$selected[! ledger.temp$hs.code.6 %in% unique(data.returned$hs.code.6) & ledger.temp$selected != 1] <- 0
-      print(paste("length of search generated: ",length(ledger.temp[ledger.temp$search.generated == 1, ]$hs.code.6)))
-      data.ledger <<- ledger.temp
-      assign.global("data.ledger",data.ledger)
-      data.subset <- subset(data.subset, ! hs.code.6 %in% data.returned$hs.code.6)
-      data.subset <- rbind(data.subset, data.returned)
-      row.names(data.subset) <- NULL
-      data.subset <<- data.subset
-      
-      searchinput <<- T
-      click("names.refresh")
-      
-    } else{
-      future({
-        gta_hs_code_finder(products = phrase)
-      }) %...>% {
-        retrieved.data <- .
-        toggleClass("loading","active")
-        if (nrow(retrieved.data) == 0) {
-          showNotification("No codes found for this search term",duration = 1000)
-        } else {
-          if (! exists("search.sources")) {
-            search.sources <- data.frame(hs.code.6 = character(),
-                                         source.id = numeric(),
-                                         product.name = character())
-          }
-          search.sources.temp = retrieved.data[,c("hs.code","source.names","product.name")]
-          search.sources.temp <- cSplit(search.sources.temp, which(colnames(search.sources.temp)=="source.names"), direction="long", sep=";")
-          names(search.sources.temp) <- c("hs.code.6","source.name","product.name")
-          search.sources.temp <- merge(search.sources.temp, suggestion.sources, by="source.name",all.x=T)
-          search.sources <<- unique(rbind(search.sources, search.sources.temp[,c("hs.code.6","source.id","product.name")]))
-          rm(search.sources.temp)
-          
-          returned <- retrieved.data$hs.code
-          returned <- as.character(sprintf("%06s",returned) %>% gsub(pattern = " ", replacement = "0", x = .))
-          data.returned <- subset(data.base, hs.code.6 %in% returned) 
-          data.returned$indicator <- "<div class='indicator search'></div>"
-          
-          
-          #Adjust ledger
-          ledger.temp <- data.ledger
-          ledger.temp$search.generated[ledger.temp$hs.code.6 %in% unique(data.returned$hs.code.6)] <- 1
-          ledger.temp$search.generated[! ledger.temp$hs.code.6 %in% unique(data.returned$hs.code.6) & ledger.temp$search.generated != 1] <- 0
-          ledger.temp$selected[ledger.temp$hs.code.6 %in% unique(data.returned$hs.code.6)] <- 1 
-          ledger.temp$selected[! ledger.temp$hs.code.6 %in% unique(data.returned$hs.code.6) & ledger.temp$selected != 1] <- 0
-          data.ledger <<- ledger.temp
-          assign.global("data.ledger",data.ledger)
-          data.subset <- subset(data.subset, ! hs.code.6 %in% data.returned$hs.code.6)
-          data.subset <- rbind(data.subset, data.returned)
-          row.names(data.subset) <- NULL
-          data.subset <<- data.subset
-          
-          searchinput <<- T
-          click("names.refresh")
-        }
-      }
-      
-    }
-  })
-  
-  unrelated.search <<-F
-  # CALL HS CODE FINDER UNRELATED SEARCH
-  observeEvent(input$call_hs_code_finder_unrelated, {
-    toggleClass("loading","active")
-    
-    phrase = tolower(input$search.field.unrelated)
-    
-    if (phrase %in% unique(tolower(phrase.table$phrase))) {
-      data.returned <- subset(data.base, hs.code.6 %in% subset(code.suggested, phrase.id == phrase.table$phrase.id[tolower(phrase.table$phrase)==phrase])$hs.code.6)
-      toggleClass("loading","active") 
-      
-      data.subset <- subset(data.base, hs.code.6 %in% data.returned$hs.code.6)
-      data.subset$indicator <- "<div class='indicator search'></div>"
-      row.names(data.subset) <- NULL
-      data.subset <<- data.subset
-      
-      # To keep track of changes in the apps state
-      data.ledger$selected <- 0
-      data.ledger$selected[data.ledger$hs.code.6 %in% unique(data.returned$hs.code.6)] <- 1
-      data.ledger$search.generated <- 0
-      data.ledger$search.generated[data.ledger$hs.code.6 %in% unique(data.returned$hs.code.6)] <- 1
-      data.ledger <<- data.ledger
-      assign.global("data.ledger",data.ledger)
-      
-      unrelated.search <<- T
-      click("names.refresh")
-      
-    } else {
-      
-      future({
-        gta_hs_code_finder(products = phrase)
-      }) %...>% {
-        retrieved.data <- .
-        toggleClass("loading","active")
-        if (nrow(retrieved.data) == 0) {
-          showNotification("No codes found for this search term",duration = 1000)
-        } else {
-          
-          search.sources <- data.frame(hs.code.6 = character(),
-                                       source.id = numeric(),
-                                       product.name = character())
-          
-          search.sources.temp = retrieved.data[,c("hs.code","source.names","product.name")]
-          search.sources.temp <- cSplit(search.sources.temp, which(colnames(search.sources.temp)=="source.names"), direction="long", sep=";")
-          names(search.sources.temp) <- c("hs.code.6","source.name","product.name")
-          search.sources.temp <- merge(search.sources.temp, suggestion.sources, by="source.name",all.x=T)
-          search.sources <<- search.sources.temp
-          rm(search.sources.temp)
-          
-          returned <- retrieved.data$hs.code
-          returned <- as.character(sprintf("%06s",returned) %>% gsub(pattern = " ", replacement = "0", x = .))
-          data.returned <- subset(data.base, hs.code.6 %in% returned) 
-          
-          data.subset <- subset(data.base, hs.code.6 %in% data.returned$hs.code.6)
-          data.subset$indicator <- "<div class='indicator search'></div>"
-          row.names(data.subset) <- NULL
-          data.subset <<- data.subset
-          
-          # To keep track of changes in the apps state
-          data.ledger$selected <- 0
-          data.ledger$selected[data.ledger$hs.code.6 %in% unique(data.returned$hs.code.6)] <- 1
-          data.ledger$search.generated <- 0
-          data.ledger$search.generated[data.ledger$hs.code.6 %in% unique(data.returned$hs.code.6)] <- 1
-          data.ledger <<- data.ledger
-          assign.global("data.ledger",data.ledger)
-          
-          unrelated.search <<- T
-          click("names.refresh")
-        }
-      }
-    }
-    
-  })
-  
-  # CALL HS CODE FINDER WITH ADJUSTED QUERY
-  observeEvent(input$search_adjusted, {
-    toggleClass("loading","active")
-    phrase = tolower(paste(input$query.refine, collapse=" "))
-    future({
-      gta_hs_code_finder(products = phrase)
-    }) %...>% {
-      toggleClass("loading","active")
-      retrieved.data <- .
-      if (nrow(retrieved.data) == 0) {
-        showNotification("No codes found for this search term",duration = 1000)
-      } else {
-        if (! exists("search.sources")) {
-          search.sources <- data.frame(hs.code.6 = character(),
-                                       source.id = numeric(),
-                                       product.name = character())
-        }
-        search.sources.temp = retrieved.data[,c("hs.code","source.names","product.name")]
-        search.sources.temp <- cSplit(search.sources.temp, which(colnames(search.sources.temp)=="source.names"), direction="long", sep=";")
-        names(search.sources.temp) <- c("hs.code.6","source.name","product.name")
-        search.sources.temp <- merge(search.sources.temp, suggestion.sources, by="source.name",all.x=T)
-        search.sources <<- unique(rbind(search.sources, search.sources.temp[,c("hs.code.6","source.id","product.name")]))
-        rm(search.sources.temp)
-        
-        returned <- retrieved.data$hs.code
-        returned <- as.character(sprintf("%06s",returned) %>% gsub(pattern = " ", replacement = "0", x = .))
-        data.returned <- subset(data.base, hs.code.6 %in% returned) 
-        data.returned$indicator <- "<div class='indicator search'></div>"
-        
-        #Adjust ledger
-        ledger.temp <- data.ledger
-        ledger.temp$search.generated[ledger.temp$hs.code.6 %in% unique(data.returned$hs.code.6)] <- 1
-        ledger.temp$search.generated[! ledger.temp$hs.code.6 %in% unique(data.returned$hs.code.6) & ledger.temp$search.generated != 1] <- 0
-        ledger.temp$selected[ledger.temp$hs.code.6 %in% unique(data.returned$hs.code.6)] <- 1 
-        ledger.temp$selected[! ledger.temp$hs.code.6 %in% unique(data.returned$hs.code.6) & ledger.temp$selected != 1] <- 0
-        data.ledger <<- ledger.temp
-        assign.global("data.ledger",data.ledger)
-        data.subset <- subset(data.subset, ! hs.code.6 %in% data.returned$hs.code.6)
-        data.subset <- rbind(data.subset, data.returned)
-        row.names(data.subset) <- NULL
-        data.subset <<- data.subset
-        
-        searchinput <<- T
-        click("names.refresh")
-      }
-    }
-  })
-  
-  # THIS IS THE SEARCH FIELD, USE AT LATER DATE, MAYBE
-  # search <- eventReactive(input$search.field, {
-  #   
-  #   search.pattern <- paste(unlist(strsplit(as.character(input$search.field)," ")))
-  #   # search.pattern <- paste(unlist(strsplit(as.character(c("test animal airplane"))," ")))
-  #   
-  #   print(search.pattern)
-  #   # print("search")
-  #   if (length(search.pattern)==0){
-  #     # data.subset <<- data.base
-  #     data.subset <<- data.base
-  #   } else {
-  #     # data.temp <- rownames_to_column(df = data.base, 'rownames')
-  #     data.temp <- data.base %>% filter(grepl(paste(search.pattern, collapse="|"), full.name, ignore.case = T) | 
-  #                                         grepl(paste(search.pattern, collapse="|"), hs.code.6, ignore.case = T))
-  #     # data.temp <- column_to_rownames(df = as.data.frame(data.temp), 'rownames')
-  #     # data.subset <<- data.temp 
-  #     data.subset <<- data.temp
-  #   }
-  #   
-  # })
-  # 
   
   first.check <- T
   
   # TABLE OUTPUT FOR PREDEFINED LIST OF WORDS
   names <- eventReactive(input$names.refresh, {
-    # input$save_selection
-    # input$names.refresh
-    # print(names(data.subset))
+    print("NAMES REFRESH")
+    code.suggested = gta_sql_load_table("code_suggested")
+    sql <- "SELECT nr_completed_jobs FROM hs_phrase_table WHERE phrase_id = ?phraseID;" # the WHERE condition is a safeguard in case another user saves at the exact same time
+    query <- sqlInterpolate(pool, 
+                            sql, 
+                            phraseID = phr.id)
+    
+    nr.of.jobs=gta_sql_get_value(query)
     
     data.subset <- data.subset[with(data.subset, order(c(hs.code.6))),]
-    row.names(data.subset) <- NULL
     data.subset <<- data.subset
-    data.output <<- data.subset
+    
+    data.output <- merge(data.subset, subset(code.suggested, phrase.id == phr.id)[,c("probability","hs.code.6")], by = "hs.code.6", all.x=T)
+    
+    if (nr.of.jobs > 0) {
+      data.output$probability.html[is.na(data.output$probability)==F] <- paste0("<div class='probability-bg-wrap'><div class='probability-wrap'><div class='probability probability-available' style='width:",data.output$probability[is.na(data.output$probability)==F]*100,"%; background-color:",redToGreen(data.output$probability),";'></div></div></div>")
+      data.output$probability.html[is.na(data.output$probability)] <- paste0("<div class='probability-bg-wrap'><div class='probability-wrap'><div class='probability probability-none'></div></div></div>")
+    } else {
+      data.output$probability.html[is.na(data.output$probability)] <- paste0("<div class='probability-hide'><div class='probability-wrap'><div class='probability probability-none'></div></div></div>")
+    }
+    data.output <- unique(data.output[,c("indicator","hs.code.6","probability.html","hs.description.6","hs.description.4","hs.code.4","hs.code.2","hs.id")])
+    
+    row.names(data.output) <- NULL
+    data.output <<- data.output
     
   })
   
@@ -736,9 +492,6 @@ server <- function(input, output, session) {
   # OBSERVE CHANGES IN REFINE.QUERY
   observeEvent(input$query.refine, {
     print(paste(input$query.refine, collapse=", "))
-    # print(paste("Search.query",paste(input$query.refine, collapse=" ")))
-    # search.query <<- paste(input$query.refine, collapse=" ")
-    # output$query.refine.output <- renderText({ input$query.refine })
   })
   
   
@@ -790,64 +543,110 @@ server <- function(input, output, session) {
   
   # IMPORT XLSX FILE
   
-  observeEvent(input$import_uploaded_file, {
-    file = input$import.xlsx
-    importfile = read.xlsx(xlsxFile = file$datapath, sheet = 1, rowNames = F, colNames = F)
+  observeEvent(input$import.toggle.button, {
     shinyjs::addClass(selector = ".import-wrap", class = "active")
   })
   
-  observeEvent(input$finish.import, {
-    
-    shinyjs::removeClass(selector = ".import-wrap", class = "active")
-    showNotification("Thank you. You will be notified by email once the import is completed.", duration = 60)
-    file = input$import.xlsx
-    
-    # LOAD LOG
-    importer.log=gta_sql_load_table("importer.log")
-    filename = paste0(Sys.Date()," - ",max(importer.log$ticket.number)+1," - ",chosen.user,".xlsx")
-    
-    # UPDATE EMAIL ADDRESS
-    # UPDATE EMAIL ADDRESS #2 : in case we don't have one on file
-    if(((input$update.email == T)|(is.na(users$email[users$name == input$users])))) {
-      
-      # users$email[users$name == input$users] <- input$import.email.adress
-      
-      sql <- "UPDATE users SET email = ?newvalue WHERE user_id = ?forwhom;"
-      query <- sqlInterpolate(pool, 
-                              sql, 
-                              forwhom = input$users,
-                              newvalue = input$import.email.adress)
-      
-      gta_sql_update_table(query)
-
-    }
-    
-    
-
-    # FILL IMPORTER LOG
-    importer.log.new = data.frame(user.id = users$user.id[users$name == input$users],
-                                  order.email = input$import.email.adress,
-                                  job.name = input$import.job.name,
-                                  ticket.number = max(importer.log$ticket.number)+1,
-                                  time.order = Sys.time(),
-                                  under.preparation = 1,
-                                  xlsx.file = filename,
-                                  is.priority = input$prioritize,
-                                  process.by.others = input$process.by.others,
-                                  related.state.act = input$state.act.id)
-    
-    gta_sql_append_table(append.table = "importer.log",
-                         append.by.df = "importer.log.new")
-    
-    
-    # importer.log <- gta_rbind(list=list(importer.log, importer.log.new))
-    # save(importer.log, file="17 Shiny/5 HS code finder/log/importer-log.Rdata")
-    rm(importer.log.new)
-    
-    importfile <- read.xlsx(xlsxFile = file$datapath, sheet = 1, colNames = F, rowNames = F)
-    
-    write.xlsx(importfile, file=paste0("17 Shiny/5 HS code finder/xlsx imports/",filename), sheetName = "sheet", append = F, rowNames = F, colNames = F)
+  #CHECK IF MANUAL OR EXCEL IMPORT IS ACTIVE
   
+  # OBSERVE GROUP SELECT
+  observeEvent(input$checkImporterToggle, {
+    print(input$checkImporterToggle)
+    
+    importToggle <- input$checkImporterToggle
+    importToggle <<- importToggle
+    
+  })
+  
+  observeEvent(input$finish_import, {
+    
+    if(input$users=="Select"){
+      showNotification("Please select or create a user before finishing your import",duration = 1000)
+    } else {
+      
+      # LOAD LOG
+      importer.log <- gta_sql_load_table("importer.log")
+      importer.log <<- importer.log
+      
+      filename = paste0(Sys.Date()," - ",max(importer.log$ticket.number)+1," - ",chosen.user,".xlsx")
+      
+      # UPDATE EMAIL ADDRESS
+      # UPDATE EMAIL ADDRESS #2 : in case we don't have one on file
+      
+      if(((input$update.email == T)|(is.na(users$user.email[users$user.login == input$users])))) {
+        
+        sql <- "UPDATE gta_user_log SET user_email = ?newvalue WHERE user_login = ?forwhom;"
+        query <- sqlInterpolate(pool, 
+                                sql, 
+                                forwhom = input$users,
+                                newvalue = input$import.email.adress)
+        print(query)
+        
+        gta_sql_update_table(query)
+        
+      }
+      
+      users <- gta_sql_load_table("user.log", table.prefix = "gta_")
+      users <<- users
+      
+      # if email-field empty: get user email
+      if (input$import.email.adress == "" & (is.na(users$user.email[users$user.login == input$users]) | users$user.email[users$user.login == input$users] == "")) {
+        showNotification("Please input a mail address", duration = 5)
+      } else {
+        
+        if (input$import.email.adress == "") {
+          email.address <- users$user.email[users$user.login == input$users]
+        } else {
+          email.address = input$import.email.adress
+        }
+        # FILL IMPORTER LOG
+        importer.log.new <- data.frame(user.id = users$user.id[users$user.login == input$users],
+                                       order.email = email.address,
+                                       job.name = input$import.job.name,
+                                       ticket.number = max(importer.log$ticket.number)+1,
+                                       time.order = Sys.time(),
+                                       under.preparation = 1,
+                                       xlsx.file = filename,
+                                       is.priority = input$prioritize,
+                                       process.by.others = input$process.by.others,
+                                       related.state.act = input$state.act.id)
+        importer.log.new <<- importer.log.new
+        
+        # importer.log.new = data.frame(user.id = 23,
+        #                               order.email = "mail@patrickbuess.ch",
+        #                               job.name = "Test DB",
+        #                               ticket.number = max(importer.log$ticket.number)+1,
+        #                               time.order = Sys.time(),
+        #                               under.preparation = 1,
+        #                               xlsx.file = "importfile",
+        #                               is.priorityf = TRUE,
+        #                               process.by.others = 4,
+        #                               related.state.act = "NULL")
+        
+        gta_sql_append_table(append.table = "importer.log",
+                             append.by.df = "importer.log.new")
+        
+        rm(importer.log.new)
+        
+        # IF EXCEL IS CHOSEN
+        if (importToggle == "import-toggle-excel") {
+          file = input$import.xlsx
+          importfile <- openxlsx::read.xlsx(xlsxFile = file$datapath, sheet = 1, colNames = F, rowNames = F)
+          
+          openxlsx::write.xlsx(importfile, file=paste0(wdpath,"/xlsx imports/",filename), sheetName = "sheet", append = F, rowNames = F, colNames = F)
+        } else if (importToggle == "import-toggle-manual") {
+          
+          import.phrases <- as.data.frame(paste(unlist(strsplit(as.character(input$manual.import.values),";"))))
+          import.phrases[,1] <- trimws(import.phrases[,1], which = "both")
+          import.phrases <<- import.phrases
+          openxlsx::write.xlsx(import.phrases, file=paste0(wdpath,"/xlsx imports/",filename), sheetName = "sheet", append = F, rowNames = F, colNames = F)
+          print(import.phrases)
+        }
+        
+        shinyjs::removeClass(selector = ".import-wrap", class = "active")
+        showNotification("Thank you. You will be notified by email once the import is completed.", duration = 60)
+      }
+    }
   })
   
   # SELECT ROWS MECHANISM
@@ -855,14 +654,12 @@ server <- function(input, output, session) {
     isolate({
       print(paste("#Selected 1: ", length(data.ledger$hs.code.6[data.ledger$selected ==1])))
       print(paste("#input$hstable_rows_selected 1: ", paste(input$hstable_rows_selected, collapse = ", ")))
-      # selected <<- subset(data.base, (! hs.code.6 %in% data.subset$hs.code.6 & selected == 1) | (hs.code.6 %in% data.subset$hs.code.6 & hs.code.6 %in% data.subset$hs.code.6[c(input$hstable_rows_selected)]))$hs.code.6
       selected <<- subset(data.ledger, selected == 1)$hs.code.6
-      
+      print(selected)
       selected.user <<- subset(data.ledger, user.generated == 1)$hs.code.6
       
       data.ledger$selected[data.ledger$selected == 0 & data.ledger$hs.code.6 %in% data.subset$hs.code.6[c(input$hstable_rows_selected)]]  <- 1
       data.ledger$selected[data.ledger$selected == 1 & ! data.ledger$hs.code.6 %in% data.subset$hs.code.6[c(input$hstable_rows_selected)]]  <- 0
-      # data.ledger$selected <- 1
       
       print(paste("#Selected 2: ", length(data.ledger$hs.code.6[data.ledger$selected ==1])))
       print(paste("#input$hstable_rows_selected 2: ", paste(input$hstable_rows_selected, collapse = ", ")))
@@ -885,22 +682,6 @@ server <- function(input, output, session) {
   })
   
   
-  # # UPDATE UNRELATED SEARCH BOX TEXT AREA OUTPUT
-  # unrelated_selected_codes <- observe(suspended=F, { input$hstable_rows_selected 
-  #   codes <- paste(data.ledger$hs.code.6[data.ledger$selected == 1], collapse = ", ")
-  #   updateTextAreaInput(session,
-  #                       inputId = "unrelated_selected_codes",
-  #                       label= "These are your selected codes:",
-  #                       value = codes,
-  #                       placeholder = codes
-  #   )
-  # })
-  
-  # OBSERVE REFRESH BUTTON
-  # currentWord <- eventReactive(input$names.refresh, {
-  #   print(tuple.names$names[tuple.names$id == phr.id])
-  # })
-  
   # REGISTER NEW CODE
   observeEvent(input$register_new_hs_code, {
     print(paste("REGISTER NEW CODE: "))
@@ -911,7 +692,6 @@ server <- function(input, output, session) {
       returned <- gta_hs_code_check(as.numeric(code))
       returned <- as.character(sprintf("%06s",returned) %>% gsub(pattern = " ", replacement = "0", x = .))
       data.returned <- subset(data.base, hs.code.6 %in% returned) 
-      data.returned$indicator <- "<div class='indicator user'></div>"
       
       ledger.temp <- data.ledger
       ledger.temp$user.generated[ledger.temp$hs.code.6 %in% unique(data.returned$hs.code.6)] <- 1
@@ -920,7 +700,8 @@ server <- function(input, output, session) {
       ledger.temp$selected[! ledger.temp$hs.code.6 %in% unique(data.returned$hs.code.6) & ledger.temp$selected != 1] <- 0
       data.ledger <<- ledger.temp
       
-      data.subset <- rbind(data.returned, data.subset)
+      data.subset <- unique(rbind(data.returned, data.subset))
+      data.subset$indicator[data.subset$hs.code.6 %in% data.ledger$hs.code.6[data.ledger$user.generated == 1]] <- "<div class='indicator user'></div>"
       row.names(data.subset) <- NULL
       data.subset <<- data.subset
       userinput <<- T
@@ -933,6 +714,16 @@ server <- function(input, output, session) {
   # Conditionally show finder check button and text
   output$showFinderCheck <- reactive({
     input$query.refine
+    
+    code.suggested <- change_encoding(gta_sql_load_table("code_suggested"))
+    code.suggested <<- code.suggested
+    
+    phrase.table <- change_encoding(gta_sql_load_table("phrase_table"))
+    phrase.table <<- phrase.table
+    
+    code.source <- change_encoding(gta_sql_load_table("code_source"))
+    code.source <<- code.source
+    
     suggestion.ids <- subset(code.suggested, phrase.id == phr.id)$suggestion.id
     all.sources <- subset(code.source, suggestion.id %in% suggestion.ids)$source.id
     
@@ -945,6 +736,7 @@ server <- function(input, output, session) {
         }
       }
     }
+    rm(code.suggested)
     
   })
   outputOptions(output, "showFinderCheck", suspendWhenHidden = FALSE)
@@ -959,8 +751,17 @@ server <- function(input, output, session) {
   })
   outputOptions(output, "condSearchTerm", suspendWhenHidden = FALSE)
   
+  
   # CHECK IF PHRASE WAS RUN THROUGH CODE FINDER ALREADY
   output$finder_check_text <- renderUI({
+    
+    phrase.table <- change_encoding(gta_sql_load_table("phrase_table"))
+    phrase.table <<- phrase.table
+    code.suggested <- change_encoding(gta_sql_load_table("code_suggested"))
+    code.suggested <<- code.suggested
+    code.source <- change_encoding(gta_sql_load_table("code_source"))
+    code.source <<- code.source
+    
     if(! paste(input$query.refine, collapse=" ") %in% unique(phrase.table$phrase)) {
       tags$div(class="text-box",
                tags$p("Search codes for adjusted query"))
@@ -977,46 +778,34 @@ server <- function(input, output, session) {
         }
       }
     }
+    rm(phrase.table, code.suggested, code.source)
   })
   
   output$finder_check_button <- renderUI({
+    phrase.table <- change_encoding(gta_sql_load_table("phrase_table"))
+    phrase.table <<- phrase.table
+    
     if(! paste(input$query.refine, collapse=" ") %in% unique(phrase.table$phrase)) {
       tags$div(class="button",
                actionButton("search_adjusted",
                             "Search"))
     }
+    rm(phrase.table)
   })
   
   # Report terms which are not a product 
   observeEvent(input$not.product, {
-    # load_all(path)
     
-    report.services.update <<- data.frame(phrase.id = phr.id,
-                                         user.id = users$user.id[users$name == input$users],
+    report.services.update <- data.frame(phrase.id = phr.id,
+                                         user.id = users$user.id[users$user.login == input$users],
                                          stringsAsFactors = F)
+    report.services.update <<- report.services.update
     
     gta_sql_append_table(append.table = "report.services",
                          append.by.df = "report.services.update")
     rm(report.services.update)
     
-    
-    # job.phrase$processed[job.phrase$phrase.id == phr.id] <- TRUE
-    # job.phrase <<- job.phrase
-    sql <- "UPDATE job_phrase SET processed = ?newvalue WHERE phrase_id = ?forwhom;"
-    query <- sqlInterpolate(pool, 
-                            sql, 
-                            forwhom = phr.id,
-                            newvalue = 0)
-    
-    gta_sql_update_table(query)
-    rm(query)
-    
-    
-    
-    # phrase.table$nr.completed.jobs[phrase.table$phrase.id==phr.id]=phrase.table$nr.completed.jobs[phrase.table$phrase.id==phr.id]+1
-    # phrase.table <<- phrase.table
-    
-    sql <- "SELECT nr_completed_jobs FROM phrase_table WHERE phrase_id = ?fromwhom;"
+    sql <- "SELECT nr_completed_jobs FROM hs_phrase_table WHERE phrase_id = ?fromwhom;"
     query <- sqlInterpolate(pool, 
                             sql, 
                             fromwhom = phr.id)
@@ -1025,7 +814,7 @@ server <- function(input, output, session) {
     rm(query)
     
     
-    sql <- "UPDATE phrase_table SET nr_completed_jobs = ?newvalue WHERE phrase_id = ?forwhom;"
+    sql <- "UPDATE hs_phrase_table SET nr_completed_jobs = ?newvalue WHERE phrase_id = ?forwhom;"
     query <- sqlInterpolate(pool, 
                             sql, 
                             forwhom = phr.id,
@@ -1034,16 +823,13 @@ server <- function(input, output, session) {
     gta_sql_update_table(query)
     rm(query)
     
+    check.log.update <- data.frame(user.id = users$user.id[users$user.login == input$users],
+                                   time.stamp = Sys.time(),
+                                   check.successful = TRUE,
+                                   job.id = job.phrase$job.id[job.phrase$phrase.id == phr.id],
+                                   stringsAsFactors = F)
+    check.log.update <<- check.log.update
     
-    
-    
-    
-    # check.log <<- check.log
-    check.log.update <- data.frame(user.id = users$user.id[users$name == input$users],
-                                  time.stamp = Sys.time(),
-                                  check.successful = TRUE,
-                                  job.id = job.phrase$job.id[job.phrase$phrase.id == phr.id],
-                                  stringsAsFactors = F)
     gta_sql_append_table(append.table = "check.log",
                          append.by.df = "check.log.update")
     rm(check.log.update)
@@ -1051,33 +837,31 @@ server <- function(input, output, session) {
     
     
     # check.phrases <<- check.phrases
-    sql <- "SELECT MAX(check_id) FROM check_log WHERE user_id = ?fromwhom;" # the WHERE condition is a safeguard in case another user saves at the exact same time
+    sql <- "SELECT MAX(check_id) FROM hs_check_log WHERE user_id = ?fromwhom;" # the WHERE condition is a safeguard in case another user saves at the exact same time
     query <- sqlInterpolate(pool, 
                             sql, 
-                            fromwhom = users$user.id[users$name == input$users])
+                            fromwhom = users$user.id[users$user.login == input$users])
     
     this.check.id=gta_sql_get_value(query)
     rm(query)
     
     
     check.phrases.update <- data.frame(check.id = this.check.id,
-                                      phrase.id = phr.id,
-                                      stringsAsFactors = F)
+                                       phrase.id = phr.id,
+                                       stringsAsFactors = F)
+    check.phrases.update <<- check.phrases.update
     
     gta_sql_append_table(append.table = "check.phrases",
                          append.by.df = "check.phrases.update")
     
     rm(check.phrases.update, this.check.id)
     
-    # save_all(path)
     refresh_names()
   })
   
   observeEvent(input$call_names_refresh, {
     refresh_names()
   })
-  
-  
   
   # PRINT CURRENT WORD
   output$printcurrent <- renderUI({
@@ -1089,69 +873,59 @@ server <- function(input, output, session) {
     paste(data.ledger$hs.code.6[data.ledger$selected == 1], collapse = ", ")
   })
   
-  
-  
   # OBSERVE SAVE SELECTION BUTTON
   observeEvent(input$save_selection, {
-    
     save_selection("standard")
-    
   })
   
   # OBSERVE SAVE SELECTION CLIPBOARD BUTTON
   observeEvent(input$save_selection_clipboard, {
-    
     save_selection("clipboard")
-    
   })
   
   # OBSERVE SAVE SELECTION NONE_FOUND BUTTON
   observeEvent(input$none_found, {
-    
     save_selection("none_found")
-    
   })
   
   # OBSERVE SAVE SELECTION CLIPBOARD UNRELATED SEARCH BUTTON
   observeEvent(input$save_selection_clipboard_unrelated, {
-    
     save_selection("unrelated_search")
-    
   })
-  
   
   # OBSERVE CHOSEN USER VALUE
   observeEvent(input$users, {
     chosen.user <<- input$users
     updateTextInput(session,
                     "import.email.adress",
-                    value = users$email[users$name == input$users])
+                    value = users$email[users$user.login == input$users])
   })
   
   observeEvent(input$create.user, {
     name = input$username
     print(name)
-    if (name %in% unique(users$name)) {
+    
+    if (name %in% unique(users$user.login)) {
       showNotification("This name already exists",duration = 5)
     } else {
-      # load_all(path)
       
-      this.user.id=gta_sql_get_value("SELECT MAX(user_id) FROM users;")
+      this.user.id=gta_sql_get_value("SELECT MAX(user_id) FROM gta_user_log;")
       
       users.update <- data.frame(user.id = this.user.id+1,
-                                        name = name,
-                                        gta.layer = "core",
-                                        email = "name@mail.com",
+                                 name = name,
+                                 gta.layer = "core",
+                                 email = "name@mail.com",
                                  stringsAsFactors = F)
+      users.update <<- users.update
       
-      gta_sql_append_table(append.table="users",
-                           append.by.df = "users.update")
+      gta_sql_append_table(append.table="user_log",
+                           append.by.df = "users.update",
+                           table.prefix = "gta_")
       rm(users.update, this.user.id)
-      # save_all(path)
       
-      # load_all(path)
-      users<<-gta_sql_load_table("users")
-      updateSelectInput(session, "users", choices = unique(users$name),selected = name)
+      users <- change_encoding(gta_sql_load_table("user_log", table.prefix = "gta_"))
+      users <<- users 
+      updateSelectInput(session, "users", choices = unique(users$user.login), selected = name)
       reset("username")
     }
     
@@ -1162,63 +936,92 @@ server <- function(input, output, session) {
   
   refresh_names <- function(type="check.suggestion") {
     print("REFRESH_NAMES()")
-    load_all(path)
     
     all.done = F
+    
+    job.log <- change_encoding(gta_sql_load_table("job_log"))
+    job.log <<- job.log
+    job.phrase <- change_encoding(gta_sql_load_table("job_phrase"))
+    job.phrase <<- job.phrase
+    phrase.table <- change_encoding(gta_sql_load_table("phrase_table"))
+    phrase.table <<- phrase.table
+    check.phrases <- change_encoding(gta_sql_load_table("check_phrases"))
+    check.phrases <<- check.phrases
+    check.log <- change_encoding(gta_sql_load_table("check_log"))
+    check.log <<- check.log
+    users <- change_encoding(gta_sql_load_table("user_log", table.prefix = "gta_"))
+    users <<- users
+    code.suggested <- change_encoding(gta_sql_load_table("code_suggested"))
+    code.suggested <<- code.suggested
     
     if (type == "check.suggestion") {
       
       # COUNT REMAINING PHRASES FOR USER PER JOB
       should.do <- subset(job.log, job.processed == F)
-      should.do$remaining <- 0
-      for(j.id in unique(should.do$job.id)) {
-        should.do$remaining[should.do$job.id == j.id] <- nrow(subset(job.phrase, job.id == j.id & processed == F & ! phrase.id %in% subset(check.phrases, check.id %in% subset(check.log, user.id == users$user.id[users$name == input$users])$check.id)$phrase.id))
-      }
-      should.do <- subset(should.do, remaining != 0)
       
-      # ORDER JOBS BY PRIORITY AND REMAINING PHRASES, CHOOSE JOB ID FROM ROW 1
-      if (nrow(should.do)>0) {
-        should.do$is.priority <- ifelse(should.do$is.priority, 1, 0)
-        should.do <- should.do[with(should.do, order(-is.priority, remaining)),]
+      if(nrow(should.do)==0) {
         
-        job.id <- should.do$job.id[1]
-        job.id <<- job.id
-        
-        should.do <- job.phrase$phrase.id[job.phrase$job.id == job.id & job.phrase$processed == FALSE & ! job.phrase$phrase.id %in% subset(check.phrases, check.id %in% subset(check.log, user.id == users$user.id[users$name == input$users])$check.id)$phrase.id]
-        should.do <<- should.do
+        showNotification("No more phrases to process", duration = 5)
         
       } else {
-        showNotification("You are all done, thank you!", duration = 1000)
-        all.done = T
-      }
-      
-      
-      if (all.done == F) {
         
-        if(length(should.do)>1) {
-          phr.id <<- sample(should.do,1)
+        should.do$remaining <- 0
+        
+        for(j.id in unique(should.do$job.id)) {
+          should.do$remaining[should.do$job.id == j.id] <- nrow(subset(job.phrase, job.id == j.id & processed == F & ! phrase.id %in% subset(check.phrases, check.id %in% subset(check.log, user.id == users$user.id[users$user.login == input$users])$check.id)$phrase.id))
+        }
+        should.do <- subset(should.do, remaining != 0)
+        
+        # ORDER JOBS BY PRIORITY AND REMAINING PHRASES, CHOOSE JOB ID FROM ROW 1
+        if (nrow(should.do)>0) {
+          should.do$is.priority <- ifelse(should.do$is.priority, 1, 0)
+          should.do <- should.do[with(should.do, order(-is.priority, remaining)),]
+          
+          job.id <- should.do$job.id[1]
+          job.id <<- job.id
+          jobID.temp <- job.id
+          jobID.temp <<- jobID.temp
+          
+          should.do <- job.phrase$phrase.id[job.phrase$job.id == jobID.temp & job.phrase$processed == FALSE & ! job.phrase$phrase.id %in% subset(check.phrases, check.id %in% subset(check.log, user.id == users$user.id[users$user.login == input$users] & job.id == jobID.temp)$check.id)$phrase.id]
+          should.do <<- should.do
+          
+          rm(jobID.temp)
+          
         } else {
-          phr.id <<- should.do
+          showNotification("You are all done, thank you!", duration = 1000)
+          all.done = T
         }
         
-        query <<- paste(unlist(strsplit(as.character(phrase.table$phrase[phrase.table$phrase.id == phr.id])," ")))
-        updateCheckboxGroupButtons(session, "query.refine", choices = query, selected = query)
         
-        data.subset <- subset(data.base, hs.code.6 %in% subset(code.suggested, phrase.id == phr.id)$hs.code)
-        row.names(data.subset) <- NULL
-        data.subset <<- data.subset
+        if (all.done == F) {
+          
+          if(length(should.do)>1) {
+            phr.id <<- sample(should.do,1)
+            # phr.id <<- 2563
+          } else {
+            phr.id <<- should.do
+            # phr.id <<- 2563
+          }
+          
+          query <<- paste(unlist(strsplit(as.character(phrase.table$phrase[phrase.table$phrase.id == phr.id])," ")))
+          updateCheckboxGroupButtons(session, "query.refine", choices = query, selected = query)
+          
+          data.subset <- subset(data.base, hs.code.6 %in% subset(code.suggested, phrase.id == phr.id)$hs.code)
+          row.names(data.subset) <- NULL
+          data.subset <<- data.subset
+          
+        } else {
+          
+          phr.id <<- 0
+          query <<- ""
+          updateCheckboxGroupButtons(session, "query.refine", choices = query, selected = query)
+          
+          data.subset <- data.base[NULL,]
+          row.names(data.subset) <- NULL
+          data.subset <<- data.subset
+        }
         
-      } else {
-        
-        phr.id <<- 0
-        query <<- ""
-        updateCheckboxGroupButtons(session, "query.refine", choices = query, selected = query)
-        
-        data.subset <- data.base[NULL,]
-        row.names(data.subset) <- NULL
-        data.subset <<- data.subset
       }
-      
     }
     
     if (type=="empty") {
@@ -1241,117 +1044,75 @@ server <- function(input, output, session) {
     assign.global("phr.id",phr.id)
     
     click("names.refresh")
+    
+    rm(job.phrase, check.phrases, check.log, users, code.suggested, job.log, phrase.table)
   }
   
   # Functions for HS Code finder App
   
   save_selection <- function(type) {
     print("SAVE_SELECTION()")
-    load_all(path) 
+    # load_all(path) 
+    toggleClass("loading","active")
+    
     if(input$users=="Select"){
       showNotification("Please select or create a user before saving your selection",duration = 1000)
     } else if (is.null(input$radio1)==T) {
       showNotification("Please select a confidence level",duration = 5)
     } else {
       
-      if (type %in% c("standard","clipboard","unrelated_search")) {
-        
-        new.job.unrelated <- F
-        
-        if(type=="unrelated_search") {
-          
-          this.job.id=gta_sql_get_value("SELECT MAX(job_id) FROM job_log;")
-          
-          job.id <- this.job.id+1
-          job.id <<- job.id
-          
-          job.log.update <- data.frame(job.id = this.job.id+1,
-                                      job.type = "Own search",
-                                      job.name = paste("Search for",input$search.field.unrelated),
-                                      user.id = users$user.id[users$name == input$users],
-                                      nr.of.checks = 3,
-                                      check.hierarchy = FALSE,
-                                      is.priority = TRUE,
-                                      self.check = FALSE,
-                                      related.state.act = NA,
-                                      job.processed = FALSE,
-                                      submission.id = Sys.Date(),
-                                      stringsAsFactors = F)
-          
-          gta_sql_append_table(append.table = "job.log",
-                               append.by.df = "job.log.update")
-          
-          rm(job.log.update,this.job.id)
-          
-          job.log <<- gta_sql_load_table("job.log")
-          
-          new.job.unrelated <- T
-          
-        }
+      
+      
+      if (type %in% c("standard","clipboard")) {
         
         # check if phrase has been adjusted
         # Phrase.table
         new.phrase <- F
         if (type %in% c("standard","clipboard")) {
           
+          phrase.table <- change_encoding(gta_sql_load_table("phrase_table"))
+          phrase.table <<- phrase.table
+          
           if (! tolower(paste(input$query.refine, collapse=" ")) %in% unique(tolower(phrase.table$phrase))) {
             old.id <- phr.id
             
-            this.phrase.id=gta_sql_get_value("SELECT MAX(phrase_id) FROM phrase_table;")
+            this.phrase.id=gta_sql_get_value("SELECT MAX(phrase_id) FROM hs_phrase_table;")
             
             phr.id <- this.phrase.id+1
             phr.id <<- phr.id
             
             phrase.table.update <- data.frame(phrase.id = phr.id,
-                                             phrase = tolower(paste(input$query.refine, collapse = " ")),
-                                             source = "adjusted",
-                                             nr.completed.jobs=0,
-                                             stringsAsFactors = F)
+                                              phrase = tolower(paste(input$query.refine, collapse = " ")),
+                                              source = "adjusted",
+                                              nr.completed.jobs=0,
+                                              stringsAsFactors = F)
+            phrase.table.update <<- phrase.table.update
+            
             gta_sql_append_table(append.table = "phrase.table",
                                  append.by.df = "phrase.table.update")
             rm(phrase.table.update, this.phrase.id)
             
             new.phrase <- T
           }
+          rm(phrase.table)
         }
         
-        if (type %in% c("unrelated_search")) {
-          
-          if (! tolower(input$search.field.unrelated) %in% unique(tolower(phrase.table$phrase))) {
-            old.id <- phr.id
-            
-            this.phrase.id=gta_sql_get_value("SELECT MAX(phrase_id) FROM phrase_table;")
-            phr.id <- this.phrase.id+1
-            phr.id <<- phr.id
-            
-            phrase.table.update <- data.frame(phrase.id = phr.id,
-                                             phrase = tolower(input$search.field.unrelated),
-                                             source = "unrelated search",
-                                             nr.completed.jobs=0,
-                                             stringsAsFactors = F)
-            
-            gta_sql_append_table(append.table = "phrase.table",
-                                 append.by.df = "phrase.table.update")
-            rm(phrase.table.update, this.phrase.id)
-            
-            new.phrase <- T
-            
-          } else{
-            old.id <- phr.id
-            phr.id=min(phrase.table$phrase.id[tolower(phrase.table$phrase)==tolower(input$search.field.unrelated)], na.rm = T)
-            phr.id <<- phr.id
-          }
-          
-        }
         
-        if (new.phrase == T | new.job.unrelated == T) {
-          job.phrase <- rbind(job.phrase, 
-                              data.frame(job.id = job.id,
-                                         phrase.id = phr.id,
-                                         processed = FALSE))
-          job.phrase <<- job.phrase
+        if (new.phrase == T) {
+          job.phrase.update <- data.frame(job.id = job.id,
+                                          phrase.id = phr.id,
+                                          processed = FALSE)
+          job.phrase.update <<- job.phrase.update
+          
+          gta_sql_append_table(append.table = "job.phrase",
+                               append.by.df = "job.phrase.update")
+          
+          rm(job.phrase.update)
           
         } else if (new.phrase == F) {
+          
+          check.phrases <- change_encoding(gta_sql_load_table("check_phrases"))
+          check.phrases <<- check.phrases
           
           ## checking whether this phrase has been checked the required number of times
           phrase.user.unique <- unique(merge(subset(check.log, 
@@ -1368,11 +1129,17 @@ server <- function(input, output, session) {
             required.checks=required.checks-1 
             
             if(successful.checks>=required.checks){
-              job.phrase$processed[job.phrase$phrase.id == phr.id & job.phrase$job.id==j.id] <- TRUE
-              job.phrase <<- job.phrase
+              sql <- "UPDATE hs_job_phrase SET processed = true WHERE phrase_id = ?phraseID;"
+              query <- sqlInterpolate(pool,
+                                      sql,
+                                      phraseID = phr.id)
+              gta_sql_update_table(query)
               
-              phrase.table$nr.completed.jobs[phrase.table$phrase.id==phr.id]=phrase.table$nr.completed.jobs[phrase.table$phrase.id==phr.id]+1
-              phrase.table <<- phrase.table
+              sql <- "UPDATE hs_phrase_table SET nr_completed_jobs = nr_completed_jobs + 1 WHERE phrase_id = ?phraseID;"
+              query <- sqlInterpolate(pool, 
+                                      sql, 
+                                      phraseID = phr.id)
+              gta_sql_update_table(query)
             }
             rm(required.checks)
             
@@ -1384,6 +1151,9 @@ server <- function(input, output, session) {
         
         # codes.suggested
         if(type %in% c("standard","clipboard")) {
+          code.suggested <- change_encoding(gta_sql_load_table("code_suggested"))
+          code.suggested <<- code.suggested
+          
           if (new.phrase == F) {
             suggested.new <- subset(data.ledger, (user.generated == 1 | search.generated == 1) & selected == 1)
             suggested.new <- subset(suggested.new, ! hs.code.6 %in% subset(code.suggested, phrase.id == phr.id)$hs.code.6)
@@ -1393,76 +1163,104 @@ server <- function(input, output, session) {
             ## If so, is this on purpose?
             suggested.new <- subset(data.ledger, hs.code.6 %in% unique(code.suggested$hs.code.6[code.suggested$phrase.id == old.id]) | selected == 1)
           }
+          rm(code.suggested)
         }
-        if (type=="unrelated_search") {
-          if (new.phrase == F) {
-            suggested.new <- subset(data.ledger, (user.generated == 1 | search.generated == 1) & selected == 1)
-            suggested.new <- subset(suggested.new, ! hs.code.6 %in% subset(code.suggested, phrase.id == phr.id)$hs.code.6)
-            
-          } else if (new.phrase == T) {
-            ## isn't this removing suggestions that may happen to overlap between the old and the new phrase? 
-            ## If so, is this on purpose?
-            suggested.new <- subset(data.ledger, hs.code.6 %in% unique(code.suggested$hs.code.6[code.suggested$phrase.id == old.id]) | selected == 1  | user.generated == 1 | search.generated == 1)
-          }
-        }
-        
-        
-        
         
         if (nrow(suggested.new) != 0) {
+          code.suggested <- change_encoding(gta_sql_load_table("code_suggested"))
+          code.suggested <<- code.suggested
+          
           suggested.new$phrase.id = phr.id
           
           suggested.new$suggestion.id <- seq((max(code.suggested$suggestion.id)+1),(max(code.suggested$suggestion.id))+nrow(suggested.new),1)
           suggested.new$probability=NA
           
-          code.suggested <- rbind(code.suggested, 
-                                  suggested.new[,c("suggestion.id","phrase.id","hs.code.6","probability")])
-          code.suggested <<- code.suggested
+          code.suggested.update <- suggested.new[,c("suggestion.id","phrase.id","hs.code.6","probability")]
+          code.suggested.update <<- code.suggested.update
           
-          if (exists("search.sources")) {
-            search.sources <- subset(search.sources, hs.code.6 %in% suggested.new$hs.code.6[suggested.new$search.generated == 1])
-            search.sources <- merge(search.sources, suggested.new[,c("hs.code.6","suggestion.id")], by="hs.code.6", all.x=T)
-            code.source <- rbind(code.source, 
-                                 search.sources[,c("source.id","suggestion.id")])
-            code.source <<- code.source
-            rm(search.sources)
-            
-          }
+          gta_sql_append_table(append.table = "code.suggested",
+                               append.by.df = "code.suggested.update")
+          
+          # Get newly added suggestion.ids, because of primary key, they can differ from the ones in this environment
+          sql <- "SELECT * FROM hs_code_suggested WHERE phrase_id = ?phraseID;" 
+          query <- sqlInterpolate(pool, 
+                                  sql, 
+                                  phraseID = phr.id)
+          
+          code.suggested.new=gta_sql_get_value(query)
+          code.suggested.new = subset(code.suggested.new, hs.code.6 %in% code.suggested.update$hs.code.6)
+          
+          
+          
           if (length(suggested.new$hs.code.6[suggested.new$user.generated == 1]) > 0) {
-            suggested.new <- subset(suggested.new, user.generated == 1)
-            suggested.new$source.id <- 99
-            code.source <- rbind(code.source, 
-                                 suggested.new[,c("source.id","suggestion.id")])
-            code.source <<- code.source
+            suggested.new <- subset(code.suggested.new, hs.code.6 %in% subset(suggested.new, user.generated == 1)$hs.code.6)
+            suggested.new$source.id <- 0
+            code.source.update <- suggested.new[,c("source.id","suggestion.id")]
+            code.source.update <<- code.source.update
+            
+            gta_sql_append_table(append.table = "code.source",
+                                 append.by.df = "code.source.update")
+            
           }
         }
         
+        # GET CURRENT CHECK.ID
+        sql <- "SELECT MAX(check_id) FROM hs_check_log;"
+        query <- sqlInterpolate(pool, 
+                                sql, 
+                                fromwhom = users$user.id[users$user.login == input$users])
+        
+        this.check.id=gta_sql_get_value(query)
+        this.check.id=this.check.id + 1
+        rm(query)
         
         # Check.log
-        check.log <- rbind(check.log, 
-                           data.frame(check.id = max(check.log$check.id)+1,
-                                      user.id = users$user.id[users$name == input$users],
-                                      time.stamp = Sys.time(),
-                                      check.successful = TRUE,
-                                      job.id = job.id))
+        check.log <- change_encoding(gta_sql_load_table("check_log"))
         check.log <<- check.log
         
+        check.log.update <- data.frame(check.id = this.check.id,
+                                       user.id = users$user.id[users$user.login == input$users],
+                                       time.stamp = Sys.time(),
+                                       check.successful = TRUE,
+                                       job.id = job.id)
+        check.log.update <<- check.log.update
+        
+        gta_sql_append_table(append.table = "check.log",
+                             append.by.df = "check.log.update")
+        
+        rm(check.log.update)
+        
         # Add code.selected
+        code.suggested <- change_encoding(gta_sql_load_table("code_suggested"))
+        code.suggested <<- code.suggested
+        
         code.selected.new <- subset(code.suggested, hs.code.6 %in% subset(data.ledger, selected == 1)$hs.code.6 & phrase.id == phr.id)
+        
         if (nrow(code.selected.new) > 0) {
-          code.selected.new$check.id= max(check.log$check.id)
-          code.selected <- rbind(code.selected, 
-                                 code.selected.new[,c("check.id","suggestion.id")])
-          code.selected <<- code.selected
-          rm(code.selected.new)
+          
+          code.selected.update <- data.frame(check.id = this.check.id,
+                                             suggestion.id = code.selected.new$suggestion.id)
+          code.selected.update <<- code.selected.update
+          
+          gta_sql_append_table(append.table = "code.selected",
+                               append.by.df = "code.selected.update")
+          
+          print(code.selected.update)
+          
+          rm(code.selected.update, code.selected.new)
         }
         
         
         # Check.phrases
-        check.phrases <- rbind(check.phrases, 
-                               data.frame(check.id = max(check.log$check.id),
-                                          phrase.id = phr.id))
-        check.phrases <<- check.phrases
+        
+        check.phrases.update <- data.frame(check.id = this.check.id,
+                                           phrase.id = phr.id)
+        check.phrases.update <<- check.phrases.update
+        
+        gta_sql_append_table(append.table = "check.phrases",
+                             append.by.df = "check.phrases.update")
+        
+        rm(check.phrases.update)
         
         if (type %in% c("standard","clipboard")) {
           # words.removed
@@ -1470,10 +1268,13 @@ server <- function(input, output, session) {
           removed <- words.all[! words.all %in% paste(unlist(strsplit(as.character(tolower(input$query.refine))," ")))]
           
           if (length(removed) > 0) {
-            words.removed <- rbind(words.removed, 
-                                   data.frame(check.id = c(rep(max(check.log$check.id), length(removed))),
-                                              words.removed = removed))
-            words.removed <<- words.removed
+            
+            words.removed.update <- data.frame(check.id = c(rep(this.check.id, length(removed))),
+                                               words.removed = removed)
+            words.removed.update <<- words.removed.update
+            
+            gta_sql_append_table(append.table = "words.removed",
+                                 append.by.df = "words.removed.update")
           }
           
         }
@@ -1483,99 +1284,176 @@ server <- function(input, output, session) {
           if (input$suggestions.search.terms != "") {
             
             additional.suggestions.phrases=as.data.frame(strsplit(input$suggestions.search.terms,split=';', fixed=TRUE))
-            additional.suggestions <- rbind(additional.suggestions, 
-                                            data.frame(check.id = max(check.log$check.id),
-                                                       term = additional.suggestions.phrases[,1],
-                                                       user.id = users$user.id[users$name == input$users]))
-            additional.suggestions <<- additional.suggestions
-            rm(additional.suggestions.phrases)
+            
+            additional.suggestions.update <- data.frame(check.id = this.check.id,
+                                                        term = additional.suggestions.phrases[,1],
+                                                        user.id = users$user.id[users$user.login == input$users])
+            additional.suggestions.update <<- additional.suggestions.update
+            
+            gta_sql_append_table(append.table = "additional.suggestions",
+                                 append.by.df = "additional.suggestions.update")
+            
+            rm(additional.suggestions.phrases, additional.suggestions.update)
           }
         }
         
         # check.certainty
-        check.certainty <- rbind(check.certainty, 
-                                 data.frame(check.id = max(check.log$check.id),
-                                            certainty.level = input$radio1))
-        check.certainty <<- check.certainty
+        
+        check.certainty.update <- data.frame(check.id = this.check.id,
+                                             certainty.level = input$radio1)
+        check.certainty.update <<- check.certainty.update
+        
+        gta_sql_append_table(append.table = "check.certainty",
+                             append.by.df = "check.certainty.update")
         
         
         # Check if job is fully processed 
         # (could be more than one as one phrase may be part of more than one job)
         
-        for(j.id in unique(subset(job.phrase, phrase.id==phr.id)$job.id)){
-          
-          if(nrow(subset(job.phrase, job.id==j.id & processed==F))==0){
-            job.log$job.processed[job.log$job.id==j.id]=T
-            job.log <<- job.log
-            save_all(path)
-          
-            gta_hs_process_completed_job(processed.job=j.id)
-          
-            
-          }
-          
-        }
+        job.phrase <- change_encoding(gta_sql_load_table("job_phrase"))
+        job.phrase <<- job.phrase
         
+        for(j.id in unique(subset(job.phrase, phrase.id==phr.id)$job.id)){
+          # toggleClass("loading","active")
+          if(job.log$job.processed[job.log$job.id==j.id]==F) {
+            if(nrow(subset(job.phrase, job.id==j.id & processed==F))==0){        
+              
+              sql <- "UPDATE hs_job_log SET job_processed = true WHERE job_id = ?jobID;"
+              query <- sqlInterpolate(pool, 
+                                      sql, 
+                                      jobID = j.id)
+              
+              gta_sql_update_table(query)
+              
+              gta_hs_process_completed_job(processed.job=j.id, path = wdpath)
+              
+            }
+          }
+          # toggleClass("loading","active")
+        }
       }
+      
       if (type == "none_found") {
         # Check.log
-        check.log <- rbind(check.log, 
-                           data.frame(check.id = max(check.log$check.id)+1,
-                                      user.id = users$user.id[users$name == input$users],
-                                      time.stamp = Sys.time(),
-                                      check.successful = FALSE,
-                                      job.id = job.id))
-        check.log <<- check.log
+        
+        # GET CURRENT CHECK.ID
+        sql <- "SELECT MAX(check_id) FROM hs_check_log;"
+        query <- sqlInterpolate(pool, 
+                                sql, 
+                                fromwhom = users$user.id[users$user.login == input$users])
+        
+        this.check.id=gta_sql_get_value(query)
+        this.check.id=this.check.id + 1
+        
+        check.log.update <- data.frame(check.id = this.check.id,
+                                       user.id = users$user.id[users$user.login == input$users],
+                                       time.stamp = Sys.time(),
+                                       check.successful = FALSE,
+                                       job.id = job.id)
+        check.log.update <<- check.log.update
+        
+        gta_sql_append_table(append.table = "check.log",
+                             append.by.df = "check.log.update")
+        
+        rm(check.log.update)
+        
         
         # Check.phrases
-        check.phrases <- rbind(check.phrases, 
-                               data.frame(check.id = max(check.log$check.id),
-                                          phrase.id = phr.id))
+        
+        check.phrases <- change_encoding(gta_sql_load_table("check_phrases"))
         check.phrases <<- check.phrases
         
-        # check.certainty
-        check.certainty <- rbind(check.certainty, 
-                                 data.frame(check.id = max(check.log$check.id),
-                                            certainty.level = input$radio1))
+        check.phrases.update <- data.frame(check.id = this.check.id,
+                                           phrase.id = phr.id)
+        check.phrases.update <<- check.phrases.update
         
+        gta_sql_append_table(append.table = "check.phrases",
+                             append.by.df = "check.phrases.update")
+        
+        rm(check.phrases.update)
+        
+        # check.certainty
+        
+        check.certainty <- change_encoding(gta_sql_load_table("check_certainty"))
         check.certainty <<- check.certainty
         
+        check.certainty.update <- data.frame(check.id = this.check.id,
+                                             certainty.level = input$radio1)
+        check.certainty.update <<- check.certainty.update
+        
+        gta_sql_append_table(append.table = "check.certainty",
+                             append.by.df = "check.certainty.update")
+        
+        rm(check.certainty.update)
+        
       }
       
       
-      save_all(path)
+      # START NEW ASYNC HS_CODE_FINDER SEARCH FOR THAT TERM
+      phr.id.future <<- phr.id
+      query.refine.future <<- input$query.refine
+      # query.refine.future <<- "keyring"
+      # phr.id.future <<- 2561
       
-      
-      if (type != "unrelated_search") {
+      future({ gta_hs_code_finder(products = tolower(paste(query.refine.future, collapse=" ")))}) %...>%  {
+        found.temp <- .
+        # found.temp <- gta_hs_code_finder(products = tolower(paste(query.refine.future, collapse=" ")))
         
-        phr.id.future <<- phr.id
-        query.refine.future <<- input$query.refine
-        # query.refine.future <<- "hot air balloon"
+        phrase.table.future <- gta_sql_load_table("phrase.table")
+        code.suggested.future <- gta_sql_load_table("code.suggested")
+        suggestion.sources.future <- gta_sql_load_table("suggestion.sources")
         
-        future({ gta_hs_code_finder(products = tolower(paste(query.refine.future, collapse=" ")))}) %...>%  {
-          found.temp <- .
-          load_all(path)
-          codes <- code.suggested$hs.code.6[code.suggested$phrase.id == phr.id.future]
-          new.codes <- subset(found.temp, ! hs.code %in% codes)
+        codes <- code.suggested.future$hs.code.6[code.suggested.future$phrase.id == phr.id.future]
+        new.codes <- subset(found.temp, ! hs.code %in% codes)
+        
+        if (nrow(new.codes)>0) {
           new.codes <- new.codes[,c("hs.code","source.names")]
           new.codes$phrase.id <- phr.id.future
-          new.codes$suggestion.id <- seq(max(code.suggested$suggestion.id)+1,max(code.suggested$suggestion.id)+nrow(new.codes),1)
+          new.codes$suggestion.id <- seq(max(code.suggested.future$suggestion.id)+1,max(code.suggested.future$suggestion.id)+nrow(new.codes),1)
           names(new.codes) <- c("hs.code.6","source.names","phrase.id","suggestion.id")
           new.codes$probability=NA
-          code.suggested <- rbind(code.suggested, new.codes[,c("hs.code.6","phrase.id","suggestion.id", "probability")])
-          code.suggested <<- code.suggested
           
-          new.codes <- new.codes[,c("source.names","suggestion.id")]
+          # code.suggested <- rbind(code.suggested, new.codes[,c("hs.code.6","phrase.id","suggestion.id", "probability")])
+          # code.suggested <<- code.suggested
+          
+          code.suggested.update.future <- new.codes[,c("hs.code.6","phrase.id","suggestion.id", "probability")]
+          code.suggested.update.future <<- code.suggested.update.future
+          
+          gta_sql_append_table(append.table = "code.suggested",
+                               append.by.df = "code.suggested.update.future")
+          
+          # Get newly added suggestion.ids, because of primary key, they can differ from the ones in this environment
+          sql <- "SELECT * FROM hs_code_suggested WHERE phrase_id = ?phraseID;" # the WHERE condition is a safeguard in case another user saves at the exact same time
+          query <- sqlInterpolate(pool, 
+                                  sql, 
+                                  phraseID = phr.id.future)
+          
+          new.codes.current=gta_sql_get_value(query)
+          new.codes.current = subset(new.codes.current, hs.code.6 %in% code.suggested.update.future$hs.code.6)
+          
+          new.codes <- merge(new.codes[,c("source.names","hs.code.6")], new.codes.current[,c("hs.code.6","suggestion.id")], by="hs.code.6")[,c("source.names","suggestion.id")]
+          
           new.codes <- cSplit(new.codes, which(colnames(new.codes)=="source.names"), direction="long", sep=";")
           names(new.codes) <- c("source.name","suggestion.id")
-          new.codes <- merge(new.codes, suggestion.sources, by="source.name", all.x=T)
-          code.source <- rbind(code.source, new.codes[,c("source.id","suggestion.id")])
-          code.source <<- code.source
-          save_all(path)
+          new.codes <- merge(new.codes, suggestion.sources.future, by="source.name", all.x=T)
+          
+          # code.source <- rbind(code.source, new.codes[,c("source.id","suggestion.id")])
+          
+          code.source.update.future <- new.codes[,c("source.id","suggestion.id")]
+          code.source.update.future <<- code.source.update.future
+          
+          gta_sql_append_table(append.table = "code.source",
+                               append.by.df = "code.source.update.future")
+          
+          rm(code.source.update.future, code.suggested.update, codes,found.temp, new.codes.current)
+          
+          print("Number of new codes found:")
+          print(nrow(new.codes))
           print("ALL DONE ASYNC")
         }
-        
+        rm(new.codes)
       }
+      
       
       if (type %in% c("clipboard","unrelated_search")) {
         runjs("var copyText = document.getElementById('selected_codes_output');
@@ -1597,21 +1475,18 @@ server <- function(input, output, session) {
       toggleClass("selected_codes_output_old","active")
       
       toggleClass("save-selection","active")
+      toggleClass("loading","active")
       refresh_names()
     }
     
-    }
-  
   }
-
-
-
-
+  
+}
 
 shinyApp(ui = ui, 
          server = server, 
          onStart = function() {
-           gta_sql_pool_open()
+           gta_sql_pool_open(table.prefix = "hs_", got.keyring = F)
            
            onStop(function() {
              gta_sql_pool_close()
