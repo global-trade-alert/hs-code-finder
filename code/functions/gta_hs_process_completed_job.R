@@ -1,16 +1,23 @@
-gta_hs_process_completed_job<- function(processed.job=NULL){
- 
+gta_hs_process_completed_job<- function(processed.job=NULL, path = NULL){
+  
   library(gtalibrary)
   
   if(is.null(processed.job)){
-    
     stop("gta_hs_process_completed_job: No ID for the processed job is specified.")
   }
   
-  ## classifying results
-  result.path=paste("17 Shiny/5 HS code finder/results/Job ",processed.job," - Classification result", sep="")
+  if(is.null(path)){
+    stop("Please specify a path to the database.")
+  }
   
-  load_all(path)
+  ## classifying results
+  result.path=paste(path,"results/Job ",processed.job," - Classification result", sep="")
+  
+  # load_all(path)
+  job.log <- change_encoding(gta_sql_load_table("job_log"))
+  job.log <<- job.log
+  users <- change_encoding(gta_sql_load_table("user_log",table.prefix = "gta_"))
+  users <<- users
   
   for(j.id in processed.job){
     if(job.log$nr.of.checks[job.log$job.id==j.id]>1){

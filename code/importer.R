@@ -3,20 +3,30 @@ library("splitstackshape")
 library("foreign")
 library("xlsx")
 library("gtalibrary")
+library("gtasql")
+library("pool")
+library("RMariaDB")
 library("data.table")
 library("ggplot2")
 library(mailR)
 rm(list = ls())
+
+# gta_setwd()
 setwd("/home/rstudio/Dropbox/GTA cloud")
+# setwd("/Users/patrickbuess/Dropbox/Collaborations/GTA cloud")
+
+# wdpath="17 Shiny/5 HS code finder/"
+wdpath="0 dev/hs-code-finder-pb/"
 
 # copying log over to the cloud
 # file.copy("/home/rstudio/Dropbox/GTA cloud/17 Shiny/5 HS code finder/code/importer.log",
           # "/home/rstudio/Dropbox/GTA cloud/17 Shiny/5 HS finder/code/importer.log",overwrite = T)
+gta_sql_pool_open(table.prefix = "hs_", got.keyring = F)
 
 ## check if a process is running on the server
 running.processes=system("ps aux", intern=T)
 
-load("17 Shiny/5 HS code finder/log/importer-log.Rdata")
+# load(paste0(wdpath,"/log/importer-log.Rdata"))
 importer.busy=sum(as.numeric(grepl("(importer.R)",running.processes, ignore.case = T)))
 
 if(importer.busy>2){
@@ -32,14 +42,16 @@ if(importer.busy>2){
   # setwd("/Users/patrickbuess/Dropbox/Collaborations/GTA cloud")
   # source("17 Shiny/5 HS code finder/code/importer utensils.R")
   
-  load("17 Shiny/5 HS code finder/log/importer-log.Rdata")
-  path="17 Shiny/5 HS code finder/database/GTA HS code database.Rdata"
+  # load(paste0(wdpath,"/log/importer-log.Rdata"))
+  # path=paste0(wdpath,"/database/GTA HS code database.Rdata")
+  
   ## helpful functions
-  for(fct in list.files("17 Shiny/5 HS code finder/code/functions", pattern = ".R", full.names=T)){
+  for(fct in list.files(paste0(wdpath,"code/functions"), pattern = ".R", full.names=T)){
     source(fct)
   }
   
-  
+  importer.log <- change_encoding(gta_sql_load_table("importer_log"))
+  importer.log <<- importer.log
   
   if(sum(importer.log$under.preparation)==0){
     print(paste(Sys.time(), ": no business", sep=""))
@@ -55,25 +67,30 @@ if(importer.busy>2){
       
       tryCatch({
       # first come, first served.
-      log.row=min(which(importer.log$under.preparation==1))
+      log.row=min(importer.log$ticket.number[importer.log$under.preparation==1])
       
-      logpath=paste("17 Shiny/5 HS code finder/log/",Sys.Date()," - HS code finder import #", importer.log$ticket.number[log.row],".txt",sep="")
+      logpath=paste0(wdpath,"log/",Sys.Date()," - HS code finder import #", importer.log$ticket.number[log.row],".txt")
       con <- file(logpath)
       sink(con, append=T)
       sink(con, append=T, type="message")
       
       
+      
       ## IMPORTER
-        importer.log$time.start[log.row]=Sys.time()
-        class(importer.log$time.start)=c('POSIXt', 'POSIXct')
-        save(importer.log, file="17 Shiny/5 HS code finder/log/importer-log.Rdata")
+      sql <- "UPDATE hs_importer_log SET time_start = ?newvalue WHERE ticket_number = ?forwhom;"
+      query <- sqlInterpolate(pool, 
+                              sql, 
+                              forwhom = log.row,
+                              newvalue = as.character(Sys.time()))
+      
+      gta_sql_update_table(query)
         
         ## extracting parameters
-        kl=importer.log[log.row,]
+        kl=importer.log[importer.log$ticket.number==log.row,]
         
         ## IMPORTING XLSX
-        xlsx.path=paste0("17 Shiny/5 HS code finder/xlsx imports/",kl$xlsx.file)
-        imported.phrases <- read.xlsx(file = xlsx.path, sheetIndex = 1, header = F)
+        xlsx.path=paste0(wdpath,"xlsx imports/",kl$xlsx.file)
+        imported.phrases <- xlsx::read.xlsx(file = xlsx.path, sheetIndex = 1, header = F)
         imported.phrases <- as.character(imported.phrases$X1)
         imported.phrases <- imported.phrases[is.na(imported.phrases)==F]
         
@@ -128,12 +145,11 @@ if(importer.busy>2){
         
         
         ## Updating job.log
-        load_all(path)
-        job.id.import <- max(job.log$job.id)+1
+        
+        job.id.import=gta_sql_get_value("SELECT MAX(job_id) FROM hs_job_log;")+1
         job.id.import <<- job.id.import
         
-        job.log <- rbind(job.log,
-                         data.frame(job.id = job.id.import,
+        job.log.update <- data.frame(job.id = job.id.import,
                                     job.type = "import",
                                     job.name = kl$job.name,
                                     user.id = kl$user.id,
@@ -143,27 +159,34 @@ if(importer.busy>2){
                                     self.check = TRUE,
                                     related.state.act = kl$related.state.act,
                                     job.processed = TRUE, ## will be set to FALSE by HS searcher.
-                                    submission.id = Sys.Date()))
-        save_all(path)
+                                    submission.id = Sys.Date())
+        
+        gta_sql_append_table(append.table = "job.log",
+                             append.by.df = "job.log.update")
+        
+        rm(job.log.update)
         
         ## adding it to the range of HS code searches
-        load_all(path)
         
-        phrases.to.import=rbind(phrases.to.import, 
-                                data.frame(job.id=job.id.import,
-                                           phrase=imported.phrases,
-                                           search.underway=F,
-                                           search.concluded=F,
-                                           run.time=NA,
-                                           nr.attempts=0,
-                                           stringsAsFactors = F))
+        phrases.to.import.update = data.frame(job.id=job.id.import,
+                                             phrase=imported.phrases,
+                                             search.underway=F,
+                                             search.concluded=F,
+                                             run.time=NA,
+                                             nr.attempts=0,
+                                             stringsAsFactors = F)
+          
+        gta_sql_append_table(append.table = "phrases.to.import",
+                             append.by.df = "phrases.to.import.update")
         
-        save_all(path)
+        rm(phrases.to.import.update)
         
-        importer.log$under.preparation[log.row]=1
-        save(importer.log, file="17 Shiny/5 HS code finder/log/importer-log.Rdata")
+        sql <- "UPDATE hs_importer_log SET under_preparation = true WHERE ticket_number = ?forwhom;"
+        query <- sqlInterpolate(pool, 
+                                sql, 
+                                forwhom = log.row)
         
-        
+        gta_sql_update_table(query)
         
         
       },
@@ -211,5 +234,4 @@ if(importer.busy>2){
   
 }
         
-        
-
+gta_sql_pool_close()

@@ -5,11 +5,21 @@ library("xlsx")
 library("gtalibrary")
 library("data.table")
 library("ggplot2")
+library("gtasql")
+library("pool")
+library("RMariaDB")
 library(stringr)
 library(mailR)
 rm(list = ls())
-setwd("/home/rstudio/Dropbox/GTA cloud")
 
+# gta_setwd()
+setwd("/home/rstudio/Dropbox/GTA cloud")
+# setwd("/Users/patrickbuess/Dropbox/Collaborations/GTA cloud")
+
+# wdpath="17 Shiny/5 HS code finder/"
+wdpath="0 dev/hs-code-finder-pb/"
+
+gta_sql_pool_open(table.prefix = "hs_", got.keyring = F)
 
 ## check if a process is running on the server
 search.time.allowance=5
@@ -20,12 +30,12 @@ hs.search.busy=sum(as.numeric(grepl("(hs-search.R)",running.processes, ignore.ca
 
 
 ## setup
-path="17 Shiny/5 HS code finder/database/GTA HS code database.Rdata"
-for(fct in list.files("17 Shiny/5 HS code finder/code/functions", pattern = ".R", full.names=T)){
+for(fct in list.files(paste0(wdpath,"/code/functions"), pattern = ".R", full.names=T)){
   source(fct)
 }
-load_all(path)
 
+phrases.to.import <- change_encoding(gta_sql_load_table("phrases_to_import"))
+phrases.to.import <<- phrases.to.import
 
 if(hs.search.busy>=nr.parallel.processes){
   
@@ -34,26 +44,27 @@ if(hs.search.busy>=nr.parallel.processes){
   others=subset(phrases.to.import, ! (search.underway==T & search.concluded==F & difftime(Sys.time(), as.POSIXct(phrases.to.import$run.time[1], origin="1970-01-01"), units="mins")>search.time.allowance & is.na(run.time)==F))
   
   if(nrow(run.not.finished)>0){
-    run.not.finished$search.underway=F
-    
-    phrases.to.import=rbind(others, run.not.finished)
-    save_all(path)
+    # run.not.finished$search.underway=F
+    sql <- "UPDATE phrases_to_import SET search_underway = false WHERE phrase = ?forwhom;"
+    query <- sqlInterpolate(pool, 
+                            sql, 
+                            forwhom = run.not.finished$phrase)
+
+    gta_sql_update_table(query)
     
     ## abort stuck process
     process.to.kill=as.numeric(gsub("\\D","",str_extract(running.processes[grepl("hs-search.R", running.processes)][1], "^rstudio +?\\d+")))
     system(paste("kill -9", process.to.kill), intern=T)
   }
   
-  # if(nrow(run.not.finished)==0){
-  #   ## abort stuck process
-  #   process.to.kill=as.numeric(gsub("\\D","",str_extract(running.processes[grepl("hs-search.R", running.processes)][1], "^rstudio +?\\d+")))
-  #   system(paste("kill -9", process.to.kill), intern=T)
-  # }
-  # 
-  
   rm(run.not.finished, others)
   
-  phrases.to.import$search.underway[]=F
+  # phrases.to.import$search.underway[]=F
+  sql <- "UPDATE phrases_to_import SET search_underway = false"
+  query <- sqlInterpolate(pool, 
+                          sql)
+  
+  gta_sql_update_table(query)
   
   print(paste(Sys.time(), ": HS Search is busy"))
   print(running.processes[grepl("(hs-search.R)",running.processes, ignore.case = T)])
@@ -72,20 +83,31 @@ if(hs.search.busy>=nr.parallel.processes){
     ## Search for the non-imported phrases, one-by-one
     while(length(search.phrases)>0){
       ## updating phrases to import
-      load_all(path)
+
+      phrases.to.import <- change_encoding(gta_sql_load_table("phrases_to_import"))
+      phrases.to.import <<- phrases.to.import
+      job.log <- change_encoding(gta_sql_load_table("job_log"))
+      job.log <<- job.log
+      users <- change_encoding(gta_sql_load_table("user_log", table.prefix = "gta_"))
+      users <<- users
+      
       search.phrases=unique(subset(phrases.to.import, search.underway==F & search.concluded==F)$phrase)
-      
-      
       
       ## Start search for a phrase
       this.phrase=search.phrases[1]
       this.phrase.jobs=unique(subset(phrases.to.import, phrase==this.phrase)$job.id)
       this.job.name=paste(unique(subset(job.log, job.id %in% this.phrase.jobs)$job.name), collapse="; ")
-      this.job.email=unique(subset(users, user.id %in% subset(job.log, job.id %in% this.phrase.jobs )$user.id)$email)
-      phrases.to.import$search.underway[phrases.to.import$phrase==this.phrase]=T
-      phrases.to.import$run.time[phrases.to.import$phrase==this.phrase]=Sys.time()
-      phrases.to.import$nr.attempts[phrases.to.import$phrase==this.phrase]=phrases.to.import$nr.attempts[phrases.to.import$phrase==this.phrase]+1
-      save_all(path)
+      this.job.email=unique(subset(users, user.id %in% subset(job.log, job.id %in% this.phrase.jobs )$user.id)$user.email)
+      pti.nr.attemps <- phrases.to.import$nr.attempts[phrases.to.import$phrase==this.phrase]+1
+      
+      sql <- "UPDATE hs_phrases_to_import SET search_underway = true, run_time = ?when, nr_attempts = ?howmuch WHERE phrase = ?forwhom;"
+      query <- sqlInterpolate(pool, 
+                              sql, 
+                              forwhom = this.phrase,
+                              when = as.numeric(Sys.time()),
+                              howmuch = pti.nr.attemps)
+      
+      gta_sql_update_table(query)
       
       ## initialise data collection
       error.message <- c(F)
@@ -97,8 +119,6 @@ if(hs.search.busy>=nr.parallel.processes){
         print("FIRST ROUND")
         search.result=gta_hs_code_finder(products = this.phrase,
                                          sources = c("eurostat", "eu.customs", "zauba", "e.to.china", "google", "eximguru", "cybex"),
-                                         check.archive = T,
-                                         archive.location = "17 Shiny/5 HS code finder/database/GTA HS code database.Rdata",
                                          wait.time = 15)
         
         
@@ -110,8 +130,6 @@ if(hs.search.busy>=nr.parallel.processes){
           print("SECOND ROUND")
           search.result=gta_hs_code_finder(products = this.phrase,
                                            sources = c("eurostat", "eu.customs", "zauba", "e.to.china", "google", "eximguru", "cybex"),
-                                           check.archive = T,
-                                           archive.location = "17 Shiny/5 HS code finder/database/GTA HS code database.Rdata",
                                            wait.time = 15)
           
           
@@ -124,8 +142,7 @@ if(hs.search.busy>=nr.parallel.processes){
         this.phrase=gta_hs_add_phrase(add.job.id=this.phrase.jobs,
                                       phrase.to.add=this.phrase,
                                       phrase.source="xlsx import",
-                                      update.job.phrase=T,
-                                      source.data=path)
+                                      update.job.phrase=T)
         
         
         
@@ -133,16 +150,21 @@ if(hs.search.busy>=nr.parallel.processes){
         if(! this.phrase$phrase.processed){
           
           ## mark job as unprocessed
-          load_all(path)
-          job.log$job.processed[job.log$job.id %in% this.phrase.jobs]=F
-          save_all(path)
           
+          sql <- paste0("UPDATE hs_job_log SET job_processed = false WHERE job_id IN (",paste0(c(this.phrase.jobs), collapse=', '),");")
+          query <- sqlInterpolate(pool, 
+                                  sql)
+          gta_sql_update_table(query)
           
           ## check whether suggestions have been made in an earlier job for this phrase
+          
+          code.suggested <- change_encoding(gta_sql_load_table("code_suggested"))
+          code.suggested <<- code.suggested
+          
           search.result$hs.code=as.numeric(search.result$hs.code)
           if(this.phrase$phrase.id %in% unique(code.suggested$phrase.id)){
-            load_all(path)
-            hs.already.suggested=unique(subset(code.suggested, phrase.id==this.phrase$phrase.id)$hs.code.6)
+
+            hs.already.suggested=as.numeric(unique(subset(code.suggested, phrase.id==this.phrase$phrase.id)$hs.code.6))
             search.result=subset(search.result, ! hs.code %in% hs.already.suggested)
             
           }
@@ -153,18 +175,36 @@ if(hs.search.busy>=nr.parallel.processes){
             this.sug.id=(max(code.suggested$suggestion.id)+1):(max(code.suggested$suggestion.id)+nrow(search.result))
             search.result$suggestion.id=this.sug.id
             
-            load_all(path)
-            code.suggested=rbind(code.suggested,
-                                 data.frame(suggestion.id=this.sug.id,
+            code.suggested.update = data.frame(suggestion.id=this.sug.id,
                                             phrase.id=this.phrase$phrase.id,
                                             hs.code.6=search.result$hs.code,
                                             probability=NA,
-                                            stringsAsFactors = F))
+                                            stringsAsFactors = F)
+            
+            gta_sql_append_table(append.table = "code.suggested",
+                                 append.by.df = "code.suggested.update")
+            
+            # rm(code.suggested.update)
+            
+            # Get newly added suggestion.ids, because of primary key, they can differ from the ones in this environment
+            sql <- "SELECT * FROM hs_code_suggested WHERE phrase_id = ?phraseID;" 
+            query <- sqlInterpolate(pool, 
+                                    sql, 
+                                    phraseID = this.phrase$phrase.id)
+            
+            new.codes=gta_sql_get_value(query)
+            new.codes$hs.code.6 = as.numeric(new.codes$hs.code.6)
+            new.codes = subset(new.codes, hs.code.6 %in% code.suggested.update$hs.code.6)
+            
             
             
             ## Updating code.source
-            code.source.new=unique(cSplit(search.result[,c("suggestion.id","source.names")], 2, direction="long",sep=";"))
-            names(code.source.new)=c("suggestion.id","source.name")
+            suggestion.sources <- change_encoding(gta_sql_load_table("suggestion.sources"))
+            suggestion.sources <<- suggestion.sources
+            
+            code.source.new=unique(cSplit(search.result[,c("suggestion.id","source.names","hs.code")], 2, direction="long",sep=";"))
+            code.source.new <- merge(code.source.new[,c("source.names","hs.code")], new.codes[,c("hs.code.6","suggestion.id")], by.x="hs.code", by.y="hs.code.6")[,c("source.names","suggestion.id")]
+            names(code.source.new)=c("source.name","suggestion.id")
             code.source.new=merge(code.source.new, suggestion.sources, by="source.name", all.x=T)
             
             
@@ -172,11 +212,18 @@ if(hs.search.busy>=nr.parallel.processes){
             if(nrow(subset(code.source.new, is.na(source.id)))>0){
               new.src=unique(subset(code.source.new, is.na(source.id))$source.name)
               
-              suggestion.sources=rbind(suggestion.sources,
-                                       data.frame(source.id=(max(suggestion.sources$source.id)+1):(max(suggestion.sources$source.id)+length(new.src)),
+              
+              suggestion.sources.update = data.frame(source.id=(max(suggestion.sources$source.id)+1):(max(suggestion.sources$source.id)+length(new.src)),
                                                   source.name=new.src,
-                                                  stringsAsFactors = F))
-              suggestion.sources<<-suggestion.sources
+                                                  stringsAsFactors = F)
+              
+              gta_sql_append_table(append.table = "suggestion.sources",
+                                   append.by.df = "suggestion.sources.update")
+              
+              # suggestion.sources<<-suggestion.sources
+              
+              suggestion.sources <- change_encoding(gta_sql_load_table("suggestion.sources"))
+              suggestion.sources <<- suggestion.sources
               
               new.src=subset(code.source.new, is.na(source.id))
               new.src$source.id=NULL
@@ -187,9 +234,12 @@ if(hs.search.busy>=nr.parallel.processes){
               
             }
             
-            code.source=rbind(code.source,
-                              code.source.new[,c("suggestion.id", "source.id")])
-            save_all(path)
+            
+            code.source.update = code.source.new[,c("suggestion.id", "source.id")]
+            
+            gta_sql_append_table(append.table = "code.source",
+                                 append.by.df = "code.source.update")
+            
           }
             
         }
@@ -197,10 +247,13 @@ if(hs.search.busy>=nr.parallel.processes){
        
         
         ## updating phrase import status
-        load_all(path)
-        phrases.to.import$search.underway[phrases.to.import$phrase==this.phrase$phrase]=F
-        phrases.to.import$search.concluded[phrases.to.import$phrase==this.phrase$phrase]=T
-        save_all(path)
+    
+        
+        sql <- "UPDATE hs_phrases_to_import SET search_underway = false, search_concluded = true WHERE phrase = ?forwhom;"
+        query <- sqlInterpolate(pool, 
+                                sql, 
+                                forwhom = this.phrase$phrase)
+        gta_sql_update_table(query)
         
         
       },
@@ -245,6 +298,10 @@ if(hs.search.busy>=nr.parallel.processes){
       
       
       ## Check whether a job is complete
+      
+      phrases.to.import <- change_encoding(gta_sql_load_table("phrases_to_import"))
+      phrases.to.import <<- phrases.to.import
+      
       job.import.complete=nrow(subset(phrases.to.import, job.id %in% this.phrase.jobs & search.concluded==F))==0
       
       if(job.import.complete){
@@ -303,5 +360,5 @@ if(hs.search.busy>=nr.parallel.processes){
   }
 }
         
-        
+gta_sql_pool_close()
 

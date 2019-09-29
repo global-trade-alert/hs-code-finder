@@ -24,7 +24,7 @@ gta_hs_classify_results<- function(variable.df="classifier.input",
     }
   }
   
-  load("17 Shiny/5 HS code finder/database/HS classifier.Rdata")
+  load(source.data)
   
   ## estimating the unsure cases
   estimate=estimation.set[,setdiff(names(estimation.set), c("phrase.id","suggestion.id","hs.code.6","nr.times.chosen","nr.of.checks","selection.share"))]
@@ -39,13 +39,25 @@ gta_hs_classify_results<- function(variable.df="classifier.input",
   estimation.set=rbind(estimation.set, agreed.parts)
   
   ##  Updating database for processed suggestions
-  load_all(path)
+  code.suggested <- gta_sql_load_table("code_suggested")
+  code.suggested <<- code.suggested
+  phrase.table <- gta_sql_load_table("phrase_table")
+  phrase.table <<- phrase.table
+  job.phrase <- gta_sql_load_table("job_phrase")
+  job.phrase <<- job.phrase
   
-  code.suggested=rbind(subset(code.suggested, (! suggestion.id %in% estimation.set$suggestion.id)),
-                       unique(estimation.set[,c(names(code.suggested))]))
   
-  assign.global("code.suggested",code.suggested)
-  save_all(path)
+  # code.suggested=rbind(subset(code.suggested, (! suggestion.id %in% estimation.set$suggestion.id)),
+                       # unique(estimation.set[,c(names(code.suggested))]))
+  code.suggested.update <- unique(estimation.set[,c(names(code.suggested))])
+  
+  for (i in 1:nrow(code.suggested.update)){
+    sql <- paste0("UPDATE hs_code_suggested SET probability = ", code.suggested.update$probability[i], " WHERE suggestion_id = ", code.suggested.update$suggestion.id[i],";")
+    query <- sqlInterpolate(pool,
+                            sql)
+    gta_sql_update_table(query)
+  }
+  
   
     
   estimation.set=merge(estimation.set, phrase.table[,c("phrase.id","phrase")], by="phrase.id")
