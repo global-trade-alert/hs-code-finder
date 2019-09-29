@@ -412,7 +412,8 @@ server <- function(input, output, session) {
                                        .append( '<td colspan=\\'4\\'>'+name[0]+'</td>' );}"),
                       dataSrc=5),
       language = list(
-        zeroRecords = "The HS code finder could not identify any HS codes for the term. Can you help?")
+        zeroRecords = "The HS code finder could not identify any HS codes for the term. Can you help?"),
+      drawCallback=JS("function (){ Tipped.create('.create-tooltip');}")
     )),
     server = T)
   
@@ -436,15 +437,16 @@ server <- function(input, output, session) {
     data.output <- merge(data.subset, subset(code.suggested, phrase.id == phr.id)[,c("probability","hs.code.6")], by = "hs.code.6", all.x=T)
     
     if (nr.of.jobs > 0) {
-      data.output$probability.html[is.na(data.output$probability)==F] <- paste0("<div class='probability-bg-wrap'><div class='probability-wrap'><div class='probability probability-available' style='width:",data.output$probability[is.na(data.output$probability)==F]*100,"%; background-color:",redToGreen(data.output$probability),";'></div></div></div>")
-      data.output$probability.html[is.na(data.output$probability)] <- paste0("<div class='probability-bg-wrap'><div class='probability-wrap'><div class='probability probability-none'></div></div></div>")
+      data.output$probability.html[is.na(data.output$probability)==F] <- paste0("<div class='create-tooltip help' title = '<span>Based on previous classifications, this HS code belongs to the current search term with a probability of ",round(data.output$probability[is.na(data.output$probability)==F]*100, digits = 0)," percent.</span>'><div class='probability-bg-wrap'><div class='probability-wrap'><div class='probability probability-available' style='width:",data.output$probability[is.na(data.output$probability)==F]*100,"%; background-color:",redToGreen(data.output$probability),";'></div></div></div></div>")
+      data.output$probability.html[is.na(data.output$probability)] <- paste0("<div class='create-tooltip help' title = '<span>Based on previous classifications, this HS code belongs to the current search term with a probability of 0 percent.</span>'><div class='probability-bg-wrap'><div class='probability-wrap'><div class='probability probability-none'></div></div></div></div>")
     } else {
       data.output$probability.html[is.na(data.output$probability)] <- paste0("<div class='probability-hide'><div class='probability-wrap'><div class='probability probability-none'></div></div></div>")
     }
     data.output <- unique(data.output[,c("indicator","hs.code.6","probability.html","hs.description.6","hs.description.4","hs.code.4","hs.code.2","hs.id")])
-    
+   
     row.names(data.output) <- NULL
     data.output <<- data.output
+    
     
   })
   
