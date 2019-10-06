@@ -269,7 +269,7 @@ if(hs.search.busy>=3){
       
       if (error.message[1]) {
         # ERROR EMAIL
-        sender = "data@globaltradealert.org"
+        sender = gta_pwd("mail")$mail
         recipients = c("patrick.buess@student.unisg.ch", "fritz.johannes@gmail.com")
         sbjct=paste("[",this.job.name,"] HS search unsuccessful",sep="")
         message=paste0("Hello \n\n The HS search for '",this.phrase$phrase,"' in job '",this.job.name,"' ended with an error. The message is: \n\n",error.message[2],"\n\nRegards\nGTA data team")
@@ -280,10 +280,10 @@ if(hs.search.busy>=3){
                   subject=sbjct,
                   body=message,
                   html=F,
-                  smtp = list(host.name = "mail.infomaniak.com",
-                              port=587,
+                  smtp = list(host.name = gta_pwd("mail")$host,
+                              port=gta_pwd("mail")$port,
                               user.name=sender,
-                              passwd="B0d@nstrasse",
+                              passwd=gta_pwd("mail")$password,
                               tls=T),
                   authenticate = T)
         
@@ -306,7 +306,7 @@ if(hs.search.busy>=3){
       if(job.import.complete){
         
         # SEND AVAILABILITY EMAIL TO USER
-        sender = "data@globaltradealert.org"
+        sender = gta_pwd("mail")$mail
         recipients = this.job.email
         sbjct=paste("[",this.job.name,"] Import available in the app",sep="")
         message=paste0("Hello \n\nThank you for importing new terms. The job '",this.job.name,"' is now processed and the terms can be reviewed online. \n\nIn case of questions or suggestions, please reply to this message. \n\nRegards\nGTA data team")
@@ -317,10 +317,10 @@ if(hs.search.busy>=3){
                   subject=sbjct,
                   body=message,
                   html=F,
-                  smtp = list(host.name = "mail.infomaniak.com",
-                              port=587,
+                  smtp = list(host.name = gta_pwd("mail")$host,
+                              port=gta_pwd("mail")$port,
                               user.name=sender,
-                              passwd="B0d@nstrasse",
+                              passwd=gta_pwd("mail")$password,
                               tls=T),
                   authenticate = T)
         
@@ -328,7 +328,7 @@ if(hs.search.busy>=3){
         
         
         # SEND AVAILABILITY EMAIL TO UPWORK
-        sender = "data@globaltradealert.org"
+        sender = gta_pwd("mail")$mail
         sbjct=paste("GTA/UpWork HS code classification: App updated",sep="")
 
         nr.left=length(unique(subset(job.phrase, processed==F & job.id %in% subset(job.log, job.processed==F)$job.id)$phrase.id))
@@ -344,10 +344,10 @@ if(hs.search.busy>=3){
                       subject=sbjct,
                       body=message,
                       html=F,
-                      smtp = list(host.name = "mail.infomaniak.com",
-                                  port=587,
+                      smtp = list(host.name = gta_pwd("mail")$host,
+                                  port=gta_pwd("mail")$port,
                                   user.name=sender,
-                                  passwd="B0d@nstrasse",
+                                  passwd=gta_pwd("mail")$password,
                                   tls=T),
                       authenticate = T)
             }
