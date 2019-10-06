@@ -49,7 +49,7 @@ gta_hs_process_completed_job<- function(processed.job=NULL, path = NULL){
         recipient="fritz.johannes@gmail.com"
       }
       
-      sender = "data@globaltradealert.org"  
+      sender = gta_pwd("mail")$mail  
       sbjct=paste("[HS-app ticket #",j.id,"; ",job.log$job.name[job.log$job.id == j.id],"] Processing finished", sep="")
       
       if(nrow(none.found)==0){
@@ -86,10 +86,10 @@ gta_hs_process_completed_job<- function(processed.job=NULL, path = NULL){
                 body=message,
                 html=F,
                 attach.files = paste(result.path, c(".xlsx"),sep=""),
-                smtp = list(host.name = "mail.infomaniak.com",
-                            port=587,
+                smtp = list(host.name = gta_pwd("mail")$host ,
+                            port=gta_pwd("mail")$port,
                             user.name=sender, 
-                            passwd="B0d@nstrasse",
+                            passwd=gta_pwd("mail")$password,
                             tls=T),
                 authenticate = T)
       

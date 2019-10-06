@@ -98,7 +98,7 @@ if(importer.busy>2){
         # checking if we have at leat one phrase
         nr.of.phrases=length(imported.phrases)
         
-        sender = "data@globaltradealert.org"  
+        sender = gta_pwd("mail")$mail  
         recipients = kl$order.email
         attachment=NULL
         
@@ -112,10 +112,10 @@ if(importer.busy>2){
                     body=message,
                     html=F,
                     attach.files = attachment,
-                    smtp = list(host.name = "mail.infomaniak.com",
-                                port=587,
+                    smtp = list(host.name = gta_pwd("mail")$host,
+                                port=gta_pwd("mail")$port,
                                 user.name=sender, 
-                                passwd="B0d@nstrasse",
+                                passwd=gta_pwd("mail")$password,
                                 tls=T),
                     authenticate = T)
           
@@ -133,10 +133,10 @@ if(importer.busy>2){
                     body=message,
                     html=F,
                     attach.files = attachment,
-                    smtp = list(host.name = "mail.infomaniak.com",
-                                port=587,
+                    smtp = list(host.name = gta_pwd("mail")$host,
+                                port=gta_pwd("mail")$port,
                                 user.name=sender, 
-                                passwd="B0d@nstrasse",
+                                passwd=gta_pwd("mail")$password,
                                 tls=T),
                     authenticate = T)
           
@@ -200,7 +200,7 @@ if(importer.busy>2){
       
       if (error.message[1]) {
         # SEND EMAIL
-        sender = "data@globaltradealert.org"
+        sender = gta_pwd("mail")$mail
         recipients = c("patrick.buess@student.unisg.ch", "fritz.johannes@gmail.com")
         sbjct=paste("[",kl$job.name,"] Import unsuccessful",sep="")
         message=paste0("Hello \n\n The job '",kl$job.name,"' ended with an error. The message is: \n\n",error.message[2],"\n\nRegards\nGTA data team")
@@ -211,10 +211,10 @@ if(importer.busy>2){
                   subject=sbjct,
                   body=message,
                   html=F,
-                  smtp = list(host.name = "mail.infomaniak.com",
-                              port=587,
+                  smtp = list(host.name = gta_pwd("mail")$host,
+                              port=gta_pwd("mail")$port,
                               user.name=sender,
-                              passwd="B0d@nstrasse",
+                              passwd=gta_pwd("mail")$password,
                               tls=T),
                   authenticate = T)
         
