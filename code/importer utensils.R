@@ -1,5 +1,7 @@
 collection = function(code) {
   
+  library(gtalibrary)
+  
   tryCatch(code,
            error = function(c) {
              print(c)
@@ -22,17 +24,17 @@ email.alert = function(bastiat.code, error.text){
                Bastiat\n\n
                Log reads:\n",error.text,sep="")
   
-  sender <- "data@globaltradealert.org"  
+  sender <- gta_pwd("mail")$mail  
   alert.recipients <- c("johannes.fritz@unisg.ch")
   send.mail(from = sender,
             to = alert.recipients,
             subject=paste("Error in ",bastiat.code," / ",Sys.Date(), sep=""),
             body = e.text,
             html=F,
-            smtp = list(host.name = "mail.infomaniak.com",
-                        port=587,
+            smtp = list(host.name = gta_pwd("mail")$host,
+                        port=gta_pwd("mail")$port,
                         user.name=sender, 
-                        passwd="B0d@nstrasse",
+                        passwd=gta_pwd("mail")$password,
                         tls=T),
             authenticate = T)
   problem=1

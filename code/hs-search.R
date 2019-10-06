@@ -16,10 +16,15 @@ rm(list = ls())
 setwd("/home/rstudio/Dropbox/GTA cloud")
 # setwd("/Users/patrickbuess/Dropbox/Collaborations/GTA cloud")
 
-# wdpath="17 Shiny/5 HS code finder/"
-wdpath="0 dev/hs-code-finder-pb/"
+wdpath="17 Shiny/5 HS code finder/"
+# wdpath="0 dev/hs-code-finder-pb/"
 
-gta_sql_pool_open(table.prefix = "hs_", got.keyring = F)
+gta_sql_pool_open(db.title="ricardomain",
+                  db.host = gta_pwd("ricardomain")$host,
+                  db.name = gta_pwd("ricardomain")$name,
+                  db.user = gta_pwd("ricardomain")$user,
+                  db.password = gta_pwd("ricardomain")$password,
+                  table.prefix = "hs_", got.keyring = F)
 
 ## check if a process is running on the server
 search.time.allowance=5

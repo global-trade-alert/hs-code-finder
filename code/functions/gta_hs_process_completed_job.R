@@ -1,4 +1,4 @@
-gta_hs_process_completed_job<- function(processed.job=NULL, path = NULL){
+gta_hs_process_completed_job <- function(processed.job=NULL, path = NULL){
   
   library(gtalibrary)
   
