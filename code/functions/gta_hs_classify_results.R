@@ -9,7 +9,7 @@ gta_hs_classify_results<- function(variable.df="classifier.input",
   eval(parse(text=paste("estimation.set<<-",variable.df, sep="")))
   
   agreed.parts=subset(estimation.set, selection.share %in% c(0,1))
-  agreed.parts$probability=1
+  agreed.parts$probability=agreed.parts$selection.share
   agreed.parts$relevant=agreed.parts$selection.share
   
   estimation.set=subset(estimation.set, ! selection.share %in% c(0,1))

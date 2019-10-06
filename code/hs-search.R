@@ -23,6 +23,7 @@ gta_sql_pool_open(table.prefix = "hs_", got.keyring = F)
 
 ## check if a process is running on the server
 search.time.allowance=5
+nr.parallel.processes=50000
 running.processes=system("ps aux", intern=T)
 
 hs.search.busy=sum(as.numeric(grepl("(hs-search.R)",running.processes, ignore.case = T)))
@@ -36,7 +37,7 @@ for(fct in list.files(paste0(wdpath,"/code/functions"), pattern = ".R", full.nam
 phrases.to.import <- change_encoding(gta_sql_load_table("phrases_to_import"))
 phrases.to.import <<- phrases.to.import
 
-if(hs.search.busy>=3){
+if(hs.search.busy>=nr.parallel.processes){
   
   ## looking for broken searches
   run.not.finished=subset(phrases.to.import, (search.underway==T & search.concluded==F & difftime(Sys.time(), as.POSIXct(phrases.to.import$run.time[1], origin="1970-01-01"), units="mins")>search.time.allowance & is.na(run.time)==F))
