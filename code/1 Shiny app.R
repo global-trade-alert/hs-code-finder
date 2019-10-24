@@ -1261,7 +1261,8 @@ server <- function(input, output, session) {
         if (new.phrase == T) {
           job.phrase.update <- data.frame(job.id = job.id,
                                           phrase.id = phr.id,
-                                          processed = FALSE)
+                                          processed = FALSE,
+                                          processing.round = 1)
           job.phrase.update <<- job.phrase.update
           
           gta_sql_append_table(append.table = "job.phrase",
