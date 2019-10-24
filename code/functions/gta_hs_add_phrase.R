@@ -34,6 +34,7 @@ gta_hs_add_phrase<- function(add.job.id=NULL,
     
     new.phrase.id=phrase.table$phrase.id[pt.row]
     
+    # CHECK IF EXISTING PHRASE HAS ALREADY PROBABILITES ABOVE 0.5
     if(new.phrase.id %in% unique(subset(code.suggested, is.na(probability)==F)$phrase.id)){
       is.processed=max(subset(code.suggested, phrase.id %in% new.phrase.id)$probability, na.rm=T)>.5
     } else {
@@ -104,6 +105,7 @@ gta_hs_add_phrase<- function(add.job.id=NULL,
       job.phrase.update=data.frame(job.id=add.job.id,
                                   phrase.id=new.phrase.id,
                                   processed=is.processed,
+                                  processing.round=1,
                                   stringsAsFactors = F)
       job.phrase.update <<- job.phrase.update
       
