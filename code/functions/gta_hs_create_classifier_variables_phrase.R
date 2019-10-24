@@ -2,8 +2,7 @@ gta_hs_create_classifier_variables_phrase<- function(phrase.ids=NULL,
                                               job.checks=3,
                                               agreeable.threshold=2/3,
                                               disagreeable.threshold=1/3,
-                                              path.to.cloud=NULL,
-                                              source.data="17 Shiny/5 HS code finder/database/GTA HS code database.Rdata"){
+                                              path.to.cloud=NULL){
 
   library(gtalibrary)
    
@@ -37,7 +36,6 @@ gta_hs_create_classifier_variables_phrase<- function(phrase.ids=NULL,
   code.selected <- gta_sql_load_table("code_selected")
   code.selected <<- code.selected
   
-  # CHANGE THIS ONE
   phrases.finished=subset(job.phrase, processed==T & phrase.id %in% phrase.ids)$phrase.id
   
   hs.candidates=as.data.frame(subset(code.suggested, phrase.id %in% phrases.finished & is.na(hs.code.6)==F))
