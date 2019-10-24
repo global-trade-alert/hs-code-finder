@@ -1,5 +1,6 @@
 gta_hs_process_completed_phrase <- function(processed.phrase=NULL, path = NULL){
   
+  
   library(gtalibrary)
   
   if(is.null(processed.phrase)){
