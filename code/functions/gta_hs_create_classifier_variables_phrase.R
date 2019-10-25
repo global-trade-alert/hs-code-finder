@@ -17,8 +17,6 @@ gta_hs_create_classifier_variables_phrase<- function(phrase.ids=NULL,
   }
   
   
-  # load(source.data)
-  
   job.phrase <- gta_sql_load_table("job_phrase")
   job.phrase <<- job.phrase
   job.log <- gta_sql_load_table("job_log")
@@ -36,18 +34,23 @@ gta_hs_create_classifier_variables_phrase<- function(phrase.ids=NULL,
   code.selected <- gta_sql_load_table("code_selected")
   code.selected <<- code.selected
   
-  phrases.finished=subset(job.phrase, processed==T & phrase.id %in% phrase.ids)$phrase.id
   
-  hs.candidates=as.data.frame(subset(code.suggested, phrase.id %in% phrases.finished & is.na(hs.code.6)==F))
+  if(any(subset(job.phrase, phrase.id %in% phrase.ids)$processed==F)){
+    stop("Some of the phrases you inserted are not processed.")
+  }
   
-  chosen.suggestions=as.data.frame(table(subset(code.selected, check.id %in% subset(check.phrases, phrase.id %in% phrases.finished)$check.id)$suggestion.id))
+  phrase.ids=subset(job.phrase, processed==T & phrase.id %in% phrase.ids)$phrase.id
+  
+  hs.candidates=as.data.frame(subset(code.suggested, phrase.id %in% phrase.ids & is.na(hs.code.6)==F))
+  
+  chosen.suggestions=as.data.frame(table(subset(code.selected, check.id %in% subset(check.phrases, phrase.id %in% phrase.ids)$check.id)$suggestion.id))
   names(chosen.suggestions)=c("suggestion.id","nr.times.chosen")
   chosen.suggestions$suggestion.id=as.numeric(as.character(chosen.suggestions$suggestion.id))
   
   hs.candidates=merge(hs.candidates, chosen.suggestions, by="suggestion.id", all.x=T)
   hs.candidates[is.na(hs.candidates)]=0
   
-  checks.per.phrase=as.data.frame(table(subset(check.phrases, phrase.id %in% phrases.finished)$phrase.id))
+  checks.per.phrase=as.data.frame(table(subset(check.phrases, phrase.id %in% phrase.ids)$phrase.id))
   names(checks.per.phrase)=c("phrase.id","nr.of.checks")
   checks.per.phrase$phrase.id=as.numeric(as.character(checks.per.phrase$phrase.id))
   
@@ -82,7 +85,7 @@ gta_hs_create_classifier_variables_phrase<- function(phrase.ids=NULL,
   
   ## check certainty
   certainty.distribution=aggregate(check.id ~ phrase.id + certainty.level,
-                                   merge(check.certainty, subset(check.phrases, phrase.id %in% phrases.finished), by="check.id"), 
+                                   merge(check.certainty, subset(check.phrases, phrase.id %in% phrase.ids), by="check.id"), 
                                    function(x) length(unique(x)))
   certainty.distribution=merge(certainty.distribution, unique(hs.candidates[,c("phrase.id","nr.of.checks")]), by="phrase.id")
   certainty.distribution$certain.share=certainty.distribution$check.id/certainty.distribution$nr.of.checks
