@@ -1,10 +1,14 @@
 gta_hs_classify_results<- function(variable.df="classifier.input",
                                    relevance.threshold=.5,
                                    path.to.cloud=NULL,
-                                   source.data="17 Shiny/5 HS code finder/database/GTA HS code database.Rdata"){
+                                   source.data="17 Shiny/5 HS code finder/database/HS classifier.Rdata"){
+ 
+  # variable.df="classifier.variables"
+  # relevance.threshold=.5
+  # path.to.cloud=NULL
+  # source.data="17 Shiny/5 HS code finder/database/HS classifier.Rdata"
  
   library(gtalibrary)
-  
   
   eval(parse(text=paste("estimation.set<<-",variable.df, sep="")))
   
@@ -32,7 +36,7 @@ gta_hs_classify_results<- function(variable.df="classifier.input",
   estimate$train.id=NULL
   estimate$evaluation=NULL
   
-  estimation.set$probability= round(predict(hs.classifier, estimate)$pred[,1],3)
+  estimation.set$probability=round(predict(hs.classifier, estimate)$pred[,1],3)
   estimation.set$relevant=as.numeric(estimation.set$probability>=relevance.threshold)
 
   ## adding estimates & agreed cases
