@@ -199,7 +199,7 @@ gta_hs_create_classifier_variables_phrase<- function(phrase.ids=NULL,
       
     }
     
-    names(user.variables)[4:length(user.variables)]=paste0("user.",u.id,".",names(user.variables)[4:length(user.variables)])
+    names(user.variables)[3:length(user.variables)]=paste0("user.",u.id,".",names(user.variables)[3:length(user.variables)])
     
     hs.candidates=merge(hs.candidates, user.variables, by=c("phrase.id","suggestion.id"), all.x=T)
     user.variables=data.frame()
