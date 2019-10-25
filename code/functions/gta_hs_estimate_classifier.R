@@ -16,8 +16,12 @@ gta_hs_estimate_classifier<- function(hs.out.threshold=.1,
   }
   
  
-  estimation.set=gta_hs_create_classifier_variables(path.to.cloud=path.to.cloud,
-                                                    source.data=source.data)
+  job.phrase=gta_sql_load_table("job.phrase")
+  
+  processed.phrase=unique(job.phrase$phrase.id[job.phrase$processed])
+  
+  estimation.set=gta_hs_create_classifier_variables_phrase(phrase.ids=processed.phrase)
+  rm(job.phrase, processed.phrase)
   
   #### ESTIMATION
   ## splitting off the training set from the estimation set
