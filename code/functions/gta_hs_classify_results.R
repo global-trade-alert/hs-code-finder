@@ -10,6 +10,10 @@ gta_hs_classify_results<- function(processed.phrase=NULL,
  
   library(gtalibrary)
   
+  if(is.null(processed.phrase)){
+    stop("gta_hs_classify_results: No ID for the processed phrase is specified.")
+  }
+  
   estimation.set=gta_hs_create_classifier_variables_phrase(phrase.ids=processed.phrase)
   
   agreed.parts=subset(estimation.set, selection.share %in% c(0,1))
