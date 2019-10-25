@@ -1,4 +1,4 @@
-gta_hs_classify_results<- function(variable.df="classifier.input",
+gta_hs_classify_results<- function(processed.phrase=NULL,
                                    relevance.threshold=.5,
                                    path.to.cloud=NULL,
                                    source.data="17 Shiny/5 HS code finder/database/HS classifier.Rdata"){
@@ -10,7 +10,7 @@ gta_hs_classify_results<- function(variable.df="classifier.input",
  
   library(gtalibrary)
   
-  eval(parse(text=paste("estimation.set<<-",variable.df, sep="")))
+  estimation.set=gta_hs_create_classifier_variables_phrase(phrase.ids=processed.phrase)
   
   agreed.parts=subset(estimation.set, selection.share %in% c(0,1))
   agreed.parts$probability=agreed.parts$selection.share
@@ -67,5 +67,4 @@ gta_hs_classify_results<- function(variable.df="classifier.input",
   estimation.set=merge(estimation.set, phrase.table[,c("phrase.id","phrase")], by="phrase.id")
   estimation.set=merge(estimation.set, job.phrase[,c("phrase.id","job.id")], by="phrase.id")
   classification.result=unique(estimation.set[,c("job.id","phrase","hs.code.6","probability","relevant")])
-  return(classification.result)
 }
