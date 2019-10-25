@@ -37,7 +37,8 @@ gta_hs_create_classifier_variables_phrase<- function(phrase.ids=NULL,
   code.source <<- code.source
   
   
-  if(any(subset(job.phrase, phrase.id %in% phrase.ids)$processed==F)){
+  
+  if(any(! phrase.ids %in% subset(job.phrase, processed==T)$phrase.id)){
     stop("Some of the phrases you inserted are not processed.")
   }
   
@@ -125,74 +126,86 @@ gta_hs_create_classifier_variables_phrase<- function(phrase.ids=NULL,
   hs.candidates=subset(hs.candidates, is.na(certain.share)==F)
   
   ### User stats
+  
+  user.variables=data.frame()
   for(u.id in unique(check.log$user.id)){
-    u.checks=subset(check.log, user.id==u.id)$check.id
-    user.certainty=merge(subset(check.phrases, check.id %in% u.checks),
-                         subset(check.certainty, check.id %in% u.checks),
-                         by="check.id", all.x=T)
+    user.checks=unique(subset(check.log, user.id==u.id)$check.id)
     
-    more.than.once=as.data.frame(table(user.certainty$phrase.id))
-    multi.checks=subset(user.certainty, phrase.id %in% more.than.once$Var1[more.than.once$Freq>1])
-    
-    
-    if(nrow(multi.checks)>0){
-      multi.checks$value=5
-      multi.checks$value[multi.checks$certainty.level=="highly"]=4
-      multi.checks$value[multi.checks$certainty.level=="fairly"]=3
-      multi.checks$value[multi.checks$certainty.level=="somewhat"]=2
-      multi.checks$value[multi.checks$certainty.level=="not"]=1
+    for(p.id in phrase.ids){
       
-      keep.checks=c()
-      for(p.id in unique(multi.checks$phrase.id)){
-        max.cl=max(multi.checks$value[multi.checks$phrase.id==p.id])
-        keep.checks=c(keep.checks, min(multi.checks$check.id[multi.checks$phrase.id==p.id & multi.checks$value==max.cl]))
+      u.check=subset(check.phrases, check.id %in% user.checks & phrase.id == p.id)
+      
+      u.hs=subset(code.suggested, phrase.id==p.id )$hs.code.6
+      u.suggest=subset(code.suggested, phrase.id==p.id )$suggestion.id
+      
+      if(nrow(u.check)==0){
+        
+        u.check=data.frame(phrase.id=p.id,
+                           hs.code.6=u.hs,
+                           suggestion.id=u.suggest,
+                           not.checked=1,
+                           selected.exactly=0,
+                           selected.highly=0,
+                           selected.fairly=0,
+                           selected.somewhat=0,
+                           selected.not=0,
+                           discarded.exactly=0,
+                           discarded.highly=0,
+                           discarded.fairly=0,
+                           discarded.somewhat=0,
+                           discarded.not=0
+        )
+        
+      } else {
+        
+        # determine selection y/n
+        u.selected=merge(subset(code.suggested, phrase.id==p.id),
+                         subset(code.selected, check.id %in% user.checks),
+                         by="suggestion.id")$suggestion.id
+        
+        
+        
+        # determine certainty
+        u.certainty=unique(as.character(subset(check.certainty, check.id %in% subset(check.phrases, 
+                                                                                     phrase.id %in% p.id &
+                                                                                       check.id %in% user.checks)$check.id)$certainty.level))
+        
+        # store
+        u.check=data.frame(phrase.id=p.id,
+                           hs.code.6=u.hs,
+                           suggestion.id=u.suggest,
+                           not.checked=0,
+                           selected.exactly=0,
+                           selected.highly=0,
+                           selected.fairly=0,
+                           selected.somewhat=0,
+                           selected.not=0,
+                           discarded.exactly=0,
+                           discarded.highly=0,
+                           discarded.fairly=0,
+                           discarded.somewhat=0,
+                           discarded.not=0
+                           )
+        
+        for(cert in u.certainty){
+          eval(parse(text=paste0("u.check$selected.",cert,"[u.check$suggestion.id %in% u.selected] =1")))
+        }
+        
         
       }
       
-      user.certainty=rbind(subset(user.certainty, phrase.id %in% more.than.once$Var1[more.than.once$Freq==1]),
-                           subset(user.certainty, check.id %in% keep.checks))
-    }
-    
-    user.certainty=unique(subset(user.certainty, is.na(certainty.level)==F))
-    
-    ## second iteration for duplicated check.ids
-    more.than.once=as.data.frame(table(user.certainty$phrase.id))
-    multi.checks=subset(user.certainty, phrase.id %in% more.than.once$Var1[more.than.once$Freq>1])
-    
-    if(nrow(multi.checks)>0){
-      multi.checks$value=5
-      multi.checks$value[multi.checks$certainty.level=="highly"]=4
-      multi.checks$value[multi.checks$certainty.level=="fairly"]=3
-      multi.checks$value[multi.checks$certainty.level=="somewhat"]=2
-      multi.checks$value[multi.checks$certainty.level=="not"]=1
-      
-      for(p.id in unique(multi.checks$phrase.id)){
-        min.cl=min(multi.checks$value[multi.checks$phrase.id==p.id])
-        user.certainty$certainty.level[user.certainty$phrase.id==p.id]=multi.checks$certainty.level[multi.checks$phrase.id==p.id & multi.checks$value==min.cl]
-        
-      }
+      user.variables=rbind(user.variables, u.check)
+      rm(u.check, u.hs, u.suggest)
       
     }
     
-    
-    user.certainty=unique(subset(user.certainty, is.na(certainty.level)==F))
-    user.certainty$certainty.level=as.character(user.certainty$certainty.level)
-    
-    hs.candidates=merge(hs.candidates, unique(user.certainty[,c("phrase.id","certainty.level")]), by="phrase.id",all.x=T)
-    
-    user.selection=unique(subset(code.selected, check.id %in% user.certainty$check.id)$suggestion.id)
-    user.phrases=unique(user.certainty$phrase.id)
-    hs.candidates$certainty.level[hs.candidates$suggestion.id %in% user.selection]=paste("selected-",hs.candidates$certainty.level[hs.candidates$suggestion.id %in% user.selection], sep="")
-    hs.candidates$certainty.level[!hs.candidates$suggestion.id %in% user.selection & hs.candidates$phrase.id %in% user.phrases]=paste("discarded-",hs.candidates$certainty.level[!hs.candidates$suggestion.id %in% user.selection & hs.candidates$phrase.id %in% user.phrases], sep="")
-    hs.candidates$certainty.level[is.na(hs.candidates$certainty.level)]="not checked"
-    
-    dummies=which(hs.candidates$certainty.level=="not checked")[1:(1+round(length(which(hs.candidates$certainty.level=="not checked"))/10,0))]
-    hs.candidates$certainty.level[c(dummies)]="not checked - dummy"
-    
-    hs.candidates$certainty.level=as.factor(hs.candidates$certainty.level)
-    data.table::setnames(hs.candidates, "certainty.level",paste("user.", u.id, sep=""))
+    names(user.variables)[4:14]=paste0("user.",u.id,".",names(user.variables)[4:14])
+    user.variables$hs.code.6=NULL
+    hs.candidates=merge(hs.candidates, user.variables, by=c("phrase.id","suggestion.id"), all.x=T)
+    user.variables=data.frame()
     
   }
+  
   
   ## shared CPC code with highly agreeable/disagreeabe selections
   phrase.cpc=unique(hs.candidates[,c("phrase.id","hs.code.6", "selection.share")])
@@ -230,10 +243,5 @@ gta_hs_create_classifier_variables_phrase<- function(phrase.ids=NULL,
   
   hs.candidates=merge(hs.candidates, phrase.cpc[,c("phrase.id","hs.code.6","share.cpc")], by=c("phrase.id","hs.code.6"))
   
-  ## some cleaning
-  ## user 11 and 23 have only one result
-  hs.candidates$user.11=NULL
-  hs.candidates$user.23=NULL
-
   return(hs.candidates)
 }
