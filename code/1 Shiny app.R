@@ -30,14 +30,14 @@ plan(multiprocess)
 rm(list = ls())
 
 # gta_setwd()
-setwd("/home/rstudio/Dropbox/GTA cloud")
+# setwd("/home/rstudio/Dropbox/GTA cloud")
 # setwd("C:/Users/jfrit/Desktop/Dropbox/GTA cloud")
 # setwd("C:/Users/Piotr Lukaszuk/Dropbox/GTA cloud")
-# setwd("/Users/patrickbuess/Dropbox/Collaborations/GTA cloud")
+setwd("/Users/patrickbuess/Dropbox/Collaborations/GTA cloud")
 
 # path="0 dev/hs-code-finder-pb/database/GTA HS code database.Rdata"
-# wdpath="0 dev/hs-code-finder-pb/"
-wdpath="17 Shiny/5 HS code finder/"
+wdpath="0 dev/hs-code-finder-pb/"
+# wdpath="17 Shiny/5 HS code finder/"
 
 ## helpful functions
 ## HS app functions
@@ -1306,7 +1306,7 @@ server <- function(input, output, session) {
             if(calc.prob){
               
               # SAVE PROBABILITIES FOR THAT PHRASE
-              gta_hs_process_completed_phrase(processed.phrase = phr.id, path = wdpath)
+              gta_hs_classify_results(processed.phrase = phr.id)
               
               # GET MAX PROBABILITY AND DECIDE WHETHER PRHASE IS PROCESSED OR NOT
               sql <- "SELECT MAX(probability) FROM hs_code_suggested WHERE phrase_id = ?phraseID;"
