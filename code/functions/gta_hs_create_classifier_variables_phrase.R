@@ -134,14 +134,12 @@ gta_hs_create_classifier_variables_phrase<- function(phrase.ids=NULL,
     for(p.id in phrase.ids){
       
       u.check=subset(check.phrases, check.id %in% user.checks & phrase.id == p.id)
-      
-      u.hs=subset(code.suggested, phrase.id==p.id )$hs.code.6
       u.suggest=subset(code.suggested, phrase.id==p.id )$suggestion.id
+      
       
       if(nrow(u.check)==0){
         
         u.check=data.frame(phrase.id=p.id,
-                           hs.code.6=u.hs,
                            suggestion.id=u.suggest,
                            not.checked=1,
                            selected.exactly=0,
@@ -172,7 +170,6 @@ gta_hs_create_classifier_variables_phrase<- function(phrase.ids=NULL,
         
         # store
         u.check=data.frame(phrase.id=p.id,
-                           hs.code.6=u.hs,
                            suggestion.id=u.suggest,
                            not.checked=0,
                            selected.exactly=0,
