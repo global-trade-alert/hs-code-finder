@@ -30,14 +30,14 @@ plan(multiprocess)
 rm(list = ls())
 
 # gta_setwd()
-# setwd("/home/rstudio/Dropbox/GTA cloud")
+setwd("/home/rstudio/Dropbox/GTA cloud")
 # setwd("C:/Users/jfrit/Desktop/Dropbox/GTA cloud")
 # setwd("C:/Users/Piotr Lukaszuk/Dropbox/GTA cloud")
-setwd("/Users/patrickbuess/Dropbox/Collaborations/GTA cloud")
+# setwd("/Users/patrickbuess/Dropbox/Collaborations/GTA cloud")
 
 # path="0 dev/hs-code-finder-pb/database/GTA HS code database.Rdata"
-wdpath="0 dev/hs-code-finder-pb/"
-# wdpath="17 Shiny/5 HS code finder/"
+# wdpath="0 dev/hs-code-finder-pb/"
+wdpath="17 Shiny/5 HS code finder/"
 
 ## helpful functions
 ## HS app functions
