@@ -39,8 +39,6 @@ gta_hs_create_classifier_variables_phrase<- function(phrase.ids=NULL,
     stop("Some of the phrases you inserted are not processed.")
   }
   
-  phrase.ids=subset(job.phrase, processed==T & phrase.id %in% phrase.ids)$phrase.id
-  
   hs.candidates=as.data.frame(subset(code.suggested, phrase.id %in% phrase.ids & is.na(hs.code.6)==F))
   
   chosen.suggestions=as.data.frame(table(subset(code.selected, check.id %in% subset(check.phrases, phrase.id %in% phrase.ids)$check.id)$suggestion.id))
