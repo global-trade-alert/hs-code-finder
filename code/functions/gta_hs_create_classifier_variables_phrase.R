@@ -187,6 +187,7 @@ gta_hs_create_classifier_variables_phrase<- function(phrase.ids=NULL,
           
           for(cert in u.certainty){
             eval(parse(text=paste0("u.check$selected.",cert,"[u.check$suggestion.id %in% u.selected] =1")))
+            eval(parse(text=paste0("u.check$discarded.",cert,"[! u.check$suggestion.id %in% u.selected] =1")))
           }
           
           
