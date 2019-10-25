@@ -1,11 +1,11 @@
 gta_hs_create_classifier_variables_phrase<- function(phrase.ids=NULL,
-                                              job.checks=3,
-                                              agreeable.threshold=2/3,
-                                              disagreeable.threshold=1/3,
-                                              path.to.cloud=NULL){
-
+                                                     job.checks=3,
+                                                     agreeable.threshold=2/3,
+                                                     disagreeable.threshold=1/3,
+                                                     path.to.cloud=NULL){
+  
   library(gtalibrary)
-   
+  
   if(is.null(path.to.cloud)==F){
     setwd(path.to.cloud)
   } else {
@@ -137,58 +137,60 @@ gta_hs_create_classifier_variables_phrase<- function(phrase.ids=NULL,
       u.suggest=subset(code.suggested, phrase.id==p.id )$suggestion.id
       
       
-      if(nrow(u.check)==0){
-        
-        u.check=data.frame(phrase.id=p.id,
-                           suggestion.id=u.suggest,
-                           not.checked=1,
-                           selected.exactly=0,
-                           selected.highly=0,
-                           selected.fairly=0,
-                           selected.somewhat=0,
-                           selected.not=0,
-                           discarded.exactly=0,
-                           discarded.highly=0,
-                           discarded.fairly=0,
-                           discarded.somewhat=0,
-                           discarded.not=0
-        )
-        
-      } else {
-        
-        # determine selection y/n
-        u.selected=merge(subset(code.suggested, phrase.id==p.id),
-                         subset(code.selected, check.id %in% user.checks),
-                         by="suggestion.id")$suggestion.id
-        
-        
-        
-        # determine certainty
-        u.certainty=unique(as.character(subset(check.certainty, check.id %in% subset(check.phrases, 
-                                                                                     phrase.id %in% p.id &
-                                                                                       check.id %in% user.checks)$check.id)$certainty.level))
-        
-        # store
-        u.check=data.frame(phrase.id=p.id,
-                           suggestion.id=u.suggest,
-                           not.checked=0,
-                           selected.exactly=0,
-                           selected.highly=0,
-                           selected.fairly=0,
-                           selected.somewhat=0,
-                           selected.not=0,
-                           discarded.exactly=0,
-                           discarded.highly=0,
-                           discarded.fairly=0,
-                           discarded.somewhat=0,
-                           discarded.not=0
-                           )
-        
-        for(cert in u.certainty){
-          eval(parse(text=paste0("u.check$selected.",cert,"[u.check$suggestion.id %in% u.selected] =1")))
+      if(length(u.suggest)>0){
+        if(nrow(u.check)==0){
+          
+          u.check=data.frame(phrase.id=p.id,
+                             suggestion.id=u.suggest,
+                             not.checked=1,
+                             selected.exactly=0,
+                             selected.highly=0,
+                             selected.fairly=0,
+                             selected.somewhat=0,
+                             selected.not=0,
+                             discarded.exactly=0,
+                             discarded.highly=0,
+                             discarded.fairly=0,
+                             discarded.somewhat=0,
+                             discarded.not=0
+          )
+          
+        } else {
+          
+          # determine selection y/n
+          u.selected=merge(subset(code.suggested, phrase.id==p.id),
+                           subset(code.selected, check.id %in% user.checks),
+                           by="suggestion.id")$suggestion.id
+          
+          
+          
+          # determine certainty
+          u.certainty=unique(as.character(subset(check.certainty, check.id %in% subset(check.phrases, 
+                                                                                       phrase.id %in% p.id &
+                                                                                         check.id %in% user.checks)$check.id)$certainty.level))
+          
+          # store
+          u.check=data.frame(phrase.id=p.id,
+                             suggestion.id=u.suggest,
+                             not.checked=0,
+                             selected.exactly=0,
+                             selected.highly=0,
+                             selected.fairly=0,
+                             selected.somewhat=0,
+                             selected.not=0,
+                             discarded.exactly=0,
+                             discarded.highly=0,
+                             discarded.fairly=0,
+                             discarded.somewhat=0,
+                             discarded.not=0
+          )
+          
+          for(cert in u.certainty){
+            eval(parse(text=paste0("u.check$selected.",cert,"[u.check$suggestion.id %in% u.selected] =1")))
+          }
+          
+          
         }
-        
-        
       }
       
       user.variables=rbind(user.variables, u.check)
