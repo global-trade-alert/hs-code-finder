@@ -128,7 +128,12 @@ gta_hs_create_classifier_variables_phrase<- function(phrase.ids=NULL,
   ### User stats
   
   user.variables=data.frame()
-  for(u.id in unique(check.log$user.id)){
+  
+  app.users=aggregate(check.id ~ user.id, check.log, function(x) length(unique(x)))
+  app.users=app.users$user.id[app.users$check.id>=50]
+  
+  
+  for(u.id in app.users){
     user.checks=unique(subset(check.log, user.id==u.id)$check.id)
     
     for(p.id in phrase.ids){
