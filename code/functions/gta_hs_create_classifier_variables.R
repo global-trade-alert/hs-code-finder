@@ -36,12 +36,14 @@ gta_hs_create_classifier_variables<- function(job.ids=NULL,
   check.log <<- check.log
   code.selected <- gta_sql_load_table("code_selected")
   code.selected <<- code.selected
+  code.source <- gta_sql_load_table("code_source")
+  code.source <<- code.source
   
   if(is.null(job.ids)){
     job.ids=unique(job.log$job.id[job.log$job.processed==T & job.log$nr.of.checks>=job.checks])
   }
   
-  
+  # CHANGE THIS ONE
   phrases.finished=subset(job.phrase, processed==T & job.id %in% job.ids)$phrase.id
   
   hs.candidates=as.data.frame(subset(code.suggested, phrase.id %in% phrases.finished & is.na(hs.code.6)==F))

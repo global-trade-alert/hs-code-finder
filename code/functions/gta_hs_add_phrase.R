@@ -20,19 +20,19 @@ gta_hs_add_phrase<- function(add.job.id=NULL,
   
   # load_all(source.data)
   
-  phrase.table <- change_encoding(gta_sql_load_table("phrase_table"))
-  phrase.table <<- phrase.table
+  phrase.log <- change_encoding(gta_sql_load_table("phrase_log"))
+  phrase.log <<- phrase.log
   code.suggested <- change_encoding(gta_sql_load_table("code_suggested"))
   code.suggested <<- code.suggested
   
-  if(tolower(phrase.to.add) %in% tolower(phrase.table$phrase)){
+  if(tolower(phrase.to.add) %in% tolower(phrase.log$phrase)){
     
-    pt.row=min(which(tolower(phrase.table$phrase)==tolower(phrase.to.add)))
+    pt.row=min(which(tolower(phrase.log$phrase)==tolower(phrase.to.add)))
     
     ## existing phrases
     is.new=F
     
-    new.phrase.id=phrase.table$phrase.id[pt.row]
+    new.phrase.id=phrase.log$phrase.id[pt.row]
     
     # CHECK IF EXISTING PHRASE HAS ALREADY PROBABILITES ABOVE 0.5
     if(new.phrase.id %in% unique(subset(code.suggested, is.na(probability)==F)$phrase.id)){
@@ -41,14 +41,14 @@ gta_hs_add_phrase<- function(add.job.id=NULL,
       is.processed=F
     }
     
-    phrase.jobs=max(c(subset(phrase.table, tolower(phrase)==phrase.to.add)$nr.completed.jobs,0), na.rm=T)
+    phrase.jobs=max(c(subset(phrase.log, tolower(phrase)==phrase.to.add)$nr.completed.jobs,0), na.rm=T)
     
   } else {
     ## new phrases
     is.new=T
     is.processed=F
     
-    new.phrase.id=max(phrase.table$phrase.id, na.rm = T)+1
+    new.phrase.id=max(phrase.log$phrase.id, na.rm = T)+1
     
     phrase.jobs=0
     
@@ -58,21 +58,21 @@ gta_hs_add_phrase<- function(add.job.id=NULL,
     print(phrase.source)
     print(phrase.jobs)
     
-    phrase.table.update = data.frame(phrase.id=new.phrase.id,
+    phrase.log.update = data.frame(phrase.id=new.phrase.id,
                                   phrase=phrase.to.add,
                                   source=phrase.source,
-                                  nr.completed.jobs=phrase.jobs,
+                                  exit.status=0,
                                   stringsAsFactors = F)
-    phrase.table.update <<- phrase.table.update
+    phrase.log.update <<- phrase.log.update
     
-    gta_sql_append_table(append.table = "phrase.table",
-                         append.by.df = "phrase.table.update")
+    gta_sql_append_table(append.table = "phrase.log",
+                         append.by.df = "phrase.log.update")
     
-    rm(phrase.table.update)
+    rm(phrase.log.update)
     
     }
   
-  # assign.global("phrase.table",phrase.table)
+  # assign.global("phrase.log",phrase.log)
   
   
   if(update.job.phrase){
