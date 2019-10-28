@@ -45,12 +45,12 @@ for(fct in list.files(paste0(wdpath,"/code/functions"), pattern = ".R", full.nam
   source(fct)
 }
 
-gta_sql_pool_open(db.title="ricardodev",
-                  db.host = gta_pwd("ricardodev")$host,
-                  db.name = gta_pwd("ricardodev")$name,
-                  db.user = gta_pwd("ricardodev")$user,
-                  db.password = gta_pwd("ricardodev")$password,
-                  table.prefix = "hs_", got.keyring = F)
+gta_sql_pool_open(db.title="ricardomain",
+                  db.host = gta_pwd("ricardomain")$host,
+                  db.name = gta_pwd("ricardomain")$name,
+                  db.user = gta_pwd("ricardomain")$user,
+                  db.password = gta_pwd("ricardomain")$password,
+                  table.prefix = "hs_")
 
 # # CODE TO REMOVE PHRASES/JOBS/CHECKS MANUALLY
 # load_all(path)
@@ -1308,40 +1308,6 @@ server <- function(input, output, session) {
               # SAVE PROBABILITIES FOR THAT PHRASE
               gta_hs_classify_results(processed.phrase = phr.id)
               
-              # GET MAX PROBABILITY AND DECIDE WHETHER PRHASE IS PROCESSED OR NOT
-              sql <- "SELECT MAX(probability) FROM hs_code_suggested WHERE phrase_id = ?phraseID;"
-              query <- sqlInterpolate(pool, 
-                                      sql, 
-                                      phraseID = phr.id)
-              
-              max.prob=gta_sql_get_value(query)
-              print(paste0("MAX PROB: ",max.prob))
-              
-              if (max.prob > 0.5) {
-                
-                sql <- "UPDATE hs_job_phrase SET processed = true WHERE (phrase_id = ?phraseID AND job_id = ?jobID);"
-                query <- sqlInterpolate(pool,
-                                        sql,
-                                        phraseID = phr.id,
-                                        jobID = job.id)
-                gta_sql_update_table(query)
-                
-                sql <- "UPDATE hs_phrase_table SET nr_completed_jobs = nr_completed_jobs + 1 WHERE phrase_id = ?phraseID;"
-                query <- sqlInterpolate(pool, 
-                                        sql, 
-                                        phraseID = phr.id)
-                gta_sql_update_table(query)
-                
-              } else {
-                
-                sql <- "UPDATE hs_job_phrase SET processing_round = processing_round + 1, processed = false WHERE (phrase_id = ?phraseID AND job_id = ?jobID);"
-                query <- sqlInterpolate(pool,
-                                        sql,
-                                        phraseID = phr.id,
-                                        jobID = job.id)
-                gta_sql_update_table(query)
-                
-              }
             }
             
             rm(required.checks)
@@ -1528,12 +1494,12 @@ server <- function(input, output, session) {
 shinyApp(ui = ui, 
          server = server, 
          onStart = function() {
-           gta_sql_pool_open(db.title="ricardodev",
-                             db.host = gta_pwd("ricardodev")$host,
-                             db.name = gta_pwd("ricardodev")$name,
-                             db.user = gta_pwd("ricardodev")$user,
-                             db.password = gta_pwd("ricardodev")$password,
-                             table.prefix = "hs_", got.keyring = F)
+           gta_sql_pool_open(db.title="ricardomain",
+                             db.host = gta_pwd("ricardomain")$host,
+                             db.name = gta_pwd("ricardomain")$name,
+                             db.user = gta_pwd("ricardomain")$user,
+                             db.password = gta_pwd("ricardomain")$password,
+                             table.prefix = "hs_")
            
            onStop(function() {
              gta_sql_pool_close()
