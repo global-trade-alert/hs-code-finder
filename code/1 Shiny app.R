@@ -30,14 +30,14 @@ plan(multiprocess)
 rm(list = ls())
 
 # gta_setwd()
-# setwd("/home/rstudio/Dropbox/GTA cloud")
+setwd("/home/rstudio/Dropbox/GTA cloud")
 # setwd("C:/Users/jfrit/Desktop/Dropbox/GTA cloud")
 # setwd("C:/Users/Piotr Lukaszuk/Dropbox/GTA cloud")
-setwd("/Users/patrickbuess/Dropbox/Collaborations/GTA cloud")
+# setwd("/Users/patrickbuess/Dropbox/Collaborations/GTA cloud")
 
 # path="0 dev/hs-code-finder-pb/database/GTA HS code database.Rdata"
-wdpath="0 dev/hs-code-finder-pb/"
-# wdpath="17 Shiny/5 HS code finder/"
+# wdpath="0 dev/hs-code-finder-pb/"
+wdpath="17 Shiny/5 HS code finder/"
 
 ## helpful functions
 ## HS app functions
@@ -45,11 +45,11 @@ for(fct in list.files(paste0(wdpath,"/code/functions"), pattern = ".R", full.nam
   source(fct)
 }
 
-gta_sql_pool_open(db.title="ricardodev",
-                  db.host = gta_pwd("ricardodev")$host,
-                  db.name = gta_pwd("ricardodev")$name,
-                  db.user = gta_pwd("ricardodev")$user,
-                  db.password = gta_pwd("ricardodev")$password,
+gta_sql_pool_open(db.title="ricardomain",
+                  db.host = gta_pwd("ricardomain")$host,
+                  db.name = gta_pwd("ricardomain")$name,
+                  db.user = gta_pwd("ricardomain")$user,
+                  db.password = gta_pwd("ricardomain")$password,
                   table.prefix = "hs_", got.keyring = F)
 
 # # CODE TO REMOVE PHRASES/JOBS/CHECKS MANUALLY
@@ -1327,13 +1327,16 @@ server <- function(input, output, session) {
                   } else {
                     
                     # SAVE PROBABILITIES FOR THAT PHRASE
-                    gta_hs_process_completed_phrase(processed.phrase = phr.id, path = wdpath)
+                    phr.id.probability.future <- phr.id
+                    future({ gta_hs_process_completed_phrase(processed.phrase = phr.id.probability.future, path = wdpath) })
+                    
+                    
                   }
                 }
               }
             }
             
-            if (exit.status > 0) {
+            if (exit.status %in% c(2,3,4)) {
               sql <- "UPDATE hs_phrase_log SET exit.status = ?exitStatus WHERE phrase_id = ?phraseID;"
               query <- sqlInterpolate(pool,
                                       sql,
@@ -1526,11 +1529,11 @@ server <- function(input, output, session) {
 shinyApp(ui = ui, 
          server = server, 
          onStart = function() {
-           gta_sql_pool_open(db.title="ricardodev",
-                             db.host = gta_pwd("ricardodev")$host,
-                             db.name = gta_pwd("ricardodev")$name,
-                             db.user = gta_pwd("ricardodev")$user,
-                             db.password = gta_pwd("ricardodev")$password,
+           gta_sql_pool_open(db.title="ricardomain",
+                             db.host = gta_pwd("ricardomain")$host,
+                             db.name = gta_pwd("ricardomain")$name,
+                             db.user = gta_pwd("ricardomain")$user,
+                             db.password = gta_pwd("ricardomain")$password,
                              table.prefix = "hs_", got.keyring = F)
            
            onStop(function() {
