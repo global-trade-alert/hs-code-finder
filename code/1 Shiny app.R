@@ -1369,7 +1369,8 @@ server <- function(input, output, session) {
               
               gta_sql_update_table(query)
               
-              gta_hs_process_completed_job(processed.job=j.id, path = wdpath)
+              job.id.future <- j.id
+              future({ gta_hs_process_completed_job(processed.job=job.id.future, path = wdpath) })
               
             }
           }
