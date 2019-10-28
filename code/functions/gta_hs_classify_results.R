@@ -32,29 +32,33 @@ gta_hs_classify_results<- function(processed.phrase=NULL,
     }
   }
   
-  load(source.data)
-  
-  ## compare whether variables are the same as in estimator, if not re-estimate classifier
-  if(any(! classifier.variables %in% names(estimation.set))){
+  ## estimating disagreements, if there are any
+  if(nrow(estimation.set)>0){
     
-    SEND EMAIL TO JF
-    gta_hs_estimate_classifier()
+    load(source.data)
     
-  } else {
+    ## compare whether variables are the same as in estimator, if not re-estimate classifier
+    if(any(! classifier.variables %in% names(estimation.set))){
+      
+      # SEND EMAIL TO JF
+      gta_hs_estimate_classifier()
+      
+    } else {
+      
+      estimate=estimation.set[,classifier.variables]
+      
+    }
     
-    estimate=estimation.set[,classifier.variables]
+    ## estimating the unsure cases
+    estimation.set$probability=round(predict(hs.classifier, estimate)$pred[,1],3)
+    estimation.set$relevant=as.numeric(estimation.set$probability>=relevance.threshold)
+    
+    ## adding estimates & agreed cases
+    estimation.set=rbind(estimation.set, agreed.parts)
+    
     
   }
   
-  ## estimating the unsure cases
-  estimate$train.id=NULL
-  estimate$evaluation=NULL
-  
-  estimation.set$probability=round(predict(hs.classifier, estimate)$pred[,1],3)
-  estimation.set$relevant=as.numeric(estimation.set$probability>=relevance.threshold)
-
-  ## adding estimates & agreed cases
-  estimation.set=rbind(estimation.set, agreed.parts)
   
   ##  Updating database for processed suggestions
   code.suggested <- gta_sql_load_table("code_suggested")
