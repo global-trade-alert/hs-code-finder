@@ -61,7 +61,7 @@ gta_hs_classify_results<- function(processed.phrase=NULL,
   
   
   ##  Updating database for processed suggestions
-  for (suggestion in estimation.set$suggestion.id){
+  for (suggestion in unique(estimation.set$suggestion.id)){
     sql <- paste0("UPDATE hs_code_suggested 
                   SET probability = ", 
                   min(estimation.set$probability[estimation.set$suggestion.id==suggestion]), "
@@ -71,4 +71,6 @@ gta_hs_classify_results<- function(processed.phrase=NULL,
     gta_sql_update_table(query)
     rm(query, sql)
   }
+  
+  
 }
