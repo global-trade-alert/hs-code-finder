@@ -176,38 +176,27 @@ gta_hs_create_classifier_variables_phrase<- function(phrase.ids=NULL,
   
   
   ## shared CPC code with common acceptance/refusal selections
-  phrase.cpc=unique(hs.candidates[,c("phrase.id","hs.code.6", "selection.share")])
+  phrase.cpc=unique(hs.candidates[,c("phrase.id","hs.code.6","selection.share")])
   phrase.cpc$hs=as.numeric(as.character(phrase.cpc$hs.code.6))
   phrase.cpc=merge(phrase.cpc, cpc.to.hs, by="hs")
-  cpc.per.phrase=aggregate(cpc ~phrase.id, phrase.cpc, function(x) length(unique(x)))
   
-  phrase.id.vector=phrase.cpc$phrase.id
-  cpc.vector=phrase.cpc$cpc
-  selection.vector=phrase.cpc$selection.share
+  agreed=unique(subset(phrase.cpc, selection.share>=(1-agreeable.threshold))[,c("phrase.id","cpc")])
+  agreed$cpc.chosen=T
+  refused=unique(subset(phrase.cpc, selection.share<=(agreeable.threshold))[,c("phrase.id","cpc")])
+  refused$cpc.refused=T
   
-  agreeable.positions=which(selection.vector>=(1-agreeable.threshold)|(selection.vector<=agreeable.threshold))
-  disagreeable.positions=which(selection.vector<(1-agreeable.threshold) & selection.vector>agreeable.threshold)
+  phrase.cpc=merge(phrase.cpc, agreed, by =c("phrase.id","cpc"), all.x=T)
+  phrase.cpc=merge(phrase.cpc, refused, by =c("phrase.id","cpc"), all.x=T)
+  phrase.cpc$cpc.chosen[is.na(phrase.cpc$cpc.chosen)]=F
+  phrase.cpc$cpc.refused[is.na(phrase.cpc$cpc.refused)]=F
   
-  agree.vector=character(nrow(phrase.cpc))
-  disagree.vector=character(nrow(phrase.cpc))
   
-  
-  for(i in 1:nrow(phrase.cpc)){
-    phrase.positions=which(phrase.id.vector==phrase.id.vector[i])
-    agree.vector[i]=cpc.vector[i] %in% cpc.vector[setdiff(intersect(phrase.positions, agreeable.positions),i)]
-    disagree.vector[i]=cpc.vector[i] %in% cpc.vector[setdiff(intersect(phrase.positions, disagreeable.positions),i)]
-    
-    print(i/nrow(phrase.cpc))
-  }
-  
-  phrase.cpc$cpc.agree=agree.vector
-  phrase.cpc$cpc.disagree=disagree.vector
-  
+  agreement.levels=c("neither","both","chosen","refused")
   phrase.cpc$share.cpc="neither"
-  phrase.cpc$share.cpc[phrase.cpc$cpc.agree==T & phrase.cpc$cpc.disagree==T]="both"
-  phrase.cpc$share.cpc[phrase.cpc$cpc.agree==T & phrase.cpc$cpc.disagree==F]="agree"
-  phrase.cpc$share.cpc[phrase.cpc$cpc.agree==F & phrase.cpc$cpc.disagree==T]="disagree"
-  phrase.cpc$share.cpc=as.factor(phrase.cpc$share.cpc)
+  phrase.cpc$share.cpc[phrase.cpc$cpc.chosen==T & phrase.cpc$cpc.refused==T]="both"
+  phrase.cpc$share.cpc[phrase.cpc$cpc.chosen==T & phrase.cpc$cpc.refused==F]="chosen"
+  phrase.cpc$share.cpc[phrase.cpc$cpc.chosen==F & phrase.cpc$cpc.refused==T]="refused"
+  phrase.cpc$share.cpc=factor(phrase.cpc$share.cpc, levels = agreement.levels)
   
   hs.candidates=merge(hs.candidates, phrase.cpc[,c("phrase.id","hs.code.6","share.cpc")], by=c("phrase.id","hs.code.6"))
   
