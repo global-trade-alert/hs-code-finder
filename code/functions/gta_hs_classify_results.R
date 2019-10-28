@@ -61,28 +61,14 @@ gta_hs_classify_results<- function(processed.phrase=NULL,
   
   
   ##  Updating database for processed suggestions
-  code.suggested <- gta_sql_load_table("code_suggested")
-  code.suggested <<- code.suggested
-  phrase.table <- gta_sql_load_table("phrase_table")
-  phrase.table <<- phrase.table
-  job.phrase <- gta_sql_load_table("job_phrase")
-  job.phrase <<- job.phrase
-  
-  
-  # code.suggested=rbind(subset(code.suggested, (! suggestion.id %in% estimation.set$suggestion.id)),
-                       # unique(estimation.set[,c(names(code.suggested))]))
-  code.suggested.update <- unique(estimation.set[,c(names(code.suggested))])
-  
-  for (i in 1:nrow(code.suggested.update)){
-    sql <- paste0("UPDATE hs_code_suggested SET probability = ", code.suggested.update$probability[i], " WHERE suggestion_id = ", code.suggested.update$suggestion.id[i],";")
+  for (suggestion in estimation.set$suggestion.id){
+    sql <- paste0("UPDATE hs_code_suggested 
+                  SET probability = ", 
+                  min(estimation.set$probability[estimation.set$suggestion.id==suggestion]), "
+                  WHERE suggestion_id = ", suggestion,";")
     query <- sqlInterpolate(pool,
                             sql)
     gta_sql_update_table(query)
+    rm(query, sql)
   }
-  
-  
-    
-  estimation.set=merge(estimation.set, phrase.table[,c("phrase.id","phrase")], by="phrase.id")
-  estimation.set=merge(estimation.set, job.phrase[,c("phrase.id","job.id")], by="phrase.id")
-  classification.result=unique(estimation.set[,c("job.id","phrase","hs.code.6","probability","relevant")])
 }
