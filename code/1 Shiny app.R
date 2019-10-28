@@ -1335,8 +1335,24 @@ server <- function(input, output, session) {
               
               gta_sql_update_table(query)
               
+              sql <- "UPDATE hs_job_log SET phrases_left = 0 WHERE job_id = ?jobID;"
+              query <- sqlInterpolate(pool, 
+                                      sql, 
+                                      jobID = j.id)
+              
+              gta_sql_update_table(query)
+              
               gta_hs_process_completed_job(processed.job=j.id, path = wdpath)
               
+            } else {
+              remaining <- nrow(subset(job.phrase, job.id == j.id & processed==F))
+              sql <- "UPDATE hs_job_log SET phrases_remaining = ?left WHERE job_id = ?jobID;"
+              query <- sqlInterpolate(pool, 
+                                      sql, 
+                                      left = remaining,
+                                      jobID = j.id)
+              
+              gta_sql_update_table(query)
             }
           }
           # toggleClass("loading","active")
