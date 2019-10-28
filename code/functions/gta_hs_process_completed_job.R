@@ -27,6 +27,7 @@ gta_hs_process_completed_job <- function(processed.job=NULL, path = NULL){
       classifier.variables<<-classifier.variables
       classification.result=gta_hs_classify_results("classifier.variables")
       
+      
       if(length(processed.job)==1){
         classification.result$job.id=j.id
         classification.result=unique(classification.result)
@@ -39,6 +40,16 @@ gta_hs_process_completed_job <- function(processed.job=NULL, path = NULL){
       none.found=subset(classification.result, ! phrase %in% subset(classification.result, relevant==1)$phrase)
       if(nrow(none.found)>0){
         xlsx::write.xlsx(unique(none.found[,c("phrase")]), file=paste(result.path, ".xlsx", sep=""), sheetName = "Unclassified phrases", row.names=F, append=T)
+      }
+      
+      round.limit=subset(classification.result, phrase %in% subset(classification.result, exit.status==4)$phrase)
+      if(nrow(round.limit)>0){
+        xlsx::write.xlsx(unique(round.limit[,c("phrase")]), file=paste(result.path, ".xlsx", sep=""), sheetName = "Round limit reached", row.names=F, append=T)
+      }
+      
+      not.product=subset(classification.result, phrase %in% subset(classification.result, exit.status==2)$phrase)
+      if(nrow(not.product)>0){
+        xlsx::write.xlsx(unique(not.product[,c("phrase")]), file=paste(result.path, ".xlsx", sep=""), sheetName = "Not a product", row.names=F, append=T)
       }
       
       
