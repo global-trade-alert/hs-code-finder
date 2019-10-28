@@ -1306,7 +1306,8 @@ server <- function(input, output, session) {
             if(calc.prob){
               
               # SAVE PROBABILITIES FOR THAT PHRASE
-              gta_hs_classify_results(processed.phrase = phr.id)
+              gta_hs_classify_results(processed.phrase = phr.id,
+                                      job.id=j.id)
               
             }
             
