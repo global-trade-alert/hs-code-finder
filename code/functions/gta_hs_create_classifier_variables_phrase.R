@@ -1,7 +1,6 @@
 gta_hs_create_classifier_variables_phrase<- function(phrase.ids=NULL,
                                                      job.checks=3,
-                                                     agreeable.threshold=2/3,
-                                                     disagreeable.threshold=1/3,
+                                                     agreeable.threshold=.2,
                                                      path.to.cloud=NULL){
   
   library(gtalibrary)
@@ -178,7 +177,7 @@ gta_hs_create_classifier_variables_phrase<- function(phrase.ids=NULL,
   }
   
   
-  ## shared CPC code with highly agreeable/disagreeabe selections
+  ## shared CPC code with highly agreeable/disagreeable selections
   phrase.cpc=unique(hs.candidates[,c("phrase.id","hs.code.6", "selection.share")])
   phrase.cpc$hs=as.numeric(as.character(phrase.cpc$hs.code.6))
   phrase.cpc=merge(phrase.cpc, cpc.to.hs, by="hs")
@@ -188,8 +187,8 @@ gta_hs_create_classifier_variables_phrase<- function(phrase.ids=NULL,
   cpc.vector=phrase.cpc$cpc
   selection.vector=phrase.cpc$selection.share
   
-  agreeable.positions=which(selection.vector>=agreeable.threshold)
-  disagreeable.positions=which(selection.vector<=disagreeable.threshold)
+  agreeable.positions=which(selection.vector>=(1-agreeable.threshold)|(selection.vector<=agreeable.threshold))
+  disagreeable.positions=which(selection.vector<(1-agreeable.threshold) & selection.vector>agreeable.threshold)
   
   agree.vector=character(nrow(phrase.cpc))
   disagree.vector=character(nrow(phrase.cpc))
