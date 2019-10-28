@@ -42,6 +42,7 @@ gta_hs_create_classifier_variables_phrase<- function(phrase.ids=NULL,
   }
   
   hs.candidates=as.data.frame(subset(code.suggested, phrase.id %in% phrase.ids & is.na(hs.code.6)==F))
+  hs.candidates$probability=NULL
   
   chosen.suggestions=as.data.frame(table(subset(code.selected, check.id %in% subset(check.phrases, phrase.id %in% phrase.ids)$check.id)$suggestion.id))
   names(chosen.suggestions)=c("suggestion.id","nr.times.chosen")
