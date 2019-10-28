@@ -35,6 +35,8 @@ gta_hs_create_classifier_variables_phrase<- function(phrase.ids=NULL,
   check.log <<- check.log
   code.selected <- gta_sql_load_table("code_selected")
   code.selected <<- code.selected
+  code.source <- gta_sql_load_table("code_source")
+  code.source <<- code.source
   
   phrases.finished=subset(job.phrase, processed==T & phrase.id %in% phrase.ids)$phrase.id
   
