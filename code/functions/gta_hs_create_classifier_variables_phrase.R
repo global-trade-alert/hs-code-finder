@@ -182,14 +182,28 @@ gta_hs_create_classifier_variables_phrase<- function(phrase.ids=NULL,
   phrase.cpc=merge(phrase.cpc, cpc.to.hs, by="hs")
   
   agreed=unique(subset(phrase.cpc, selection.share>=(1-agreeable.threshold))[,c("phrase.id","cpc")])
-  agreed$cpc.chosen=T
-  refused=unique(subset(phrase.cpc, selection.share<=(agreeable.threshold))[,c("phrase.id","cpc")])
-  refused$cpc.refused=T
+  if(nrow(agreed)>0){
+    agreed$cpc.chosen=T
+    phrase.cpc=merge(phrase.cpc, agreed, by =c("phrase.id","cpc"), all.x=T)
+    phrase.cpc$cpc.chosen[is.na(phrase.cpc$cpc.chosen)]=F
+    
+  } else {
+    phrase.cpc$cpc.chosen=F
+  }
   
-  phrase.cpc=merge(phrase.cpc, agreed, by =c("phrase.id","cpc"), all.x=T)
-  phrase.cpc=merge(phrase.cpc, refused, by =c("phrase.id","cpc"), all.x=T)
-  phrase.cpc$cpc.chosen[is.na(phrase.cpc$cpc.chosen)]=F
-  phrase.cpc$cpc.refused[is.na(phrase.cpc$cpc.refused)]=F
+  
+  refused=unique(subset(phrase.cpc, selection.share<=(agreeable.threshold))[,c("phrase.id","cpc")])
+  if(nrow(refused)>0){
+    
+    refused$cpc.refused=T
+    phrase.cpc=merge(phrase.cpc, refused, by =c("phrase.id","cpc"), all.x=T)
+    phrase.cpc$cpc.refused[is.na(phrase.cpc$cpc.refused)]=F
+    
+  } else {
+    phrase.cpc$cpc.refused=F
+  }
+  
+
   
   
   agreement.levels=c("neither","both","chosen","refused")
