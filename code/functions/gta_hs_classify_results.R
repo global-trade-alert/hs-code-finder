@@ -1,4 +1,5 @@
 gta_hs_classify_results<- function(processed.phrase=NULL,
+                                   job.id=NULL,
                                    relevance.threshold=.5,
                                    path.to.cloud=NULL,
                                    source.data="17 Shiny/5 HS code finder/database/HS classifier.Rdata"){
@@ -70,7 +71,44 @@ gta_hs_classify_results<- function(processed.phrase=NULL,
                             sql)
     gta_sql_update_table(query)
     rm(query, sql)
+    
+    
   }
+  
+  # GET MAX PROBABILITY AND DECIDE WHETHER PRHASE IS PROCESSED OR NOT
+  for(this.phrase in unique(estimation.set$phrase.id)){
+    
+    max.prob=max(estimation.set$probability[estimation.set$phrase.id==this.phrase])
+    
+    if (max.prob > relevance.threshold) {
+      
+      sql <- "UPDATE hs_job_phrase SET processed = 1 WHERE (phrase_id = ?phraseID AND job_id = ?jobID);"
+      query <- sqlInterpolate(pool,
+                              sql,
+                              phraseID = this.phrase,
+                              jobID = job.id)
+      gta_sql_update_table(query)
+      
+      sql <- "UPDATE hs_phrase_log SET nr_completed_jobs = nr_completed_jobs + 1 WHERE phrase_id = ?phraseID;"
+      query <- sqlInterpolate(pool, 
+                              sql, 
+                              phraseID = this.phrase)
+      gta_sql_update_table(query)
+      
+    } else {
+      
+      sql <- "UPDATE hs_job_phrase SET processing_round = processing_round + 1, processed = 0 WHERE (phrase_id = ?phraseID AND job_id = ?jobID);"
+      query <- sqlInterpolate(pool,
+                              sql,
+                              phraseID = this.phrase,
+                              jobID = job.id)
+      gta_sql_update_table(query)
+      
+    }
+    
+  }
+  
+  
   
   
 }
