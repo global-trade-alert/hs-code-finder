@@ -1,5 +1,5 @@
-gta_hs_estimate_classifier<- function(hs.out.threshold=.1,
-                                      hs.in.threshold=.9,
+gta_hs_estimate_classifier<- function(agreed.refusal.threshold=.1,
+                                      agreed.acceptance.threshold=.9,
                                       train.share=.7,
                                       relevance.threshold=.5,
                                       path.to.cloud=NULL,
@@ -25,9 +25,8 @@ gta_hs_estimate_classifier<- function(hs.out.threshold=.1,
   
   #### ESTIMATION
   ## splitting off the training set from the estimation set
-  estimation.set=subset(estimation.set, selection.share>hs.out.threshold & selection.share<hs.in.threshold)
+  training.set=subset(estimation.set, (selection.share<=agreed.refusal.threshold)|(selection.share>=agreed.acceptance.threshold))
   
-  training.set=subset(hs.candidates, (selection.share<=hs.out.threshold)|(selection.share>=hs.in.threshold))
   training.set$evaluation=as.numeric(training.set$selection.share>=relevance.threshold)
   training.set$train.id=1:nrow(training.set)
   
