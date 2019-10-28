@@ -34,9 +34,19 @@ gta_hs_classify_results<- function(processed.phrase=NULL,
   
   load(source.data)
   
-  ## estimating the unsure cases
-  estimate=estimation.set[,setdiff(names(estimation.set), c("phrase.id","suggestion.id","hs.code.6","nr.times.chosen","nr.of.checks","selection.share"))]
+  ## compare whether variables are the same as in estimator, if not re-estimate classifier
+  if(any(! classifier.variables %in% names(estimation.set))){
+    
+    SEND EMAIL TO JF
+    gta_hs_estimate_classifier()
+    
+  } else {
+    
+    estimate=estimation.set[,classifier.variables]
+    
+  }
   
+  ## estimating the unsure cases
   estimate$train.id=NULL
   estimate$evaluation=NULL
   
