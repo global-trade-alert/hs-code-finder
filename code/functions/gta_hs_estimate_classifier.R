@@ -63,19 +63,21 @@ gta_hs_estimate_classifier<- function(hs.out.threshold=.1,
   test.auc = ROCR::performance(pred_rocr, measure = "auc", x.measure = "cutoff")@y.values[[1]]
   test.auc
   
-  save(hs.classifier, test.auc, train.auc, file="17 Shiny/5 HS code finder/database/HS classifier.Rdata")
+  
+  classifier.variables=setdiff(names(training.set), c("phrase.id","suggestion.id","hs.code.6","nr.times.chosen","nr.of.checks","selection.share"))
+  save(hs.classifier, classifier.variables, test.auc, train.auc, file="17 Shiny/5 HS code finder/database/HS classifier.Rdata")
   
   ## estimating the unsure cases
-  estimate=estimation.set[,setdiff(names(estimation.set), c("phrase.id","suggestion.id","hs.code.6","nr.times.chosen","nr.of.checks","selection.share"))]
-  
-  
-  
-  estimate$train.id=NULL
-  estimate$evaluation=NULL
-  
-  estimation.set$relevance= predict(hs.classifier, estimate)$pred[,1]
-  
-  save(estimation.set, training.set, test.auc, train.auc, users, file="17 Shiny/5 HS code finder/database/HS classifier data.Rdata")
-  
+  # estimate=estimation.set[,setdiff(names(estimation.set), c("phrase.id","suggestion.id","hs.code.6","nr.times.chosen","nr.of.checks","selection.share"))]
+  # 
+  # 
+  # 
+  # estimate$train.id=NULL
+  # estimate$evaluation=NULL
+  # 
+  # estimation.set$relevance= predict(hs.classifier, estimate)$pred[,1]
+  # 
+  # save(estimation.set, training.set, test.auc, train.auc, users, file="17 Shiny/5 HS code finder/database/HS classifier data.Rdata")
+  # 
   
 }
