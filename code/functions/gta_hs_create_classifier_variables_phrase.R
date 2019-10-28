@@ -126,8 +126,6 @@ gta_hs_create_classifier_variables_phrase<- function(phrase.ids=NULL,
   
   ### User stats
   
-  user.variables=data.frame()
-  
   app.users=aggregate(check.id ~ user.id, check.log, function(x) length(unique(x)))
   app.users=app.users$user.id[app.users$check.id>=50]
   
@@ -177,7 +175,7 @@ gta_hs_create_classifier_variables_phrase<- function(phrase.ids=NULL,
   }
   
   
-  ## shared CPC code with highly agreeable/disagreeable selections
+  ## shared CPC code with common acceptance/refusal selections
   phrase.cpc=unique(hs.candidates[,c("phrase.id","hs.code.6", "selection.share")])
   phrase.cpc$hs=as.numeric(as.character(phrase.cpc$hs.code.6))
   phrase.cpc=merge(phrase.cpc, cpc.to.hs, by="hs")
