@@ -1,5 +1,5 @@
-gta_hs_estimate_classifier<- function(hs.out.threshold=.1,
-                                      hs.in.threshold=.9,
+gta_hs_estimate_classifier<- function(agreed.refusal.threshold=.1,
+                                      agreed.acceptance.threshold=.9,
                                       train.share=.7,
                                       relevance.threshold=.5,
                                       path.to.cloud=NULL,
@@ -16,14 +16,17 @@ gta_hs_estimate_classifier<- function(hs.out.threshold=.1,
   }
   
  
-  estimation.set=gta_hs_create_classifier_variables(path.to.cloud=path.to.cloud,
-                                                    source.data=source.data)
+  job.phrase=gta_sql_load_table("job.phrase")
+  
+  processed.phrase=unique(job.phrase$phrase.id[job.phrase$processed])
+  
+  estimation.set=gta_hs_create_classifier_variables_phrase(phrase.ids=processed.phrase)
+  rm(job.phrase, processed.phrase)
   
   #### ESTIMATION
   ## splitting off the training set from the estimation set
-  estimation.set=subset(estimation.set, selection.share>hs.out.threshold & selection.share<hs.in.threshold)
+  training.set=subset(estimation.set, (selection.share<=agreed.refusal.threshold)|(selection.share>=agreed.acceptance.threshold))
   
-  training.set=subset(hs.candidates, (selection.share<=hs.out.threshold)|(selection.share>=hs.in.threshold))
   training.set$evaluation=as.numeric(training.set$selection.share>=relevance.threshold)
   training.set$train.id=1:nrow(training.set)
   
@@ -59,19 +62,21 @@ gta_hs_estimate_classifier<- function(hs.out.threshold=.1,
   test.auc = ROCR::performance(pred_rocr, measure = "auc", x.measure = "cutoff")@y.values[[1]]
   test.auc
   
-  save(hs.classifier, test.auc, train.auc, file="17 Shiny/5 HS code finder/database/HS classifier.Rdata")
+  
+  classifier.variables=setdiff(names(training.set), c("phrase.id","suggestion.id","hs.code.6","nr.times.chosen","nr.of.checks","selection.share", "evaluation","train.id"))
+  save(hs.classifier, classifier.variables, test.auc, train.auc, file="17 Shiny/5 HS code finder/database/HS classifier.Rdata")
   
   ## estimating the unsure cases
-  estimate=estimation.set[,setdiff(names(estimation.set), c("phrase.id","suggestion.id","hs.code.6","nr.times.chosen","nr.of.checks","selection.share"))]
-  
-  
-  
-  estimate$train.id=NULL
-  estimate$evaluation=NULL
-  
-  estimation.set$relevance= predict(hs.classifier, estimate)$pred[,1]
-  
-  save(estimation.set, training.set, test.auc, train.auc, users, file="17 Shiny/5 HS code finder/database/HS classifier data.Rdata")
-  
+  # estimate=estimation.set[,setdiff(names(estimation.set), c("phrase.id","suggestion.id","hs.code.6","nr.times.chosen","nr.of.checks","selection.share"))]
+  # 
+  # 
+  # 
+  # estimate$train.id=NULL
+  # estimate$evaluation=NULL
+  # 
+  # estimation.set$relevance= predict(hs.classifier, estimate)$pred[,1]
+  # 
+  # save(estimation.set, training.set, test.auc, train.auc, users, file="17 Shiny/5 HS code finder/database/HS classifier data.Rdata")
+  # 
   
 }

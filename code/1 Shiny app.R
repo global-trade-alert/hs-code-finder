@@ -30,14 +30,14 @@ plan(multiprocess)
 rm(list = ls())
 
 # gta_setwd()
-setwd("/home/rstudio/Dropbox/GTA cloud")
+# setwd("/home/rstudio/Dropbox/GTA cloud")
 # setwd("C:/Users/jfrit/Desktop/Dropbox/GTA cloud")
 # setwd("C:/Users/Piotr Lukaszuk/Dropbox/GTA cloud")
-# setwd("/Users/patrickbuess/Dropbox/Collaborations/GTA cloud")
+setwd("/Users/patrickbuess/Dropbox/Collaborations/GTA cloud")
 
 # path="0 dev/hs-code-finder-pb/database/GTA HS code database.Rdata"
-# wdpath="0 dev/hs-code-finder-pb/"
-wdpath="17 Shiny/5 HS code finder/"
+wdpath="0 dev/hs-code-finder-pb/"
+# wdpath="17 Shiny/5 HS code finder/"
 
 ## helpful functions
 ## HS app functions
@@ -50,7 +50,7 @@ gta_sql_pool_open(db.title="ricardomain",
                   db.name = gta_pwd("ricardomain")$name,
                   db.user = gta_pwd("ricardomain")$user,
                   db.password = gta_pwd("ricardomain")$password,
-                  table.prefix = "hs_", got.keyring = F)
+                  table.prefix = "hs_")
 
 # # CODE TO REMOVE PHRASES/JOBS/CHECKS MANUALLY
 # load_all(path)
@@ -1328,7 +1328,8 @@ server <- function(input, output, session) {
                     
                     # SAVE PROBABILITIES FOR THAT PHRASE
                     phr.id.probability.future <- phr.id
-                    future({ gta_hs_process_completed_phrase(processed.phrase = phr.id.probability.future, path = wdpath) })
+                    future({ gta_hs_classify_results(processed.phrase = phr.id,
+                                      job.id=j.id) })
                     
                     
                   }
@@ -1535,7 +1536,7 @@ shinyApp(ui = ui,
                              db.name = gta_pwd("ricardomain")$name,
                              db.user = gta_pwd("ricardomain")$user,
                              db.password = gta_pwd("ricardomain")$password,
-                             table.prefix = "hs_", got.keyring = F)
+                             table.prefix = "hs_")
            
            onStop(function() {
              gta_sql_pool_close()

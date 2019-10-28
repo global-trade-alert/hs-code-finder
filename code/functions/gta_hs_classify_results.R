@@ -1,4 +1,5 @@
-gta_hs_classify_results<- function(variable.df="classifier.input",
+gta_hs_classify_results<- function(processed.phrase=NULL,
+                                   job.id=NULL,
                                    relevance.threshold=.5,
                                    path.to.cloud=NULL,
                                    source.data="17 Shiny/5 HS code finder/database/HS classifier.Rdata"){
@@ -10,7 +11,11 @@ gta_hs_classify_results<- function(variable.df="classifier.input",
  
   library(gtalibrary)
   
-  eval(parse(text=paste("estimation.set<<-",variable.df, sep="")))
+  if(is.null(processed.phrase)){
+    stop("gta_hs_classify_results: No ID for the processed phrase is specified.")
+  }
+  
+  estimation.set=gta_hs_create_classifier_variables_phrase(phrase.ids=processed.phrase)
   
   agreed.parts=subset(estimation.set, selection.share %in% c(0,1))
   agreed.parts$probability=agreed.parts$selection.share
@@ -28,44 +33,82 @@ gta_hs_classify_results<- function(variable.df="classifier.input",
     }
   }
   
-  load(source.data)
-  
-  ## estimating the unsure cases
-  estimate=estimation.set[,setdiff(names(estimation.set), c("phrase.id","suggestion.id","hs.code.6","nr.times.chosen","nr.of.checks","selection.share"))]
-  
-  estimate$train.id=NULL
-  estimate$evaluation=NULL
-  
-  estimation.set$probability=round(predict(hs.classifier, estimate)$pred[,1],3)
-  estimation.set$relevant=as.numeric(estimation.set$probability>=relevance.threshold)
-
-  ## adding estimates & agreed cases
-  estimation.set=rbind(estimation.set, agreed.parts)
-  
-  ##  Updating database for processed suggestions
-  code.suggested <- gta_sql_load_table("code_suggested")
-  code.suggested <<- code.suggested
-  phrase.table <- gta_sql_load_table("phrase_table")
-  phrase.table <<- phrase.table
-  job.phrase <- gta_sql_load_table("job_phrase")
-  job.phrase <<- job.phrase
-  
-  
-  # code.suggested=rbind(subset(code.suggested, (! suggestion.id %in% estimation.set$suggestion.id)),
-                       # unique(estimation.set[,c(names(code.suggested))]))
-  code.suggested.update <- unique(estimation.set[,c(names(code.suggested))])
-  
-  for (i in 1:nrow(code.suggested.update)){
-    sql <- paste0("UPDATE hs_code_suggested SET probability = ", code.suggested.update$probability[i], " WHERE suggestion_id = ", code.suggested.update$suggestion.id[i],";")
-    query <- sqlInterpolate(pool,
-                            sql)
-    gta_sql_update_table(query)
+  ## estimating disagreements, if there are any
+  if(nrow(estimation.set)>0){
+    
+    load(source.data)
+    
+    ## compare whether variables are the same as in estimator, if not re-estimate classifier
+    if(any(! classifier.variables %in% names(estimation.set))){
+      
+      # SEND EMAIL TO JF
+      gta_hs_estimate_classifier()
+      
+    } else {
+      
+      estimate=estimation.set[,classifier.variables]
+      
+    }
+    
+    ## estimating the unsure cases
+    estimation.set$probability=round(predict(hs.classifier, estimate)$pred[,1],3)
+    estimation.set$relevant=as.numeric(estimation.set$probability>=relevance.threshold)
+    
+    ## adding estimates & agreed cases
+    estimation.set=rbind(estimation.set, agreed.parts)
+    
+    
   }
   
   
+  ##  Updating database for processed suggestions
+  for (suggestion in unique(estimation.set$suggestion.id)){
+    sql <- paste0("UPDATE hs_code_suggested 
+                  SET probability = ", 
+                  min(estimation.set$probability[estimation.set$suggestion.id==suggestion]), "
+                  WHERE suggestion_id = ", suggestion,";")
+    query <- sqlInterpolate(pool,
+                            sql)
+    gta_sql_update_table(query)
+    rm(query, sql)
     
-  estimation.set=merge(estimation.set, phrase.table[,c("phrase.id","phrase")], by="phrase.id")
-  estimation.set=merge(estimation.set, job.phrase[,c("phrase.id","job.id")], by="phrase.id")
-  classification.result=unique(estimation.set[,c("job.id","phrase","hs.code.6","probability","relevant")])
-  return(classification.result)
+    
+  }
+  
+  # GET MAX PROBABILITY AND DECIDE WHETHER PRHASE IS PROCESSED OR NOT
+  for(this.phrase in unique(estimation.set$phrase.id)){
+    
+    max.prob=max(estimation.set$probability[estimation.set$phrase.id==this.phrase])
+    
+    if (max.prob > relevance.threshold) {
+      
+      sql <- "UPDATE hs_job_phrase SET processed = 1 WHERE (phrase_id = ?phraseID AND job_id = ?jobID);"
+      query <- sqlInterpolate(pool,
+                              sql,
+                              phraseID = this.phrase,
+                              jobID = job.id)
+      gta_sql_update_table(query)
+      
+      sql <- "UPDATE hs_phrase_log SET nr_completed_jobs = nr_completed_jobs + 1 WHERE phrase_id = ?phraseID;"
+      query <- sqlInterpolate(pool, 
+                              sql, 
+                              phraseID = this.phrase)
+      gta_sql_update_table(query)
+      
+    } else {
+      
+      sql <- "UPDATE hs_job_phrase SET processing_round = processing_round + 1, processed = 0 WHERE (phrase_id = ?phraseID AND job_id = ?jobID);"
+      query <- sqlInterpolate(pool,
+                              sql,
+                              phraseID = this.phrase,
+                              jobID = job.id)
+      gta_sql_update_table(query)
+      
+    }
+    
+  }
+  
+  
+  
+  
 }
