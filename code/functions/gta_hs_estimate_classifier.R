@@ -63,7 +63,7 @@ gta_hs_estimate_classifier<- function(agreed.refusal.threshold=.1,
   test.auc
   
   
-  classifier.variables=setdiff(names(training.set), c("phrase.id","suggestion.id","hs.code.6","nr.times.chosen","nr.of.checks","selection.share"))
+  classifier.variables=setdiff(names(training.set), c("phrase.id","suggestion.id","hs.code.6","nr.times.chosen","nr.of.checks","selection.share", "evaluation","train.id"))
   save(hs.classifier, classifier.variables, test.auc, train.auc, file="17 Shiny/5 HS code finder/database/HS classifier.Rdata")
   
   ## estimating the unsure cases
