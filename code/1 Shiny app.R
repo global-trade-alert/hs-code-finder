@@ -1102,15 +1102,9 @@ server <- function(input, output, session) {
         code.suggested <- change_encoding(gta_sql_load_table("code_suggested"))
         code.suggested <<- code.suggested
         
-        if (new.phrase == F) {
-          suggested.new <- subset(data.ledger, (user.generated == 1 | search.generated == 1) & selected == 1)
-          suggested.new <- subset(suggested.new, ! hs.code.6 %in% subset(code.suggested, phrase.id == phr.id)$hs.code.6)
-          
-        } else if (new.phrase == T) {
-          ## isn't this removing suggestions that may happen to overlap between the old and the new phrase? 
-          ## If so, is this on purpose?
-          suggested.new <- subset(data.ledger, hs.code.6 %in% unique(code.suggested$hs.code.6[code.suggested$phrase.id == old.id]) | selected == 1)
-        }
+        suggested.new <- subset(data.ledger, (user.generated == 1 | search.generated == 1) & selected == 1)
+        suggested.new <- subset(suggested.new, ! hs.code.6 %in% subset(code.suggested, phrase.id == phr.id)$hs.code.6)
+        
         rm(code.suggested)
         
         
