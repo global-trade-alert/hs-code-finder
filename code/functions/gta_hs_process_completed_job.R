@@ -1,6 +1,18 @@
 gta_hs_process_completed_job <- function(processed.job=NULL, path = NULL){
   
   library(gtalibrary)
+  library(gtasql)
+  library(pool)
+  
+  setwd("/home/rstudio/Dropbox/GTA cloud")
+  
+  gta_sql_pool_open(db.title="ricardomain",
+                    db.host = gta_pwd("ricardomain")$host,
+                    db.name = gta_pwd("ricardomain")$name,
+                    db.user = gta_pwd("ricardomain")$user,
+                    db.password = gta_pwd("ricardomain")$password,
+                    table.prefix = "hs_")
+  
   
   if(is.null(processed.job)){
     stop("gta_hs_process_completed_job: No ID for the processed job is specified.")
