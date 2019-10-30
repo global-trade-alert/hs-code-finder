@@ -1061,8 +1061,6 @@ server <- function(input, output, session) {
         
         # check if phrase has been adjusted
         # phrase.log
-        new.phrase <- F
-        
         phrase.log <- change_encoding(gta_sql_load_table("phrase_log"))
         phrase.log <<- phrase.log
         
@@ -1091,8 +1089,7 @@ server <- function(input, output, session) {
             new.phr.id <<- new.phr.id  
             
           }
-          new.phrase <<- T
-          
+       
           # update code.suggested to include the values of the original phrase ID for the new one
           new.code.suggested=gta_sql_get_value(paste0("SELECT *
                                                         FROM hs_code_suggested
