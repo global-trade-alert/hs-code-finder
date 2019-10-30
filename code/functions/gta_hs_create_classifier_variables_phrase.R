@@ -37,9 +37,9 @@ gta_hs_create_classifier_variables_phrase<- function(phrase.ids=NULL,
   
   
   
-  if(any(! phrase.ids %in% subset(job.phrase, processed==T)$phrase.id)){
-    stop("Some of the phrases you inserted are not processed.")
-  }
+  # if(any(! phrase.ids %in% subset(job.phrase, processed==T)$phrase.id)){
+  #   stop("Some of the phrases you inserted are not processed.")
+  # }
   
   hs.candidates=as.data.frame(subset(code.suggested, phrase.id %in% phrase.ids & is.na(hs.code.6)==F))
   hs.candidates$probability=NULL
