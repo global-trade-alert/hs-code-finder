@@ -1366,12 +1366,17 @@ server <- function(input, output, session) {
                 
               } else {
                 
-                code.selected <- gta_sql_load_table("code_selected")
-                code.selected <<- code.selected
+                nr.chosen.codes=gta_sql_get_value(paste0("SELECT COUNT(DISTINCT suggestion_id)
+                                                         FROM hs_code_selected
+                                                         WHERE check_id IN (
+                                                         SELECT check_id 
+                                                         FROM hs_check_phrases
+                                                         WHERE phrase_id = ",phr.id,"
+                                                         );"))
+          
                 
-                codes.selected <- subset(code.selected, check.id %in% check.phrases$check.id[check.phrases$phrase.id == phr.id])
-                
-                if(nrow(codes.selected) == 0) {
+                if(nr.chosen.codes==0) {
+                  # no codes found
                   exit.status <- 4
                   
                 } else {
