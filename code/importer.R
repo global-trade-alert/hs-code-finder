@@ -26,7 +26,7 @@ gta_sql_pool_open(db.title="ricardomain",
                   db.name = gta_pwd("ricardomain")$name,
                   db.user = gta_pwd("ricardomain")$user,
                   db.password = gta_pwd("ricardomain")$password,
-                  table.prefix = "hs_", got.keyring = F)
+                  table.prefix = "hs_")
 
 ## check if a process is running on the server
 running.processes=system("ps aux", intern=T)
