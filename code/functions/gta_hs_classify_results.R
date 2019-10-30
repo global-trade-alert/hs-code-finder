@@ -92,6 +92,8 @@ gta_hs_classify_results<- function(processed.phrase=NULL,
     estimation.set=rbind(estimation.set, agreed.parts)
     
     
+  } else {
+    estimation.set=agreed.parts
   }
   
   ##  Updating database for processed suggestions
