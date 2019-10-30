@@ -1158,7 +1158,7 @@ server <- function(input, output, session) {
         c.time=Sys.time()
         check.log.update <- data.frame(check.id = 123456789,
                                        user.id = users$user.id[users$user.login == input$users],
-                                       time.stamp = Sys.time(),
+                                       time.stamp = c.time,
                                        check.successful = TRUE,
                                        job.id = job.id)
         check.log.update <<- check.log.update
