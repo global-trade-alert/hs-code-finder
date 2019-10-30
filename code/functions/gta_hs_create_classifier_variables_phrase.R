@@ -97,8 +97,29 @@ gta_hs_create_classifier_variables_phrase<- function(phrase.ids=NULL,
   certainty.distribution$value[certainty.distribution$certainty.level=="somewhat"]=2
   certainty.distribution$value[certainty.distribution$certainty.level=="not"]=1
   
+  if(nrow(subset(certainty.distribution, certainty.level %in% c("highly","exactly")))>0){
+    
+    certainty.share=aggregate(certain.share ~ phrase.id, subset(certainty.distribution, certainty.level %in% c("highly","exactly")), sum)
+    
+  } else {
+    
+    certainty.share=data.frame(phrase.id=phrase.ids,
+                               certain.share=0,
+                               stringsAsFactors = F)
+  }
+  
+  
+  if(any(!phrase.ids %in% certainty.share$phrase.id)){
+    
+    certainty.share=rbind(certainty.share,
+                          data.frame(phrase.id=phrase.ids[!phrase.ids %in% certainty.share$phrase.id],
+                                     certain.share=0,
+                                     stringsAsFactors = F))
+    
+  }
+  
   certainty.stats=merge(data.frame(phrase.id=unique(certainty.distribution$phrase.id)),
-                        aggregate(certain.share ~ phrase.id, subset(certainty.distribution, certainty.level %in% c("highly","exactly")), sum),
+                        certainty.share,
                         by="phrase.id", all.x=T)
   certainty.stats$certain.share[certainty.stats$certain.share>1]=1
   
@@ -203,7 +224,7 @@ gta_hs_create_classifier_variables_phrase<- function(phrase.ids=NULL,
     phrase.cpc$cpc.refused=F
   }
   
-
+  
   
   
   agreement.levels=c("neither","both","chosen","refused")
