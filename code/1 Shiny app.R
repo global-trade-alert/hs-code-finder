@@ -1358,7 +1358,17 @@ server <- function(input, output, session) {
                                       phraseID = phr.id)
               services=gta_sql_get_value(query)
               
-              if (nrow(unique(services))>nrow(subset(check.phrases, phrase.id == phr.id))) {
+              sql <- "SELECT * FROM hs_check_phrases WHERE phrase_id = ?phraseID;"
+              query <- sqlInterpolate(pool,
+                                      sql,
+                                      phraseID = phr.id)
+              all.checks=gta_sql_get_value(query)
+              
+              # comment PB: 
+              # Check.phrases should be reloaded from DB again, as there should be a new check in there now
+              # Also this condition seems wrong: Reported services will be accounted for in the check.phrases table as well,
+              # that means check.phrases will always have more instances of the phrase than report.services. It should look like this I believe:
+              if (nrow(unique(services))>(nrow(unique(all.checks))/2)) {
                 exit.status <- 3
                 
               } else {
