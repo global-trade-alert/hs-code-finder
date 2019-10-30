@@ -2,6 +2,7 @@ gta_hs_add_phrase<- function(add.job.id=NULL,
                              phrase.to.add=NULL,
                              phrase.source=NULL,
                              update.job.phrase=T){
+
   
   # if(is.null(phrase.source)){
   #   
@@ -61,7 +62,8 @@ gta_hs_add_phrase<- function(add.job.id=NULL,
     phrase.log.update = data.frame(phrase.id=new.phrase.id,
                                   phrase=phrase.to.add,
                                   source=phrase.source,
-                                  exit.status=0,
+                                  exit.status=1,
+                                  processing.round=1,
                                   stringsAsFactors = F)
     phrase.log.update <<- phrase.log.update
     
@@ -105,7 +107,6 @@ gta_hs_add_phrase<- function(add.job.id=NULL,
       job.phrase.update=data.frame(job.id=add.job.id,
                                   phrase.id=new.phrase.id,
                                   processed=is.processed,
-                                  processing.round=1,
                                   stringsAsFactors = F)
       job.phrase.update <<- job.phrase.update
       
