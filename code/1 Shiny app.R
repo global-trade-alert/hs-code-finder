@@ -1069,12 +1069,7 @@ server <- function(input, output, session) {
         if (! tolower(paste(input$query.refine, collapse=" ")) %in% unique(tolower(phrase.log$phrase))) {
           old.id <- phr.id
           
-          this.phrase.id=gta_sql_get_value("SELECT MAX(phrase_id) FROM hs_phrase_log;")
-          
-          phr.id <- this.phrase.id+1
-          phr.id <<- phr.id
-          
-          phrase.log.update <- data.frame(phrase.id = phr.id,
+          phrase.log.update <- data.frame(phrase.id = 123456789,
                                           phrase = tolower(paste(input$query.refine, collapse = " ")),
                                           source = "adjusted",
                                           processing.round=1,
@@ -1083,7 +1078,20 @@ server <- function(input, output, session) {
           
           gta_sql_append_table(append.table = "phrase.log",
                                append.by.df = "phrase.log.update")
-          rm(phrase.log.update, this.phrase.id)
+          rm(phrase.log.update)
+          
+          phr.id=gta_sql_get_value(paste0("SELECT phrase_id 
+                                          FROM hs_phrase_log
+                                          WHERE phrase='",tolower(paste(input$query.refine, collapse = " ")),"'
+                                          AND source='adjusted';"))
+          
+          if(is.na(phr.id)){
+            stop("SAVE_SELECTION - new phrase: The phrase log update went wrong. I cannot find the phrase I just added.")
+          }  else {
+            
+            phr.id <<- phr.id  
+            
+          }
           
           new.phrase <- T
         }
