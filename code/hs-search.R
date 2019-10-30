@@ -24,7 +24,7 @@ gta_sql_pool_open(db.title="ricardomain",
                   db.name = gta_pwd("ricardomain")$name,
                   db.user = gta_pwd("ricardomain")$user,
                   db.password = gta_pwd("ricardomain")$password,
-                  table.prefix = "hs_", got.keyring = F)
+                  table.prefix = "hs_")
 
 ## check if a process is running on the server
 search.time.allowance=5
@@ -50,7 +50,7 @@ if(hs.search.busy>=nr.parallel.processes){
   
   if(nrow(run.not.finished)>0){
     # run.not.finished$search.underway=F
-    sql <- "UPDATE phrases_to_import SET search_underway = false WHERE phrase = ?forwhom;"
+    sql <- "UPDATE phrases_to_import SET search_underway = 0 WHERE phrase = ?forwhom;"
     query <- sqlInterpolate(pool, 
                             sql, 
                             forwhom = run.not.finished$phrase)
@@ -65,7 +65,7 @@ if(hs.search.busy>=nr.parallel.processes){
   rm(run.not.finished, others)
   
   # phrases.to.import$search.underway[]=F
-  sql <- "UPDATE phrases_to_import SET search_underway = false"
+  sql <- "UPDATE phrases_to_import SET search_underway = 0"
   query <- sqlInterpolate(pool, 
                           sql)
   
@@ -103,9 +103,9 @@ if(hs.search.busy>=nr.parallel.processes){
       this.phrase.jobs=unique(subset(phrases.to.import, phrase==this.phrase)$job.id)
       this.job.name=paste(unique(subset(job.log, job.id %in% this.phrase.jobs)$job.name), collapse="; ")
       this.job.email=unique(subset(users, user.id %in% subset(job.log, job.id %in% this.phrase.jobs )$user.id)$user.email)
-      pti.nr.attemps <- phrases.to.import$nr.attempts[phrases.to.import$phrase==this.phrase]+1
+      pti.nr.attemps <- phrases.to.import$nr.attempts[phrases.to.import$phrase==this.phrase & phrases.to.import$search.concluded == F][1]+1
       
-      sql <- "UPDATE hs_phrases_to_import SET search_underway = true, run_time = ?when, nr_attempts = ?howmuch WHERE phrase = ?forwhom;"
+      sql <- "UPDATE hs_phrases_to_import SET search_underway = 1, run_time = ?when, nr_attempts = ?howmuch WHERE phrase = ?forwhom;"
       query <- sqlInterpolate(pool, 
                               sql, 
                               forwhom = this.phrase,
@@ -156,7 +156,7 @@ if(hs.search.busy>=nr.parallel.processes){
           
           ## mark job as unprocessed
           
-          sql <- paste0("UPDATE hs_job_log SET job_processed = false WHERE job_id IN (",paste0(c(this.phrase.jobs), collapse=', '),");")
+          sql <- paste0("UPDATE hs_job_log SET job_processed = 0 WHERE job_id IN (",paste0(c(this.phrase.jobs), collapse=', '),");")
           query <- sqlInterpolate(pool, 
                                   sql)
           gta_sql_update_table(query)
@@ -254,7 +254,7 @@ if(hs.search.busy>=nr.parallel.processes){
         ## updating phrase import status
     
         
-        sql <- "UPDATE hs_phrases_to_import SET search_underway = false, search_concluded = true WHERE phrase = ?forwhom;"
+        sql <- "UPDATE hs_phrases_to_import SET search_underway = 0, search_concluded = 1 WHERE phrase = ?forwhom;"
         query <- sqlInterpolate(pool, 
                                 sql, 
                                 forwhom = this.phrase$phrase)
@@ -268,6 +268,23 @@ if(hs.search.busy>=nr.parallel.processes){
         } else {
           error.message <<- c(T,error.msg$message)
         }
+        sql <- "UPDATE hs_phrases_to_import SET search_underway = 0, search_concluded = 0 WHERE phrase = ?forwhom;"
+        query <- sqlInterpolate(pool, 
+                                sql, 
+                                forwhom = this.phrase$phrase)
+        gta_sql_update_table(query)
+        },
+        warning = function(error.msg) {
+          if(error.message[1]==T){
+            error.message <<- c(T, stop.print)
+          } else {
+            error.message <<- c(T,error.msg$message)
+          }
+          sql <- "UPDATE hs_phrases_to_import SET search_underway = 0, search_concluded = 0 WHERE phrase = ?forwhom;"
+          query <- sqlInterpolate(pool, 
+                                  sql, 
+                                  forwhom = this.phrase$phrase)
+          gta_sql_update_table(query)
       })
       
       
