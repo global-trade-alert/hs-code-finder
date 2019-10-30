@@ -1406,7 +1406,7 @@ server <- function(input, output, session) {
             query <- sqlInterpolate(pool,
                                     sql,
                                     phraseID = phr.id,
-                                    jobID = job.id)
+                                    jobID = j.id)
             gta_sql_update_table(query)
           }
           
