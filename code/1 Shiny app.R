@@ -1093,6 +1093,8 @@ server <- function(input, output, session) {
           }
           
           new.phrase <- T
+        } else {
+          new.phr.id <<- numeric()
         }
         rm(phrase.log)
         
@@ -1107,42 +1109,48 @@ server <- function(input, output, session) {
         
         rm(code.suggested)
         
-        
+        # update code.suggested with user-provided information
         if (nrow(suggested.new) != 0) {
-          code.suggested <- change_encoding(gta_sql_load_table("code_suggested"))
-          code.suggested <<- code.suggested
           
-          suggested.new$phrase.id = phr.id
-          
-          suggested.new$suggestion.id <- seq((max(code.suggested$suggestion.id)+1),(max(code.suggested$suggestion.id))+nrow(suggested.new),1)
-          suggested.new$probability=NA
-          
-          code.suggested.update <- suggested.new[,c("suggestion.id","phrase.id","hs.code.6","probability")]
-          code.suggested.update <<- code.suggested.update
-          
-          gta_sql_append_table(append.table = "code.suggested",
-                               append.by.df = "code.suggested.update")
-          
-          # Get newly added suggestion.ids, because of primary key, they can differ from the ones in this environment
-          sql <- "SELECT * FROM hs_code_suggested WHERE phrase_id = ?phraseID;" 
-          query <- sqlInterpolate(pool, 
-                                  sql, 
-                                  phraseID = phr.id)
-          
-          code.suggested.new=gta_sql_get_value(query)
-          code.suggested.new = subset(code.suggested.new, hs.code.6 %in% code.suggested.update$hs.code.6)
-          
-          
-          if (length(suggested.new$hs.code.6[suggested.new$user.generated == 1]) > 0) {
-            suggested.new <- subset(code.suggested.new, hs.code.6 %in% subset(suggested.new, user.generated == 1)$hs.code.6)
-            suggested.new$source.id <- 1
-            code.source.update <- suggested.new[,c("source.id","suggestion.id")]
-            code.source.update <<- code.source.update
+          # looping over phrase ids 
+          for(p.id in c(phr.id, new.phr.id)){
             
-            gta_sql_append_table(append.table = "code.source",
-                                 append.by.df = "code.source.update")
+            suggested.new$phrase.id = p.id
+            suggested.new$probability=NA
+            
+            code.suggested.update <- suggested.new[,c("phrase.id","hs.code.6","probability")]
+            code.suggested.update <<- code.suggested.update
+            
+            gta_sql_append_table(append.table = "code.suggested",
+                                 append.by.df = "code.suggested.update")
+            
+            # Get newly added suggestion.ids, because of primary key, they can differ from the ones in this environment
+            sql <- "SELECT * FROM hs_code_suggested WHERE phrase_id = ?phraseID;" 
+            query <- sqlInterpolate(pool, 
+                                    sql, 
+                                    phraseID = p.id)
+            
+            code.suggested.new=gta_sql_get_value(query)
+            code.suggested.new = subset(code.suggested.new, hs.code.6 %in% code.suggested.update$hs.code.6)
+            
+            
+            if (length(suggested.new$hs.code.6[suggested.new$user.generated == 1]) > 0) {
+           
+              code.source.update <- data.frame(source.id=1,
+                                               subset(code.suggested.new, hs.code.6 %in% subset(suggested.new, user.generated == 1)$hs.code.6)$suggestion.id,
+                                               stringsAsFactors = F)
+              
+              code.source.update <<- code.source.update
+              
+              gta_sql_append_table(append.table = "code.source",
+                                   append.by.df = "code.source.update")
+              
+              rm(code.source.update)
+              
+            }
             
           }
+          
         }
         
         
