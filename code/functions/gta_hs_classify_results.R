@@ -8,8 +8,19 @@ gta_hs_classify_results<- function(processed.phrase=NULL,
   # relevance.threshold=.5
   # path.to.cloud=NULL
   # source.data="17 Shiny/5 HS code finder/database/HS classifier.Rdata"
- 
+  
   library(gtalibrary)
+  library(gtasql)
+  library(pool)
+  
+  setwd("/home/rstudio/Dropbox/GTA cloud")
+  
+  gta_sql_pool_open(db.title="ricardomain",
+                    db.host = gta_pwd("ricardomain")$host,
+                    db.name = gta_pwd("ricardomain")$name,
+                    db.user = gta_pwd("ricardomain")$user,
+                    db.password = gta_pwd("ricardomain")$password,
+                    table.prefix = "hs_")
   
   if(is.null(processed.phrase)){
     stop("gta_hs_classify_results: No ID for the processed phrase is specified.")
@@ -30,6 +41,7 @@ gta_hs_classify_results<- function(processed.phrase=NULL,
       gta_setwd()
     } else{
       stop("You are not in the GTA cloud folder, please specify 'path.to.cloud' or use setwd() yourself.")
+      gta_sql_pool_close()
     }
   }
   
@@ -42,7 +54,29 @@ gta_hs_classify_results<- function(processed.phrase=NULL,
     if(any(! classifier.variables %in% names(estimation.set))){
       
       # SEND EMAIL TO JF
+      sender = gta_pwd("mail")$mail  
+      recipients = c("fritz.johannes@gmail.com","patrick.buess@student.unisg.ch")
+      attachment=NULL
+      
+      sbjct=paste("[HS App] Classifier reestimation", sep="")
+      message=paste0("Hello Johannes\n\n The HS App classifier is being reestimated. \n\nRegards\nGTA data team\n\n\n\n", sep="")
+      send.mail(from = sender,
+                to = recipients,
+                subject=sbjct,
+                body=message,
+                html=F,
+                attach.files = attachment,
+                smtp = list(host.name = gta_pwd("mail")$host,
+                            port=gta_pwd("mail")$port,
+                            user.name=sender, 
+                            passwd=gta_pwd("mail")$password,
+                            tls=T),
+                authenticate = T)
+      
+      rm(recipients, message, sbjct, sender)
+      
       gta_hs_estimate_classifier()
+      
       
     } else {
       
@@ -59,7 +93,6 @@ gta_hs_classify_results<- function(processed.phrase=NULL,
     
     
   }
-  
   
   ##  Updating database for processed suggestions
   for (suggestion in unique(estimation.set$suggestion.id)){
@@ -89,15 +122,21 @@ gta_hs_classify_results<- function(processed.phrase=NULL,
                               jobID = job.id)
       gta_sql_update_table(query)
       
-      sql <- "UPDATE hs_phrase_log SET nr_completed_jobs = nr_completed_jobs + 1 WHERE phrase_id = ?phraseID;"
-      query <- sqlInterpolate(pool, 
-                              sql, 
+      sql <- "UPDATE hs_phrase_log SET exit_status = 2 WHERE phrase_id = ?phraseID;"
+      query <- sqlInterpolate(pool,
+                              sql,
                               phraseID = this.phrase)
       gta_sql_update_table(query)
       
     } else {
       
-      sql <- "UPDATE hs_job_phrase SET processing_round = processing_round + 1, processed = 0 WHERE (phrase_id = ?phraseID AND job_id = ?jobID);"
+      sql <- "UPDATE hs_phrase_log SET processing_round = processing_round + 1 WHERE phrase_id = ?phraseID;"
+      query <- sqlInterpolate(pool,
+                              sql,
+                              phraseID = this.phrase)
+      gta_sql_update_table(query)
+      
+      sql <- "UPDATE hs_job_phrase SET processed = 0 WHERE (phrase_id = ?phraseID AND job_id = ?jobID);"
       query <- sqlInterpolate(pool,
                               sql,
                               phraseID = this.phrase,
@@ -107,8 +146,6 @@ gta_hs_classify_results<- function(processed.phrase=NULL,
     }
     
   }
-  
-  
-  
-  
+  print("Fully classified!")
+  gta_sql_pool_close()
 }
