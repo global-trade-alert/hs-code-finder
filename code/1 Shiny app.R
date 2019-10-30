@@ -1153,20 +1153,10 @@ server <- function(input, output, session) {
         }
         
         
-        # GET CURRENT CHECK.ID
-        sql <- "SELECT MAX(check_id) FROM hs_check_log;"
-        query <- sqlInterpolate(pool, 
-                                sql)
-        
-        this.check.id=gta_sql_get_value(query)
-        this.check.id=this.check.id + 1
-        rm(query)
-        
+        # CREATE NEW CHECK and store its ID
         # Check.log
-        check.log <- change_encoding(gta_sql_load_table("check_log"))
-        check.log <<- check.log
-        
-        check.log.update <- data.frame(check.id = this.check.id,
+        c.time=Sys.time()
+        check.log.update <- data.frame(check.id = 123456789,
                                        user.id = users$user.id[users$user.login == input$users],
                                        time.stamp = Sys.time(),
                                        check.successful = TRUE,
@@ -1177,6 +1167,20 @@ server <- function(input, output, session) {
                              append.by.df = "check.log.update")
         
         rm(check.log.update)
+        
+        c.log=gta_sql_get_value(paste0("SELECT *
+                                       FROM hs_check_log
+                                       WHERE check_id = (SELECT MAX(check_id)  
+                                       FROM hs_check_log
+                                       WHERE user_id =",users$user.id[users$user.login == input$users],");"))
+        
+        if(as.POSIXct(c.log$time.stamp)==c.time){
+          this.check.id<<-c.log$check.id
+          rm(c.log, c.time)
+          
+        } else {
+          stop("Check log update failed")
+        }
         
         # Add code.selected
         code.suggested <- change_encoding(gta_sql_load_table("code_suggested"))
