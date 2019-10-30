@@ -30,14 +30,14 @@ plan(multiprocess)
 rm(list = ls())
 
 # gta_setwd()
-# setwd("/home/rstudio/Dropbox/GTA cloud")
+setwd("/home/rstudio/Dropbox/GTA cloud")
 # setwd("C:/Users/jfrit/Desktop/Dropbox/GTA cloud")
 # setwd("C:/Users/Piotr Lukaszuk/Dropbox/GTA cloud")
-setwd("/Users/patrickbuess/Dropbox/Collaborations/GTA cloud")
+# setwd("/Users/patrickbuess/Dropbox/Collaborations/GTA cloud")
 
 # path="0 dev/hs-code-finder-pb/database/GTA HS code database.Rdata"
-wdpath="0 dev/hs-code-finder-pb/"
-# wdpath="17 Shiny/5 HS code finder/"
+# wdpath="0 dev/hs-code-finder-pb/"
+wdpath="17 Shiny/5 HS code finder/"
 
 ## helpful functions
 ## HS app functions
@@ -366,6 +366,7 @@ server <- function(input, output, session) {
   data.subset.backup <<- data.subset.0
   data.ledger <- data.ledger.0
   data.ledger.backup <<- data.ledger.0
+  importToggle <- "import-toggle-excel"
   
   # FUNCTION TO GET LIST OF SELECTED ROWS
   initialSelectAll <- T
@@ -434,7 +435,7 @@ server <- function(input, output, session) {
     query <- sqlInterpolate(pool,
                             sql,
                             phraseID = phr.id)
-
+    
     exit.status=gta_sql_get_value(query)
     
     data.subset <- data.subset[with(data.subset, order(c(hs.code.6))),]
@@ -442,7 +443,7 @@ server <- function(input, output, session) {
     
     data.output <- merge(data.subset, subset(code.suggested, phrase.id == phr.id)[,c("probability","hs.code.6")], by = "hs.code.6", all.x=T)
     
-    if (exit.status == 1) {
+    if (exit.status == 2) {
       data.output$probability.html[is.na(data.output$probability)==F] <- paste0("<div class='create-tooltip help' title = '<span>Based on previous classifications, this HS code belongs to the current search term with a probability of ",round(data.output$probability[is.na(data.output$probability)==F]*100, digits = 0)," percent.</span>'><div class='probability-bg-wrap'><div class='probability-wrap'><div class='probability probability-available' style='width:",data.output$probability[is.na(data.output$probability)==F]*100,"%; background-color:",redToGreen(data.output$probability),";'></div></div></div></div>")
       data.output$probability.html[is.na(data.output$probability)] <- paste0("<div class='create-tooltip help' title = '<span>Based on previous classifications, this HS code belongs to the current search term with a probability of 0 percent.</span>'><div class='probability-bg-wrap'><div class='probability-wrap'><div class='probability probability-none'></div></div></div></div>")
     } else {
@@ -812,7 +813,7 @@ server <- function(input, output, session) {
     gta_sql_append_table(append.table = "report.services",
                          append.by.df = "report.services.update")
     rm(report.services.update)
-  
+    
     
     check.log.update <- data.frame(user.id = users$user.id[users$user.login == input$users],
                                    time.stamp = Sys.time(),
@@ -1061,7 +1062,7 @@ server <- function(input, output, session) {
         # check if phrase has been adjusted
         # phrase.log
         new.phrase <- F
-          
+        
         phrase.log <- change_encoding(gta_sql_load_table("phrase_log"))
         phrase.log <<- phrase.log
         
@@ -1074,10 +1075,10 @@ server <- function(input, output, session) {
           phr.id <<- phr.id
           
           phrase.log.update <- data.frame(phrase.id = phr.id,
-                                            phrase = tolower(paste(input$query.refine, collapse = " ")),
-                                            source = "adjusted",
-                                            processing.round=1,
-                                            stringsAsFactors = F)
+                                          phrase = tolower(paste(input$query.refine, collapse = " ")),
+                                          source = "adjusted",
+                                          processing.round=1,
+                                          stringsAsFactors = F)
           phrase.log.update <<- phrase.log.update
           
           gta_sql_append_table(append.table = "phrase.log",
@@ -1087,10 +1088,10 @@ server <- function(input, output, session) {
           new.phrase <- T
         }
         rm(phrase.log)
-      
         
         
-      # codes.suggested
+        
+        # codes.suggested
         code.suggested <- change_encoding(gta_sql_load_table("code_suggested"))
         code.suggested <<- code.suggested
         
@@ -1104,8 +1105,8 @@ server <- function(input, output, session) {
           suggested.new <- subset(data.ledger, hs.code.6 %in% unique(code.suggested$hs.code.6[code.suggested$phrase.id == old.id]) | selected == 1)
         }
         rm(code.suggested)
-
-                
+        
+        
         if (nrow(suggested.new) != 0) {
           code.suggested <- change_encoding(gta_sql_load_table("code_suggested"))
           code.suggested <<- code.suggested
@@ -1217,19 +1218,19 @@ server <- function(input, output, session) {
         
         
         if (input$suggestions.search.terms != "") {
-            
-            additional.suggestions.phrases=as.data.frame(strsplit(input$suggestions.search.terms,split=';', fixed=TRUE))
-            
-            additional.suggestions.update <- data.frame(check.id = this.check.id,
-                                                        term = additional.suggestions.phrases[,1],
-                                                        user.id = users$user.id[users$user.login == input$users])
-            additional.suggestions.update <<- additional.suggestions.update
-            
-            gta_sql_append_table(append.table = "additional.suggestions",
-                                 append.by.df = "additional.suggestions.update")
-            
-            rm(additional.suggestions.phrases, additional.suggestions.update)
-          }
+          
+          additional.suggestions.phrases=as.data.frame(strsplit(input$suggestions.search.terms,split=';', fixed=TRUE))
+          
+          additional.suggestions.update <- data.frame(check.id = this.check.id,
+                                                      term = additional.suggestions.phrases[,1],
+                                                      user.id = users$user.id[users$user.login == input$users])
+          additional.suggestions.update <<- additional.suggestions.update
+          
+          gta_sql_append_table(append.table = "additional.suggestions",
+                               append.by.df = "additional.suggestions.update")
+          
+          rm(additional.suggestions.phrases, additional.suggestions.update)
+        }
         
         # check.certainty
         
@@ -1271,12 +1272,13 @@ server <- function(input, output, session) {
           for(j.id in unique(subset(job.phrase, phrase.id==phr.id & job.id %in% job.log$job.id[job.log$job.processed==F])$job.id)){
             
             nround <- gta_sql_get_value(sqlInterpolate(pool, "SELECT processing_round FROM hs_phrase_log WHERE phrase_id = ?phraseID;", phraseID = phr.id))
+            exit.status = 1
             
             if (nround >= 4) {
-              exit.status <- 4
+              exit.status <- 5
               
             } else {
-            
+              
               # CHECK IF PROBABILITIES SHOULD BE CALCULATED FOR THIS PHRASE
               if(nround==1){
                 # CHECK HOW MANY TOTAL CHECKS HAVE BEEN DONE AND IF IT'S HIGHER THAN THE REQUIRED ONES
@@ -1300,10 +1302,10 @@ server <- function(input, output, session) {
               if(calc.prob){
                 
                 # DECIDE EXIT STATUS
-                # 1 (PROCESSED) IF CODE SELECTED AND CODE SUGGESTED ARE AVAILABLE
-                # 2 (NOT A PRODUCT) IF MAJORITY OF CHECKS LABEL AS "NOT A PRODUCT"
-                # 3 (NO CODES) IF CHECKED ENOUGH TIMES BUT NO CODES HAVE BEEN SELECTED FOR THIS PHRASE
-                # 4 (ROUND LIMIT) IF NROUND >=4
+                # 2 (PROCESSED) IF CODE SELECTED AND CODE SUGGESTED ARE AVAILABLE
+                # 3 (NOT A PRODUCT) IF MAJORITY OF CHECKS LABEL AS "NOT A PRODUCT"
+                # 4 (NO CODES) IF CHECKED ENOUGH TIMES BUT NO CODES HAVE BEEN SELECTED FOR THIS PHRASE
+                # 5 (ROUND LIMIT) IF NROUND >=4
                 
                 sql <- "SELECT * FROM hs_report_services WHERE phrase_id = ?phraseID;"
                 query <- sqlInterpolate(pool,
@@ -1312,7 +1314,7 @@ server <- function(input, output, session) {
                 services=gta_sql_get_value(query)
                 
                 if (nrow(unique(services))>nrow(subset(check.phrases, phrase.id == phr.id))) {
-                  exit.status <- 2
+                  exit.status <- 3
                   
                 } else {
                   
@@ -1322,14 +1324,16 @@ server <- function(input, output, session) {
                   codes.selected <- subset(code.selected, check.id %in% check.phrases$check.id[check.phrases$phrase.id == phr.id])
                   
                   if(nrow(codes.selected) == 0) {
-                    exit.status <- 3
+                    exit.status <- 4
                     
                   } else {
                     
                     # SAVE PROBABILITIES FOR THAT PHRASE
                     phr.id.probability.future <- phr.id
                     future({ gta_hs_classify_results(processed.phrase = phr.id,
-                                      job.id=j.id) })
+                                                     job.id=j.id) }) %...>% {
+                                                       print(paste0("Phrase ",phr.id.probability.future," processed"))
+                                                     }
                     
                     
                   }
@@ -1337,12 +1341,19 @@ server <- function(input, output, session) {
               }
             }
             
-            if (exit.status %in% c(2,3,4)) {
-              sql <- "UPDATE hs_phrase_log SET exit.status = ?exitStatus WHERE phrase_id = ?phraseID;"
+            if (exit.status %in% c(3,4,5)) {
+              sql <- "UPDATE hs_phrase_log SET exit_status = ?exitStatus WHERE phrase_id = ?phraseID;"
               query <- sqlInterpolate(pool,
                                       sql,
                                       exitStatus = exit.status,
                                       phraseID = phr.id)
+              gta_sql_update_table(query)
+              
+              sql <- "UPDATE hs_job_phrase SET processed = 1 WHERE (phrase_id = ?phraseID AND job_id = ?jobID);"
+              query <- sqlInterpolate(pool,
+                                      sql,
+                                      phraseID = phr.id,
+                                      jobID = job.id)
               gta_sql_update_table(query)
             }
             
@@ -1378,8 +1389,10 @@ server <- function(input, output, session) {
               gta_sql_update_table(query)
               
               job.id.future <- j.id
-              future({ gta_hs_process_completed_job(processed.job=job.id.future, path = wdpath) })
-
+              future({ gta_hs_process_completed_job(processed.job=job.id.future, path = wdpath) }) %...>% {
+                print("JOB PROCESSED")
+              }
+              
             } else {
               remaining <- nrow(subset(job.phrase, job.id == j.id & processed==F))
               sql <- "UPDATE hs_job_log SET phrases_remaining = ?left WHERE job_id = ?jobID;"
@@ -1394,7 +1407,7 @@ server <- function(input, output, session) {
           # toggleClass("loading","active")
         }
       }
-    
+      
       if (type == "none_found") {
         # Check.log
         
