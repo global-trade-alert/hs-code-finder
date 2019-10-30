@@ -1156,8 +1156,7 @@ server <- function(input, output, session) {
         # GET CURRENT CHECK.ID
         sql <- "SELECT MAX(check_id) FROM hs_check_log;"
         query <- sqlInterpolate(pool, 
-                                sql, 
-                                fromwhom = users$user.id[users$user.login == input$users])
+                                sql)
         
         this.check.id=gta_sql_get_value(query)
         this.check.id=this.check.id + 1
