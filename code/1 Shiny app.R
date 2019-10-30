@@ -1244,14 +1244,19 @@ server <- function(input, output, session) {
         
         
         # Check.phrases
-        check.phrases.update <- data.frame(check.id = this.check.id,
-                                           phrase.id = phr.id)
-        check.phrases.update <<- check.phrases.update
-        
-        gta_sql_append_table(append.table = "check.phrases",
-                             append.by.df = "check.phrases.update")
-        
-        rm(check.phrases.update)
+        for(p.id in c(phr.id, new.phr.id)){
+          
+          check.phrases.update <- data.frame(check.id = this.check.id,
+                                             phrase.id = p.id)
+          check.phrases.update <<- check.phrases.update
+          
+          gta_sql_append_table(append.table = "check.phrases",
+                               append.by.df = "check.phrases.update")
+          
+          rm(check.phrases.update)
+          
+        }
+
         
         # words.removed
         words.all <- paste(unlist(strsplit(as.character(tolower(phrase.log$phrase[phrase.log$phrase.id == phr.id]))," ")))
