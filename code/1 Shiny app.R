@@ -1298,127 +1298,120 @@ server <- function(input, output, session) {
                              append.by.df = "check.certainty.update")
         
         
-        # CHECK IF PHRASE PROCESSED OR NOT
-        if (new.phrase == T) {
-          job.phrase.update <- data.frame(job.id = job.id,
-                                          phrase.id = phr.id,
-                                          processed = FALSE)
-          job.phrase.update <<- job.phrase.update
-          
-          gta_sql_append_table(append.table = "job.phrase",
-                               append.by.df = "job.phrase.update")
-          
-          rm(job.phrase.update)
-          
-        } else if (new.phrase == F) {
-          
-          check.phrases <- change_encoding(gta_sql_load_table("check_phrases"))
-          check.phrases <<- check.phrases
-          job.log <- change_encoding(gta_sql_load_table("job_log"))
-          job.log <<- job.log
-          
-          ## checking whether this phrase has been checked the required number of times
-          phrase.user.unique <- unique(merge(subset(check.log, 
-                                                    check.successful==T), 
-                                             check.phrases, by="check.id", all.x=T)[,c("user.id","phrase.id")])
+        # Updating job.phrase (only for original phrase.id, not new phrase id [if exists])
+        successful.checks=gta_sql_get_value(paste0("SELECT COUNT(DISTINCT check_id)
+                                            FROM hs_check_log
+                                            WHERE check_successful=1
+                                            AND check_id IN (
+                                                   SELECT check_id
+                                                   FROM hs_check_phrases
+                                                   WHERE phrase_id =",phr.id,"
+                                            );"))
+        
+        
+        
+        ## looping over all jobs that happen to include this phrase
+        jobs.incl.phrase=gta_sql_get_value(paste0("SELECT job_id
+                                                 FROM hs_job_phrase
+                                                  WHERE phrase_id =",phr.id,";"))
+                                           
+        for(j.id in jobs.incl.phrase){
+          required.checks=gta_sql_get_value(paste0("SELECT nr_of_checks
+                                                 FROM hs_job_log
+                                                 WHERE job_id =",j.id,";"))
           
           
-          ## looping over all jobs that happen to include this phrase
+          
           ## EXCLUDE JOBS THAT ARE ALREADY MARKED AS PROCESSED AS TO PREVENT THEM FROM ADDING +1 TO THE NR OF COMPLETED JOBS
-          for(j.id in unique(subset(job.phrase, phrase.id==phr.id & job.id %in% job.log$job.id[job.log$job.processed==F])$job.id)){
+          nround <- gta_sql_get_value(sqlInterpolate(pool, "SELECT processing_round FROM hs_phrase_log WHERE phrase_id = ?phraseID;", phraseID = phr.id))
+          exit.status = 1
+          
+          if (nround >= 4) {
+            exit.status <- 5
             
-            nround <- gta_sql_get_value(sqlInterpolate(pool, "SELECT processing_round FROM hs_phrase_log WHERE phrase_id = ?phraseID;", phraseID = phr.id))
-            exit.status = 1
+          } else {
             
-            if (nround >= 4) {
-              exit.status <- 5
-              
-            } else {
-              
-              # CHECK IF PROBABILITIES SHOULD BE CALCULATED FOR THIS PHRASE
-              if(nround==1){
-                # CHECK HOW MANY TOTAL CHECKS HAVE BEEN DONE AND IF IT'S HIGHER THAN THE REQUIRED ONES
-                successful.checks <- nrow(unique(subset(phrase.user.unique, phrase.id == phr.id)))
-                required.checks=job.log$nr.of.checks[job.log$job.id==j.id]
+            # CHECK IF PROBABILITIES SHOULD BE CALCULATED FOR THIS PHRASE
+            if(nround==1){
+              # CHECK HOW MANY TOTAL CHECKS HAVE BEEN DONE AND IF IT'S HIGHER THAN THE REQUIRED ONES
                 calc.prob = successful.checks >= required.checks
+            } else {
+              # Check how many times the phrase has been processed in this job already
+               calc.prob = successful.checks %% (nround*required.checks) == 0
+            }
+            
+            print(paste0("JOB ID: ",j.id))
+            print(paste0("PHRASE ID: ",phr.id))
+            print(paste0("SUCCESSFUL CHECKS: ",successful.checks))
+            print(paste0("REQUIRED CHECKS: ",required.checks))
+            print(paste0("PROCESSING ROUND: ",nround))
+            print(paste0("CALC PROB: ",calc.prob))
+            
+            if(calc.prob){
+              
+              # DECIDE EXIT STATUS
+              # 2 (PROCESSED) IF CODE SELECTED AND CODE SUGGESTED ARE AVAILABLE
+              # 3 (NOT A PRODUCT) IF MAJORITY OF CHECKS LABEL AS "NOT A PRODUCT"
+              # 4 (NO CODES) IF CHECKED ENOUGH TIMES BUT NO CODES HAVE BEEN SELECTED FOR THIS PHRASE
+              # 5 (ROUND LIMIT) IF NROUND >=4
+              
+              sql <- "SELECT * FROM hs_report_services WHERE phrase_id = ?phraseID;"
+              query <- sqlInterpolate(pool,
+                                      sql,
+                                      phraseID = phr.id)
+              services=gta_sql_get_value(query)
+              
+              if (nrow(unique(services))>nrow(subset(check.phrases, phrase.id == phr.id))) {
+                exit.status <- 3
+                
               } else {
-                # Check how many times the phrase has been processed in this job already
-                successful.checks <- nrow(subset(check.phrases, check.id %in% subset(check.log, job.id == j.id & check.successful == T)$check.id & phrase.id == phr.id))
-                required.checks=job.log$nr.of.checks[job.log$job.id==j.id]
-                calc.prob = successful.checks %% (nround*required.checks) == 0
-              }
-              
-              print(paste0("JOB ID: ",j.id))
-              print(paste0("PHRASE ID: ",phr.id))
-              print(paste0("SUCCESSFUL CHECKS: ",successful.checks))
-              print(paste0("REQUIRED CHECKS: ",required.checks))
-              print(paste0("PROCESSING ROUND: ",nround))
-              print(paste0("CALC PROB: ",calc.prob))
-              
-              if(calc.prob){
                 
-                # DECIDE EXIT STATUS
-                # 2 (PROCESSED) IF CODE SELECTED AND CODE SUGGESTED ARE AVAILABLE
-                # 3 (NOT A PRODUCT) IF MAJORITY OF CHECKS LABEL AS "NOT A PRODUCT"
-                # 4 (NO CODES) IF CHECKED ENOUGH TIMES BUT NO CODES HAVE BEEN SELECTED FOR THIS PHRASE
-                # 5 (ROUND LIMIT) IF NROUND >=4
+                code.selected <- gta_sql_load_table("code_selected")
+                code.selected <<- code.selected
                 
-                sql <- "SELECT * FROM hs_report_services WHERE phrase_id = ?phraseID;"
-                query <- sqlInterpolate(pool,
-                                        sql,
-                                        phraseID = phr.id)
-                services=gta_sql_get_value(query)
+                codes.selected <- subset(code.selected, check.id %in% check.phrases$check.id[check.phrases$phrase.id == phr.id])
                 
-                if (nrow(unique(services))>nrow(subset(check.phrases, phrase.id == phr.id))) {
-                  exit.status <- 3
+                if(nrow(codes.selected) == 0) {
+                  exit.status <- 4
                   
                 } else {
                   
-                  code.selected <- gta_sql_load_table("code_selected")
-                  code.selected <<- code.selected
+                  # SAVE PROBABILITIES FOR THAT PHRASE
+                  phr.id.probability.future <- phr.id
+                  future({ gta_hs_classify_results(processed.phrase = phr.id,
+                                                   job.id=j.id) }) %...>% {
+                                                     print(paste0("Phrase ",phr.id.probability.future," processed"))
+                                                   }
                   
-                  codes.selected <- subset(code.selected, check.id %in% check.phrases$check.id[check.phrases$phrase.id == phr.id])
                   
-                  if(nrow(codes.selected) == 0) {
-                    exit.status <- 4
-                    
-                  } else {
-                    
-                    # SAVE PROBABILITIES FOR THAT PHRASE
-                    phr.id.probability.future <- phr.id
-                    future({ gta_hs_classify_results(processed.phrase = phr.id,
-                                                     job.id=j.id) }) %...>% {
-                                                       print(paste0("Phrase ",phr.id.probability.future," processed"))
-                                                     }
-                    
-                    
-                  }
                 }
               }
             }
-            
-            if (exit.status %in% c(3,4,5)) {
-              sql <- "UPDATE hs_phrase_log SET exit_status = ?exitStatus WHERE phrase_id = ?phraseID;"
-              query <- sqlInterpolate(pool,
-                                      sql,
-                                      exitStatus = exit.status,
-                                      phraseID = phr.id)
-              gta_sql_update_table(query)
-              
-              sql <- "UPDATE hs_job_phrase SET processed = 1 WHERE (phrase_id = ?phraseID AND job_id = ?jobID);"
-              query <- sqlInterpolate(pool,
-                                      sql,
-                                      phraseID = phr.id,
-                                      jobID = job.id)
-              gta_sql_update_table(query)
-            }
-            
-            rm(required.checks)
-            
           }
-          rm(successful.checks)
+          
+          if (exit.status %in% c(3,4,5)) {
+            sql <- "UPDATE hs_phrase_log SET exit_status = ?exitStatus WHERE phrase_id = ?phraseID;"
+            query <- sqlInterpolate(pool,
+                                    sql,
+                                    exitStatus = exit.status,
+                                    phraseID = phr.id)
+            gta_sql_update_table(query)
+            
+            sql <- "UPDATE hs_job_phrase SET processed = 1 WHERE (phrase_id = ?phraseID AND job_id = ?jobID);"
+            query <- sqlInterpolate(pool,
+                                    sql,
+                                    phraseID = phr.id,
+                                    jobID = job.id)
+            gta_sql_update_table(query)
+          }
+          
+          rm(required.checks)
+          
+          
+          
+          
         }
-        
+
         # Check if job is fully processed 
         # (could be more than one as one phrase may be part of more than one job)
         
