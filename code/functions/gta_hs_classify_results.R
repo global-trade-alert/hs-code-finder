@@ -14,13 +14,13 @@ gta_hs_classify_results<- function(processed.phrase=NULL,
   library(pool)
   
   setwd("/home/rstudio/Dropbox/GTA cloud")
-  
+
   gta_sql_pool_open(db.title="ricardomain",
-                    db.host = gta_pwd("ricardomain")$host,
-                    db.name = gta_pwd("ricardomain")$name,
-                    db.user = gta_pwd("ricardomain")$user,
-                    db.password = gta_pwd("ricardomain")$password,
-                    table.prefix = "hs_")
+                   db.host = gta_pwd("ricardomain")$host,
+                   db.name = gta_pwd("ricardomain")$name,
+                   db.user = gta_pwd("ricardomain")$user,
+                   db.password = gta_pwd("ricardomain")$password,
+                   table.prefix = "hs_")
   
   if(is.null(processed.phrase)){
     stop("gta_hs_classify_results: No ID for the processed phrase is specified.")
