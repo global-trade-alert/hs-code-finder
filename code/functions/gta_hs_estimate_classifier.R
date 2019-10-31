@@ -2,8 +2,7 @@ gta_hs_estimate_classifier<- function(agreed.refusal.threshold=.1,
                                       agreed.acceptance.threshold=.9,
                                       train.share=.7,
                                       relevance.threshold=.5,
-                                      path.to.cloud=NULL,
-                                      source.data="17 Shiny/5 HS code finder/database/GTA HS code database.Rdata"){
+                                      path.to.cloud=NULL){
  
   if(is.null(path.to.cloud)==F){
     setwd(path.to.cloud)
