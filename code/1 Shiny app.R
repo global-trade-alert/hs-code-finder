@@ -1312,7 +1312,7 @@ server <- function(input, output, session) {
                                                  FROM hs_job_phrase
                                                   WHERE phrase_id =",phr.id,";"))
                                            
-        if(is.na(jobs.incl.phrase)==F){
+        if(is.na(jobs.incl.phrase[1])==F){
           
           for(j.id in jobs.incl.phrase){
             required.checks=gta_sql_get_value(paste0("SELECT nr_of_checks
