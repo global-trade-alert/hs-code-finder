@@ -1089,7 +1089,7 @@ server <- function(input, output, session) {
             new.phr.id <<- new.phr.id  
             
           }
-       
+          
           # update code.suggested to include the values of the original phrase ID for the new one
           new.code.suggested=gta_sql_get_value(paste0("SELECT *
                                                         FROM hs_code_suggested
@@ -1171,7 +1171,7 @@ server <- function(input, output, session) {
             
             
             if (length(suggested.new$hs.code.6[suggested.new$user.generated == 1]) > 0) {
-           
+              
               code.source.update <- data.frame(source.id=1,
                                                subset(code.suggested.new, hs.code.6 %in% subset(suggested.new, user.generated == 1)$hs.code.6)$suggestion.id,
                                                stringsAsFactors = F)
@@ -1211,7 +1211,7 @@ server <- function(input, output, session) {
                                        FROM hs_check_log
                                        WHERE user_id =",users$user.id[users$user.login == input$users],");"))
         
-        if(as.POSIXct(c.log$time.stamp)==c.time){
+        if(as.POSIXct(c.log$time.stamp)==as.character(c.time)){
           this.check.id<<-c.log$check.id
           rm(c.log, c.time)
           
@@ -1253,7 +1253,7 @@ server <- function(input, output, session) {
           rm(check.phrases.update)
           
         }
-
+        
         
         # words.removed
         words.all <- paste(unlist(strsplit(as.character(tolower(phrase.log$phrase[phrase.log$phrase.id == phr.id]))," ")))
@@ -1311,7 +1311,7 @@ server <- function(input, output, session) {
         jobs.incl.phrase=gta_sql_get_value(paste0("SELECT job_id
                                                  FROM hs_job_phrase
                                                   WHERE phrase_id =",phr.id,";"))
-                                           
+        
         if(is.na(jobs.incl.phrase[1])==F){
           
           for(j.id in jobs.incl.phrase){
@@ -1382,7 +1382,7 @@ server <- function(input, output, session) {
                                                            FROM hs_check_phrases
                                                            WHERE phrase_id = ",phr.id,"
                                                            );"))
-          
+                  
                   
                   if(nr.chosen.codes==0) {
                     # no codes found
@@ -1401,7 +1401,7 @@ server <- function(input, output, session) {
                   }
                 }
               }
-          }
+            }
             
             if (exit.status %in% c(3,4,5)) {
               sql <- "UPDATE hs_phrase_log SET exit_status = ?exitStatus WHERE phrase_id = ?phraseID;"
@@ -1466,11 +1466,11 @@ server <- function(input, output, session) {
             
             
             
-        }
+          }
           
         }
-
-
+        
+        
       }
       
       if (type == "none_found") {
@@ -1497,7 +1497,7 @@ server <- function(input, output, session) {
                                        FROM hs_check_log
                                        WHERE user_id =",users$user.id[users$user.login == input$users],");"))
         
-        if(as.POSIXct(c.log$time.stamp)==c.time){
+        if(as.POSIXct(c.log$time.stamp)==as.character(c.time)){
           this.check.id<<-c.log$check.id
           rm(c.log, c.time)
           
