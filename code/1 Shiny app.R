@@ -367,7 +367,7 @@ server <- function(input, output, session) {
   data.ledger <- data.ledger.0
   data.ledger.backup <<- data.ledger.0
   importToggle <- "import-toggle-excel"
-  
+
   # FUNCTION TO GET LIST OF SELECTED ROWS
   initialSelectAll <- T
   selected.rows <- function() {
@@ -499,7 +499,11 @@ server <- function(input, output, session) {
   })
   
   # OBSERVE CHANGES IN REFINE.QUERY
-  observeEvent(input$query.refine, {
+  observeEvent(input$query.refine, ignoreNULL = F, {
+    if (length(input$query.refine)==0) {
+      showNotification("Please select at least one word of the original phrase", duration = 3)
+      updateCheckboxGroupButtons(session, "query.refine", choices = query, selected = query[1])
+    }
     print(paste(input$query.refine, collapse=", "))
   })
   
@@ -988,10 +992,10 @@ server <- function(input, output, session) {
           
           if(length(should.do)>1) {
             phr.id <<- sample(should.do,1)
-            # phr.id <<- 2563
+            # phr.id <<- 2326
           } else {
             phr.id <<- should.do
-            # phr.id <<- 2563
+            # phr.id <<- 2326
           }
           
           query <<- paste(unlist(strsplit(as.character(phrase.log$phrase[phrase.log$phrase.id == phr.id])," ")))
@@ -1059,6 +1063,9 @@ server <- function(input, output, session) {
       
       if (type %in% c("standard","clipboard")) {
         
+        # Variables catching the number of rows to be inserted, to check later if insertion was successful
+        checks <- list()
+        
         # check if phrase has been adjusted
         # phrase.log
         phrase.log <- change_encoding(gta_sql_load_table("phrase_log"))
@@ -1076,6 +1083,7 @@ server <- function(input, output, session) {
           gta_sql_append_table(append.table = "phrase.log",
                                append.by.df = "phrase.log.update")
           rm(phrase.log.update)
+          checks <- c(checks, list("nrow.phraselog" = 1))
           
           new.phr.id=gta_sql_get_value(paste0("SELECT phrase_id 
                                           FROM hs_phrase_log
@@ -1096,10 +1104,15 @@ server <- function(input, output, session) {
                                                         WHERE phrase_id =",phr.id,";"))
           
           new.code.suggested$phrase.id=new.phr.id
+          # new.code.suggested$suggestion.id <- seq(123456789, 123456789+(nrow(new.code.suggested))-1,1)
+          # print("NEW CODE SUGGESTED")
+          # print(new.code.suggested)
+          
           gta_sql_append_table(append.table="code.suggested",
                                append.by.df = "new.code.suggested")
-          
+          checks <- c(checks, list("newphrase.suggested.new" = nrow(new.code.suggested)))
           rm(new.code.suggested)
+          
           
           # update code.source to include the values of the original phrase ID for the new one
           old.code.suggested=gta_sql_get_value(paste0("SELECT *
@@ -1126,6 +1139,7 @@ server <- function(input, output, session) {
           
           gta_sql_append_table(append.table="code.source",
                                append.by.df = "new.code.source")
+          checks <- c(checks, list("newphrase.source.new" = nrow(new.code.source)))
           
           rm(new.code.source, old.code.source, new.code.suggested, old.code.suggested)
           
@@ -1142,6 +1156,9 @@ server <- function(input, output, session) {
         
         suggested.new <- subset(data.ledger, (user.generated == 1 | search.generated == 1) & selected == 1)
         suggested.new <- subset(suggested.new, ! hs.code.6 %in% subset(code.suggested, phrase.id == phr.id)$hs.code.6)
+        
+        checks <- c(checks, list("suggested.old" = nrow(subset(code.suggested, phrase.id == phr.id))))
+        checks <- c(checks, list("suggested.new" = nrow(suggested.new)))
         
         rm(code.suggested)
         
@@ -1173,7 +1190,7 @@ server <- function(input, output, session) {
             if (length(suggested.new$hs.code.6[suggested.new$user.generated == 1]) > 0) {
               
               code.source.update <- data.frame(source.id=1,
-                                               subset(code.suggested.new, hs.code.6 %in% subset(suggested.new, user.generated == 1)$hs.code.6)$suggestion.id,
+                                               suggestion.id = subset(code.suggested.new, hs.code.6 %in% subset(suggested.new, user.generated == 1)$hs.code.6)$suggestion.id,
                                                stringsAsFactors = F)
               
               code.source.update <<- code.source.update
@@ -1202,7 +1219,6 @@ server <- function(input, output, session) {
         
         gta_sql_append_table(append.table = "check.log",
                              append.by.df = "check.log.update")
-        
         rm(check.log.update)
         
         c.log=gta_sql_get_value(paste0("SELECT *
@@ -1225,6 +1241,8 @@ server <- function(input, output, session) {
         
         code.selected.new <- subset(code.suggested, hs.code.6 %in% subset(data.ledger, selected == 1)$hs.code.6 & phrase.id == phr.id)
         
+        checks <- c(checks, list("selected.new" = nrow(code.selected.new)))
+        
         if (nrow(code.selected.new) > 0) {
           
           code.selected.update <- data.frame(check.id = this.check.id,
@@ -1241,7 +1259,10 @@ server <- function(input, output, session) {
         
         
         # Check.phrases
+        checks <- c(checks, list("check.phrases.new" = 0))
         for(p.id in c(phr.id, new.phr.id)){
+          
+          checks[['check.phrases.new']] <- checks[['check.phrases.new']]+1
           
           check.phrases.update <- data.frame(check.id = this.check.id,
                                              phrase.id = p.id)
@@ -1258,6 +1279,8 @@ server <- function(input, output, session) {
         # words.removed
         words.all <- paste(unlist(strsplit(as.character(tolower(phrase.log$phrase[phrase.log$phrase.id == phr.id]))," ")))
         removed <- words.all[! words.all %in% paste(unlist(strsplit(as.character(tolower(input$query.refine))," ")))]
+        
+        checks <- c(checks, list("words.removed" = length(removed)))
         
         if (length(removed) > 0) {
           
@@ -1282,6 +1305,8 @@ server <- function(input, output, session) {
           gta_sql_append_table(append.table = "additional.suggestions",
                                append.by.df = "additional.suggestions.update")
           
+          checks <- c(checks, list("additional.suggestions" = nrow(additional.suggestions.update)))
+          
           rm(additional.suggestions.phrases, additional.suggestions.update)
         }
         
@@ -1294,6 +1319,7 @@ server <- function(input, output, session) {
         gta_sql_append_table(append.table = "check.certainty",
                              append.by.df = "check.certainty.update")
         
+        checks <- c(checks, list("check.certainty" = nrow(check.certainty.update)))
         
         # Updating job.phrase (only for original phrase.id, not new phrase id [if exists])
         successful.checks=gta_sql_get_value(paste0("SELECT COUNT(DISTINCT check_id)
@@ -1470,6 +1496,14 @@ server <- function(input, output, session) {
           
         }
         
+        # future({ gta_hs_check_success(check.id = this.check.id,
+        #                               checks = checks,
+        #                               phrase.id=c(phr.id, new.phr.id),
+        #                               recipients=c("patrick.buess@student.unisg.ch")) }) %...>% {
+        #                                 print("Check checked successfully")
+        #                               }
+        
+        
         
       }
       
@@ -1630,8 +1664,8 @@ server <- function(input, output, session) {
   
 }
 
-shinyApp(ui = ui, 
-         server = server, 
+shinyApp(ui = ui,
+         server = server,
          onStart = function() {
            gta_sql_pool_open(db.title="ricardomain",
                              db.host = gta_pwd("ricardomain")$host,
