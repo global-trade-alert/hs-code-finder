@@ -15,9 +15,14 @@ gta_hs_estimate_classifier<- function(agreed.refusal.threshold=.1,
   }
   
  
-  job.phrase=gta_sql_load_table("job.phrase")
+  # job.phrase=gta_sql_load_table("job.phrase")
+  code.selected=gta_sql_load_table("code.selected")
+  check.phrases=gta_sql_load_table("check.phrases")
   
-  processed.phrase=unique(job.phrase$phrase.id[job.phrase$processed])
+  
+  processed.phrase=subset(aggregate(check.id ~ phrase.id,
+                                    subset(check.phrases, check.id %in% code.selected$check.id),
+                                    function(x) length(unique(x))), check.id>=3)$phrase.id
   
   estimation.set=gta_hs_create_classifier_variables_phrase(phrase.ids=processed.phrase)
   rm(job.phrase, processed.phrase)
