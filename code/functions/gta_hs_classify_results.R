@@ -12,6 +12,7 @@ gta_hs_classify_results<- function(processed.phrase=NULL,
   library(gtalibrary)
   library(gtasql)
   library(pool)
+  library(data.table)
   
   setwd("/home/rstudio/Dropbox/GTA cloud")
 
@@ -113,7 +114,7 @@ gta_hs_classify_results<- function(processed.phrase=NULL,
   # GET MAX PROBABILITY AND DECIDE WHETHER PRHASE IS PROCESSED OR NOT
   for(this.phrase in unique(estimation.set$phrase.id)){
     
-    max.prob=max(estimation.set$probability[estimation.set$phrase.id==this.phrase])
+    max.prob=max(estimation.set$probability[estimation.set$phrase.id==this.phrase], na.rm = T)
     
     if (max.prob > relevance.threshold) {
       
