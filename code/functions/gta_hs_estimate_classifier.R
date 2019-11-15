@@ -1,6 +1,6 @@
-gta_hs_estimate_classifier<- function(agreed.refusal.threshold=.1,
-                                      agreed.acceptance.threshold=.9,
-                                      train.share=.7,
+gta_hs_estimate_classifier<- function(agreed.refusal.threshold=.2,
+                                      agreed.acceptance.threshold=.3,
+                                      train.share=.8,
                                       relevance.threshold=.5,
                                       path.to.cloud=NULL){
  
