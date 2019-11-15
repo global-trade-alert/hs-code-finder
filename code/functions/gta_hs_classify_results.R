@@ -22,7 +22,7 @@ gta_hs_classify_results<- function(processed.phrase=NULL,
                    db.user = gta_pwd("ricardomain")$user,
                    db.password = gta_pwd("ricardomain")$password,
                    table.prefix = "hs_")
-  
+
   if(is.null(processed.phrase)){
     stop("gta_hs_classify_results: No ID for the processed phrase is specified.")
   }
