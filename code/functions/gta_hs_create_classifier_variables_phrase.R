@@ -44,14 +44,19 @@ gta_hs_create_classifier_variables_phrase<- function(phrase.ids=NULL,
   hs.candidates=as.data.frame(subset(code.suggested, phrase.id %in% phrase.ids & is.na(hs.code.6)==F))
   hs.candidates$probability=NULL
   
-  chosen.suggestions=as.data.frame(table(subset(code.selected, check.id %in% subset(check.phrases, phrase.id %in% phrase.ids)$check.id)$suggestion.id))
-  names(chosen.suggestions)=c("suggestion.id","nr.times.chosen")
-  chosen.suggestions$suggestion.id=as.numeric(as.character(chosen.suggestions$suggestion.id))
+  chosen.suggestions=subset(code.selected, check.id %in% subset(check.phrases, phrase.id %in% phrase.ids)$check.id)
   
-  hs.candidates=merge(hs.candidates, chosen.suggestions, by="suggestion.id", all.x=T)
+  chosen.suggestions=merge(chosen.suggestions,
+                           unique(code.suggested[,c("suggestion.id","hs.code.6")]),
+                           by="suggestion.id", all.x=T)
+  chosen.suggestions=aggregate(check.id ~hs.code.6, chosen.suggestions, function(x) length(unique(x)))
+  names(chosen.suggestions)=c("hs.code.6","nr.times.chosen")
+  
+  hs.candidates=merge(hs.candidates, chosen.suggestions, by="hs.code.6", all.x=T)
   hs.candidates[is.na(hs.candidates)]=0
   
-  checks.per.phrase=as.data.frame(table(subset(check.phrases, phrase.id %in% phrase.ids)$phrase.id))
+  
+  checks.per.phrase=aggregate(check.id ~ phrase.id, subset(check.phrases, phrase.id %in% phrase.ids & check.id %in% code.selected$check.id), function(x) length(unique(x)))
   names(checks.per.phrase)=c("phrase.id","nr.of.checks")
   checks.per.phrase$phrase.id=as.numeric(as.character(checks.per.phrase$phrase.id))
   
@@ -59,6 +64,19 @@ gta_hs_create_classifier_variables_phrase<- function(phrase.ids=NULL,
   hs.candidates$selection.share=hs.candidates$nr.times.chosen/hs.candidates$nr.of.checks
   hs.candidates$selection.share[hs.candidates$selection.share>=1]=1
   
+  
+  hs.mx=aggregate(nr.times.chosen ~phrase.id, hs.candidates, max)
+  setnames(hs.mx, "nr.times.chosen","is.top.choice")
+  
+  hs.candidates=merge(hs.candidates,
+                      hs.mx,
+                      by="phrase.id", all.x=T)
+  
+  hs.candidates$is.top.choice=hs.candidates$is.top.choice==hs.candidates$nr.times.chosen
+  hs.candidates$is.top.choice[is.na(hs.candidates$is.top.choice)]=FALSE
+  
+  
+  rm(hs.mx)
   
   ### could do a classifier as follows
   ## those with full agreement, one way or the other are classified as in or out
@@ -157,39 +175,69 @@ gta_hs_create_classifier_variables_phrase<- function(phrase.ids=NULL,
   
   base.phrase=subset(code.suggested, phrase.id %in% phrase.ids)[,c("phrase.id","suggestion.id")]
   
+  phrase.checks=unique(subset(check.phrases, phrase.id %in% phrase.ids)$check.id)
+  
   for(u.id in app.users){
+    
     user.checks=unique(subset(check.log, user.id==u.id)$check.id)
-    user.phrases=unique(subset(check.phrases, check.id %in% user.checks)$phrase.id)
     
-    # only taking most recent in case of multiple checks per phrase
-    user.checks=aggregate(check.id ~phrase.id, subset(check.phrases, check.id %in% user.checks), max)$check.id
+    if(any(user.checks %in% phrase.checks)){
+
+      
+      user.phrases=unique(subset(check.phrases, phrase.id %in% phrase.ids & check.id %in% user.checks)$phrase.id)
+      
+      # only taking most recent in case of multiple checks per phrase
+      user.checks=aggregate(check.id ~phrase.id, subset(check.phrases, check.id %in% user.checks & phrase.id %in% user.phrases), max)$check.id
+      
+      u.check=subset(check.phrases, check.id %in% user.checks)
+      u.check=merge(u.check, code.suggested[,c("phrase.id","suggestion.id")], by="phrase.id", all.x=T)
+      
+      u.select=subset(code.selected, check.id %in% user.checks)
+      if(nrow(u.select)>0){
+       
+        u.select$user.choice="Selected"
+        
+        u.check=merge(u.check, u.select,by=c("check.id","suggestion.id"), all.x=T)
+         
+      } else {
+        u.check$user.choice="Discarded"
+      }
+      rm(u.select)
+      
+      
+      u.check$user.choice[is.na(u.check$user.choice)]="Discarded"
+      
+      for(level in unique(check.certainty$certainty.level)){
+        level.checks=subset(check.certainty, certainty.level==level)$check.id
+        u.check$user.choice[u.check$check.id %in% level.checks]=paste(u.check$user.choice[u.check$check.id %in% level.checks],level, sep="-")
+        
+      }
+      u.check$check.id=NULL
+      
+      u.check=merge(base.phrase, u.check, by=c("phrase.id", "suggestion.id"), all.x=T)
+      u.check$user.choice=factor(u.check$user.choice, levels=choice.factors)
+      
+            
+    } else {
+      
+      u.check=base.phrase
+      u.check$user.choice="Not checked"
+      u.check$user.choice=factor(u.check$user.choice, levels=choice.factors)
+      
+
+    }
     
-    u.check=subset(check.phrases, check.id %in% user.checks)
-    u.check=merge(u.check, code.suggested[,c("phrase.id","suggestion.id")], by="phrase.id", all.x=T)
-    
-    u.select=subset(code.selected, check.id %in% user.checks)
-    u.select$user.choice="Selected"
-    
-    u.check=merge(u.check, u.select,by=c("check.id","suggestion.id"), all.x=T)
-    rm(u.select)
-    
-    u.check$user.choice[is.na(u.check$user.choice)]="Discarded"
-    
-    for(level in unique(check.certainty$certainty.level)){
-      level.checks=subset(check.certainty, certainty.level==level)$check.id
-      u.check$user.choice[u.check$check.id %in% level.checks]=paste(u.check$user.choice[u.check$check.id %in% level.checks],level, sep="-")
+    if(any(is.na(u.check$user.choice))){
+      
+      u.check$user.choice[is.na(u.check$user.choice)]="Not checked"
+      u.check$user.choice=factor(u.check$user.choice, levels=choice.factors)
       
     }
-    u.check$check.id=NULL
-    
-    u.check=merge(base.phrase, u.check, by=c("phrase.id", "suggestion.id"), all.x=T)
-    u.check$user.choice[is.na(u.check$user.choice)]="Not checked"
-    u.check$user.choice=factor(u.check$user.choice, levels=choice.factors)
-    
     
     setnames(u.check, "user.choice", paste0("user.",u.id))  
     
-    hs.candidates=merge(hs.candidates, u.check, by=c("phrase.id","suggestion.id"), all.x=T)
+    hs.candidates=merge(hs.candidates, unique(u.check), by=c("phrase.id","suggestion.id"), all.x=T)
+    
     
     rm(u.check)
     print(u.id)
