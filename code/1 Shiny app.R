@@ -1135,7 +1135,7 @@ server <- function(input, output, session) {
           new.code.source=merge(new.code.suggested[,c("hs.code.6","suggestion.id")],
                                 new.code.source, by="hs.code.6")
           
-          new.code.source=unique(new.code.source[,c("suggestion.id","source.id")])
+          new.code.source<<-unique(new.code.source[,c("suggestion.id","source.id")])
           
           gta_sql_append_table(append.table="code.source",
                                append.by.df = "new.code.source")
@@ -1357,13 +1357,15 @@ server <- function(input, output, session) {
             } else {
               
               # CHECK IF PROBABILITIES SHOULD BE CALCULATED FOR THIS PHRASE
-              if(nround==1){
-                # CHECK HOW MANY TOTAL CHECKS HAVE BEEN DONE AND IF IT'S HIGHER THAN THE REQUIRED ONES
-                calc.prob = successful.checks >= required.checks
-              } else {
-                # Check how many times the phrase has been processed in this job already
-                calc.prob = successful.checks %% (nround*required.checks) == 0
-              }
+              # JF on 21 Nov 2019: I set this to be checked at every round now.
+              calc.prob = successful.checks >= required.checks
+              # if(nround==1){
+              #   # CHECK HOW MANY TOTAL CHECKS HAVE BEEN DONE AND IF IT'S HIGHER THAN THE REQUIRED ONES
+              #   calc.prob = successful.checks >= required.checks
+              # } else {
+              #   # Check how many times the phrase has been processed in this job already
+              #   calc.prob = successful.checks %% (nround*required.checks) == 0
+              # }
               
               print(paste0("JOB ID: ",j.id))
               print(paste0("PHRASE ID: ",phr.id))
