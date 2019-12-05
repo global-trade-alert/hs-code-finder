@@ -21,7 +21,7 @@ ui <- fluidPage(
                                  "Create"),
                     selectInput("users",
                                 label=NULL,
-                                choices = c("Choose User"="Select",unique(users$user.login)),
+                                choices = c("Choose User"="Select",gta_sql_get_value("SELECT DISTINCT `user_login` FROM `gta_user_log`")),
                                 multiple = F)),
            tags$div(class="logo",
                     tags$div(class="import-button",
