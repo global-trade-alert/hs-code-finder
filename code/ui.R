@@ -107,7 +107,7 @@ ui <- fluidPage(
                                                             width = 12,
                                                             prettyRadioButtons(inputId = "radio1_unrelated",
                                                                                label = "How confident are you about the chosen/suggested codes?",
-                                                                               choices = unique(levels.of.certainty$certainty.name),
+                                                                               choices = gta_sql_get_value("SELECT DISTINCT `certainty_name` FROM `hs_levels_of_certainty`"),
                                                                                inline = T,
                                                                                selected = "Unchosen")))),
                                                
