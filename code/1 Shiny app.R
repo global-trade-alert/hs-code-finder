@@ -965,8 +965,7 @@ server <- function(input, output, session) {
         for(j.id in unique(should.do$job.id)) {
           should.do$remaining[should.do$job.id == j.id] <- nrow(subset(job.phrase, job.id == j.id & processed == F & ! phrase.id %in% subset(check.phrases, check.id %in% subset(check.log, user.id == users$user.id[users$user.login == input$users])$check.id)$phrase.id))
         }
-        should.do <- subset(should.do, remaining != 0)
-        
+     
         # ORDER JOBS BY PRIORITY AND REMAINING PHRASES, CHOOSE JOB ID FROM ROW 1
         if (nrow(should.do)>0) {
           should.do$is.priority <- ifelse(should.do$is.priority, 1, 0)
