@@ -426,15 +426,13 @@ server <- function(input, output, session) {
   })
   
   output$finder_check_button <- renderUI({
-    phrase.log <- change_encoding(gta_sql_load_table("phrase_log"))
-    phrase.log <<- phrase.log
-    
-    if(! paste(input$query.refine, collapse=" ") %in% unique(phrase.log$phrase)) {
+
+    if(! paste(input$query.refine, collapse=" ") %in% gta_sql_get_value("SELECT DISTINCT(source_id) FROM hs_suggestion_sources;")) {
       tags$div(class="button",
                actionButton("search_adjusted",
                             "Search"))
     }
-    rm(phrase.log)
+    
   })
   
   # Report terms which are not a product 
