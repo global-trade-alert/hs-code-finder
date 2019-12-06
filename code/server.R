@@ -362,30 +362,28 @@ server <- function(input, output, session) {
   output$showFinderCheck <- reactive({
     input$query.refine
     
-    code.suggested <- change_encoding(gta_sql_load_table("code_suggested"))
-    code.suggested <<- code.suggested
-    
-    phrase.log <- change_encoding(gta_sql_load_table("phrase_log"))
-    phrase.log <<- phrase.log
-    
-    code.source <- change_encoding(gta_sql_load_table("code_source"))
-    code.source <<- code.source
-    
-    suggestion.ids <- subset(code.suggested, phrase.id == phr.id)$suggestion.id
-    all.sources <- subset(code.source, suggestion.id %in% suggestion.ids)$source.id
-    
-    if(! paste(input$query.refine, collapse=" ") %in% unique(phrase.log$phrase)) {
+    all.sources= gta_sql_get_value(paste0("SELECT DISTINCT(source_id) 
+                                            FROM hs_code_source 
+                                            WHERE suggestion_id IN (SELECT suggestion_id 
+                                                                    FROM hs_code_suggested
+                                                                    WHERE phrase_id IN (",paste(phr.id, collapse=","),"));"))
+                      
+    if(! paste(input$query.refine, collapse=" ") %in% gta_sql_get_value("SELECT DISTINCT(phrase) FROM hs_phrase_log;")) {
+      
       return(TRUE)
+      
     } else {
+      
       if (length(all.sources) != 0){
-        if(length(all.sources[! all.sources %in% c(seq(1,8,1))]) == 0) {
+        if(any(! all.sources %in% gta_sql_get_value("SELECT DISTINCT(source_id) FROM hs_suggestion_sources;"))) {
           return(TRUE)
         }
       }
     }
-    rm(code.suggested)
+    
     
   })
+  
   outputOptions(output, "showFinderCheck", suspendWhenHidden = FALSE)
   
   # Conditionally show search term infos
