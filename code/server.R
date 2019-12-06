@@ -427,7 +427,7 @@ server <- function(input, output, session) {
   
   output$finder_check_button <- renderUI({
 
-    if(! paste(input$query.refine, collapse=" ") %in% gta_sql_get_value("SELECT DISTINCT(source_id) FROM hs_suggestion_sources;")) {
+    if(! paste(input$query.refine, collapse=" ") %in% gta_sql_get_value("SELECT DISTINCT(phrase) FROM hs_phrase_log;")) {
       tags$div(class="button",
                actionButton("search_adjusted",
                             "Search"))
