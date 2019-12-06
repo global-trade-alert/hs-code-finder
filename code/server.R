@@ -494,7 +494,7 @@ server <- function(input, output, session) {
     chosen.user <<- input$users
     updateTextInput(session,
                     "import.email.adress",
-                    value = users$email[users$user.login == input$users])
+                    value = gta_sql_get_value(paste0("SELECT user_email from gta_user_log WHERE user_login ='",input$users,"';")))
   })
   
   observeEvent(input$create.user, {
