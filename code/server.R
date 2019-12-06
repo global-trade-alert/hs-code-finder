@@ -438,48 +438,19 @@ server <- function(input, output, session) {
   # Report terms which are not a product 
   observeEvent(input$not.product, {
     
-    report.services.update <- data.frame(phrase.id = phr.id,
-                                         user.id = users$user.id[users$user.login == input$users],
-                                         stringsAsFactors = F)
-    report.services.update <<- report.services.update
+    current.user.id=gta_sql_get_value(paste0("SELECT user_id from gta_user_log WHERE user_login ='",input$users,"';"))
+    current.job.id=gta_sql_get_value(paste0("SELECT job_id from hs_job_phrase WHERE phrase_id ='",phr.id,"';")) ### JF would prefer this to be set differently. We should know what job the user is working on at this point. The present query could result in more than 1 answer (if a phrase is associated to more than 1 job).
     
-    gta_sql_append_table(append.table = "report.services",
-                         append.by.df = "report.services.update")
-    rm(report.services.update)
+    new.check.id=gta_sql_multiple_queries(paste0("INSERT INTO hs_check_log (user_id, time_stamp, check_successful, job_id)
+                                                  VALUES (",current.user.id,",CURRENT_TIMESTAMP,1,",current.job.id,");
+                                                  SELECT MAX(check_id) FROM hs_check_log;"),
+                                          output.queries = 2)
     
+    gta_sql_update_table(paste0("UPDATE INTO hs_report_services (user_id,check_id,phrase_id)
+                                 VALUES (",current.user.id,",",new.check.id,",",phr.id,");"))
     
-    check.log.update <- data.frame(user.id = users$user.id[users$user.login == input$users],
-                                   time.stamp = Sys.time(),
-                                   check.successful = TRUE,
-                                   job.id = job.phrase$job.id[job.phrase$phrase.id == phr.id],
-                                   stringsAsFactors = F)
-    check.log.update <<- check.log.update
-    
-    gta_sql_append_table(append.table = "check.log",
-                         append.by.df = "check.log.update")
-    rm(check.log.update)
-    
-    
-    
-    # check.phrases <<- check.phrases
-    sql <- "SELECT MAX(check_id) FROM hs_check_log WHERE user_id = ?fromwhom;" # the WHERE condition is a safeguard in case another user saves at the exact same time
-    query <- sqlInterpolate(pool, 
-                            sql, 
-                            fromwhom = users$user.id[users$user.login == input$users])
-    
-    this.check.id=gta_sql_get_value(query)
-    rm(query)
-    
-    
-    check.phrases.update <- data.frame(check.id = this.check.id,
-                                       phrase.id = phr.id,
-                                       stringsAsFactors = F)
-    check.phrases.update <<- check.phrases.update
-    
-    gta_sql_append_table(append.table = "check.phrases",
-                         append.by.df = "check.phrases.update")
-    
-    rm(check.phrases.update, this.check.id)
+    gta_sql_update_table(paste0("UPDATE INTO hs_check_phrases (check_id, phrase_id)
+                                 VALUES (",new.check.id,",",phr.id,");"))
     
     refresh_names()
   })
