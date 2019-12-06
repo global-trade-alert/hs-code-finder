@@ -446,10 +446,10 @@ server <- function(input, output, session) {
                                                   SELECT MAX(check_id) FROM hs_check_log;"),
                                           output.queries = 2)
     
-    gta_sql_update_table(paste0("UPDATE INTO hs_report_services (user_id,check_id,phrase_id)
+    gta_sql_update_table(paste0("INSERT INTO hs_report_services (user_id,check_id,phrase_id)
                                  VALUES (",current.user.id,",",new.check.id,",",phr.id,");"))
     
-    gta_sql_update_table(paste0("UPDATE INTO hs_check_phrases (check_id, phrase_id)
+    gta_sql_update_table(paste0("INSERT INTO hs_check_phrases (check_id, phrase_id)
                                  VALUES (",new.check.id,",",phr.id,");"))
     
     refresh_names()
@@ -498,29 +498,23 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$create.user, {
-    name = input$username
-    print(name)
     
-    if (name %in% unique(users$user.login)) {
+    if (input$username %in% gta_sql_get_value("SELECT user_login from gta_user_log;")) {
+      
       showNotification("This name already exists",duration = 5)
+      
     } else {
       
-      this.user.id=gta_sql_get_value("SELECT MAX(user_id) FROM gta_user_log;")
       
-      users.update <- data.frame(user.id = this.user.id+1,
-                                 user.login = name,
-                                 user.email = "name@mail.com",
-                                 stringsAsFactors = F)
-      users.update <<- users.update
+      gta_sql_update_table(paste0("INSERT INTO gta_user_log (user_login,gta_layer)
+                                 VALUES (",input$username,",'core');"))
       
-      gta_sql_append_table(append.table="user_log",
-                           append.by.df = "users.update",
-                           table.prefix = "gta_")
-      rm(users.update, this.user.id)
       
+      ## those two lines should be removed in this update.
       users <- change_encoding(gta_sql_load_table("user_log", table.prefix = "gta_"))
       users <<- users 
-      updateSelectInput(session, "users", choices = unique(users$user.login), selected = name)
+      
+      updateSelectInput(session, "users", choices = gta_sql_get_value("SELECT user_login from gta_user_log;"), selected = input$username)
       reset("username")
     }
     
