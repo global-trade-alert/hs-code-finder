@@ -400,30 +400,29 @@ server <- function(input, output, session) {
   # CHECK IF PHRASE WAS RUN THROUGH CODE FINDER ALREADY
   output$finder_check_text <- renderUI({
     
-    phrase.log <- change_encoding(gta_sql_load_table("phrase_log"))
-    phrase.log <<- phrase.log
-    code.suggested <- change_encoding(gta_sql_load_table("code_suggested"))
-    code.suggested <<- code.suggested
-    code.source <- change_encoding(gta_sql_load_table("code_source"))
-    code.source <<- code.source
-    
-    if(! paste(input$query.refine, collapse=" ") %in% unique(phrase.log$phrase)) {
+   
+    if(! paste(input$query.refine, collapse=" ") %in% gta_sql_get_value("SELECT DISTINCT(phrase) FROM hs_phrase_log;")) {
       tags$div(class="text-box",
                tags$p("Search codes for adjusted query"))
       
     } else {
-      suggestion.ids <- subset(code.suggested, phrase.id == phr.id)$suggestion.id
       
-      all.sources <- subset(code.source, suggestion.id %in% suggestion.ids)$source.id
+      
+      all.sources= gta_sql_get_value(paste0("SELECT DISTINCT(source_id) 
+                                            FROM hs_code_source 
+                                            WHERE suggestion_id IN (SELECT suggestion_id 
+                                                                    FROM hs_code_suggested
+                                                                    WHERE phrase_id IN (",paste(phr.id, collapse=","),"));"))
+      
       if (length(all.sources) != 0){
-        if(length(all.sources[! all.sources %in% c(seq(1,8,1))]) == 0) {
+        if(any(! all.sources %in% gta_sql_get_value("SELECT DISTINCT(source_id) FROM hs_suggestion_sources;"))) {
           tags$div(class="text-box",
                    
                    HTML("<p><strong>Note:</strong> This term has already run through the HS code search function.</p>"))
         }
       }
     }
-    rm(phrase.log, code.suggested, code.source)
+    
   })
   
   output$finder_check_button <- renderUI({
