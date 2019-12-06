@@ -220,16 +220,10 @@ server <- function(input, output, session) {
       showNotification("Please select or create a user before finishing your import",duration = 1000)
     } else {
       
-      # LOAD LOG
-      importer.log <- gta_sql_load_table("importer.log")
-      importer.log <<- importer.log
-      
-      filename = paste0(Sys.Date()," - ",max(importer.log$ticket.number)+1," - ",chosen.user,".xlsx")
-      
       # UPDATE EMAIL ADDRESS
       # UPDATE EMAIL ADDRESS #2 : in case we don't have one on file
       
-      if(((input$update.email == T)|(is.na(users$user.email[users$user.login == input$users])))) {
+      if(((input$update.email == T)|(is.na(gta_sql_get_value(paste0("SELECT user_email from gta_user_log WHERE user_login ='",input$users,"';")))))) {
         
         sql <- "UPDATE gta_user_log SET user_email = ?newvalue WHERE user_login = ?forwhom;"
         query <- sqlInterpolate(pool, 
@@ -242,47 +236,44 @@ server <- function(input, output, session) {
         
       }
       
-      users <- gta_sql_load_table("user.log", table.prefix = "gta_")
-      users <<- users
+      
+      
       
       # if email-field empty: get user email
-      if (input$import.email.adress == "" & (is.na(users$user.email[users$user.login == input$users]) | users$user.email[users$user.login == input$users] == "")) {
+      if (input$import.email.adress == "" & is.na(gta_sql_get_value(paste0("SELECT user_email from gta_user_log WHERE user_login ='",input$users,"';")))) {
+        
         showNotification("Please input a mail address", duration = 5)
+        
       } else {
         
         if (input$import.email.adress == "") {
-          email.address <- users$user.email[users$user.login == input$users]
+          email.address <- gta_sql_get_value(paste0("SELECT user_email from gta_user_log WHERE user_login ='",input$users,"';"))
         } else {
           email.address = input$import.email.adress
         }
+        
+        
         # FILL IMPORTER LOG
-        importer.log.new <- data.frame(user.id = users$user.id[users$user.login == input$users],
-                                       order.email = email.address,
-                                       job.name = input$import.job.name,
-                                       ticket.number = max(importer.log$ticket.number)+1,
-                                       time.order = Sys.time(),
-                                       under.preparation = 1,
-                                       xlsx.file = filename,
-                                       is.priority = input$prioritize,
-                                       process.by.others = input$process.by.others,
-                                       related.state.act = input$state.act.id)
-        importer.log.new <<- importer.log.new
+        ticket.nr=gta_sql_multiple_queries(paste0("INSERT INTO hs_importer_log (user_id, order_email, job_name, time_order, under_preparation, is_priority, process_by_others, related_state_act) 
+               VALUES (",
+                      gta_sql_get_value(paste0("SELECT user_id from gta_user_log WHERE user_login ='",input$users,"';")),",'",
+                      email.address,"','",
+                      input$import.job.name,
+                      "',CURRENT_TIMESTAMP,1,",
+                      as.numeric(input$prioritize),",",
+                      as.numeric(input$process.by.others),",",
+                      input$state.act.id,");
+               SELECT MAX(ticket_number) FROM ricardo.hs_importer_log;"),
+                                           output.queries = 2)
         
-        # importer.log.new = data.frame(user.id = 23,
-        #                               order.email = "mail@patrickbuess.ch",
-        #                               job.name = "Test DB",
-        #                               ticket.number = max(importer.log$ticket.number)+1,
-        #                               time.order = Sys.time(),
-        #                               under.preparation = 1,
-        #                               xlsx.file = "importfile",
-        #                               is.priorityf = TRUE,
-        #                               process.by.others = 4,
-        #                               related.state.act = "NULL")
+        filename=paste0(Sys.Date()," - ", ticket.nr, " - ",input$user,".xlsx")
         
-        gta_sql_append_table(append.table = "importer.log",
-                             append.by.df = "importer.log.new")
+        gta_sql_get_value(paste0("UPDATE hs_importer_log SET xlsx_file = '",
+                                 filename,
+                                 "' WHERE ticket_number=",ticket.nr,";"))
         
-        rm(importer.log.new)
+        rm(ticket.nr)
+
         
         # IF EXCEL IS CHOSEN
         if (importToggle == "import-toggle-excel") {
