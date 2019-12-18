@@ -859,7 +859,8 @@ server <- function(input, output, session) {
           checks[['check.phrases.new']] <- checks[['check.phrases.new']]+1
           
           check.phrases.update <- data.frame(check.id = this.check.id,
-                                             phrase.id = p.id)
+                                             phrase.id = p.id,
+                                             processing.round=p.round)
           check.phrases.update <<- check.phrases.update
           
           gta_sql_append_table(append.table = "check.phrases",
@@ -1141,7 +1142,8 @@ server <- function(input, output, session) {
         check.phrases <<- check.phrases
         
         check.phrases.update <- data.frame(check.id = this.check.id,
-                                           phrase.id = phr.id)
+                                           phrase.id = phr.id,
+                                           processing.round=p.round)
         check.phrases.update <<- check.phrases.update
         
         gta_sql_append_table(append.table = "check.phrases",
