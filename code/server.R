@@ -718,13 +718,14 @@ server <- function(input, output, session) {
         
         
         # codes.suggested
-        code.suggested <- change_encoding(gta_sql_load_table("code_suggested"))
-        code.suggested <<- code.suggested
-        
         suggested.new <- subset(data.ledger, (user.generated == 1 | search.generated == 1) & selected == 1)
-        suggested.new <- subset(suggested.new, ! hs.code.6 %in% subset(code.suggested, phrase.id == phr.id)$hs.code.6)
+        suggested.new <- subset(suggested.new, ! hs.code.6 %in% gta_sql_get_value(paste0("SELECT hs_code_6 
+                                                                                          FROM hs_code_suggested
+                                                                                          WHERE phrase_id=",phr.id,";")))
         
-        checks <- c(checks, list("suggested.old" = nrow(subset(code.suggested, phrase.id == phr.id))))
+        checks <- c(checks, list("suggested.old" =  gta_sql_get_value(paste0("SELECT COUNT(*) 
+                                                                              FROM hs_code_suggested
+                                                                              WHERE phrase_id=",phr.id,";"))))
         checks <- c(checks, list("suggested.new" = nrow(suggested.new)))
         
         rm(code.suggested)
