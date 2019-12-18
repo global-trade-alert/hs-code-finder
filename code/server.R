@@ -527,26 +527,11 @@ server <- function(input, output, session) {
     print("REFRESH_NAMES()")
     
     all.done = F
-    
-    job.log <- change_encoding(gta_sql_load_table("job_log"))
-    job.log <<- job.log
-    job.phrase <- change_encoding(gta_sql_load_table("job_phrase"))
-    job.phrase <<- job.phrase
-    phrase.log <- change_encoding(gta_sql_load_table("phrase_log"))
-    phrase.log <<- phrase.log
-    check.phrases <- change_encoding(gta_sql_load_table("check_phrases"))
-    check.phrases <<- check.phrases
-    check.log <- change_encoding(gta_sql_load_table("check_log"))
-    check.log <<- check.log
-    users <- change_encoding(gta_sql_load_table("user_log", table.prefix = "gta_"))
-    users <<- users
-    code.suggested <- change_encoding(gta_sql_load_table("code_suggested"))
-    code.suggested <<- code.suggested
-    
+
     if (type == "check.suggestion") {
       
       # COUNT REMAINING PHRASES FOR USER PER JOB
-      should.do <- subset(job.log, job.processed == F)
+      should.do <- gta_sql_get_value("SELECT * FROM hs_job_log WHERE job_processed=0;")
       
       if(nrow(should.do)==0) {
         
@@ -557,7 +542,17 @@ server <- function(input, output, session) {
         should.do$remaining <- 0
         
         for(j.id in unique(should.do$job.id)) {
-          should.do$remaining[should.do$job.id == j.id] <- nrow(subset(job.phrase, job.id == j.id & processed == F & ! phrase.id %in% subset(check.phrases, check.id %in% subset(check.log, user.id == users$user.id[users$user.login == input$users])$check.id)$phrase.id))
+          should.do$remaining[should.do$job.id == j.id] = length(gta_sql_get_value(paste0("SELECT DISTINCT(phrase_id) 
+                                                                                          FROM hs_job_phrase 
+                                                                                          WHERE job_id=",j.id," 
+                                                                                          AND processed=0
+                                                                                          AND phrase_id NOT IN (SELECT phrase_id
+                                                                                                                FROM hs_check_phrases
+                                                                                                                WHERE check_id IN (SELECT check_id
+                                                                                                                                   FROM hs_check_log
+                                                                                                                                   WHERE user_id =",
+                                                                                                                                   gta_sql_get_value(paste0("SELECT user_id from gta_user_log WHERE user_login ='",input$users,"';")),
+                                                                                                                                   "));")))
         }
         
         # ORDER JOBS BY PRIORITY AND REMAINING PHRASES, CHOOSE JOB ID FROM ROW 1
