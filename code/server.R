@@ -662,28 +662,17 @@ server <- function(input, output, session) {
         
         # check if phrase has been adjusted
         # phrase.log
-        phrase.log <- change_encoding(gta_sql_load_table("phrase_log"))
-        phrase.log <<- phrase.log
         
-        if (! tolower(paste(input$query.refine, collapse=" ")) %in% unique(tolower(phrase.log$phrase))) {
+        if (! tolower(paste(input$query.refine, collapse=" ")) %in% unique(tolower(gta_sql_get_value("SELECT phrase FROM hs_phrase_log")))) {
           
-          phrase.log.update <- data.frame(phrase.id = 123456789,
-                                          phrase = tolower(paste(input$query.refine, collapse = " ")),
-                                          source = "adjusted",
-                                          processing.round=1,
-                                          stringsAsFactors = F)
-          phrase.log.update <<- phrase.log.update
           
-          gta_sql_append_table(append.table = "phrase.log",
-                               append.by.df = "phrase.log.update")
-          rm(phrase.log.update)
+          new.phr.id=gta_sql_multiple_queries(paste0("INSERT INTO hs_phrase_log (phrase, source, processing_round, exit_status)
+                                                  VALUES ('",tolower(paste(input$query.refine, collapse = " ")),"','adjusted',1,1);
+                                                  SELECT MAX(phrase_id) FROM hs_phrase_log;"),
+                                                output.queries = 2)
+
           checks <- c(checks, list("nrow.phraselog" = 1))
-          
-          new.phr.id=gta_sql_get_value(paste0("SELECT phrase_id 
-                                          FROM hs_phrase_log
-                                          WHERE phrase='",tolower(paste(input$query.refine, collapse = " ")),"'
-                                          AND source='adjusted';"))
-          
+        
           if(is.na(new.phr.id)){
             stop("SAVE_SELECTION - new phrase: The phrase log update went wrong. I cannot find the phrase I just added.")
           }  else {
