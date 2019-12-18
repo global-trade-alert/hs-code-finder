@@ -682,19 +682,19 @@ server <- function(input, output, session) {
           }
           
           # update code.suggested to include the values of the original phrase ID for the new one
-          new.code.suggested=gta_sql_get_value(paste0("SELECT *
-                                                        FROM hs_code_suggested
-                                                        WHERE phrase_id =",phr.id,";"))
-          
-          new.code.suggested$phrase.id=new.phr.id
-          # new.code.suggested$suggestion.id <- seq(123456789, 123456789+(nrow(new.code.suggested))-1,1)
-          # print("NEW CODE SUGGESTED")
-          # print(new.code.suggested)
-          
-          gta_sql_append_table(append.table="code.suggested",
-                               append.by.df = "new.code.suggested")
-          checks <- c(checks, list("newphrase.suggested.new" = nrow(new.code.suggested)))
-          rm(new.code.suggested)
+          gta_sql_multiple_queries(paste0("DROP TABLE IF EXISTS hs_cs_temp;
+                                      CREATE TABLE hs_cs_temp AS
+                                      SELECT * 
+                                      FROM hs_code_suggested
+                                      WHERE phrase_id =",phr.id,";
+                                      UPDATE hs_cs_temp
+                                      SET phrase_id=",new.phr.id,";
+                                      INSERT INTO hs_code_suggested (phrase_id, hs_code_6, probability)
+                                      SELECT phrase_id, hs_code_6, probability
+                                      FROM hs_cs_temp;
+                                      DROP TABLE IF EXISTS hs_cs_temp;"),
+                                   output.queries = 1)
+        
           
           
           # update code.source to include the values of the original phrase ID for the new one
