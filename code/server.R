@@ -638,8 +638,6 @@ server <- function(input, output, session) {
     assign.global("phr.id",phr.id)
     
     click("names.refresh")
-    
-    rm(job.phrase, check.phrases, check.log, users, code.suggested, job.log, phrase.log)
   }
   
   # Functions for HS Code finder App
