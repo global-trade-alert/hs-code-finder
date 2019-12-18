@@ -698,38 +698,22 @@ server <- function(input, output, session) {
           
           
           # update code.source to include the values of the original phrase ID for the new one
-          old.code.suggested=gta_sql_get_value(paste0("SELECT *
-                                                        FROM hs_code_suggested
-                                                        WHERE phrase_id =",phr.id,";"))
           
-          old.code.source=gta_sql_get_value(paste0("SELECT *
-                                                        FROM hs_code_source
-                                                        WHERE suggestion_id IN(",paste(old.code.suggested$suggestion.id, collapse=","),");"))
+          gta_sql_update_table(paste0("INSERT INTO hs_code_source
+                                    SELECT hs_new.suggestion_id, hs_src.source_id
+                                       FROM hs_code_suggested hs_new
+                                       JOIN hs_code_suggested hs_old
+                                       ON hs_old.hs_code_6=hs_new.hs_code_6
+                                       JOIN hs_code_source hs_src
+                                       ON hs_old.suggestion_id=hs_src.suggestion_id
+                                       WHERE hs_new.phrase_id=",new.phr.id,"
+                                       AND hs_old.phrase_id=",phr.id,";"))
           
-          new.code.suggested=gta_sql_get_value(paste0("SELECT *
-                                                        FROM hs_code_suggested
-                                                      WHERE phrase_id =",new.phr.id,";"))
-          
-          
-          new.code.source=merge(old.code.suggested[,c("hs.code.6","suggestion.id")],
-                                old.code.source, by="suggestion.id")
-          new.code.source$suggestion.id=NULL
-          
-          new.code.source=merge(new.code.suggested[,c("hs.code.6","suggestion.id")],
-                                new.code.source, by="hs.code.6")
-          
-          new.code.source<<-unique(new.code.source[,c("suggestion.id","source.id")])
-          
-          gta_sql_append_table(append.table="code.source",
-                               append.by.df = "new.code.source")
           checks <- c(checks, list("newphrase.source.new" = nrow(new.code.source)))
           
-          rm(new.code.source, old.code.source, new.code.suggested, old.code.suggested)
-          
-        } else {
+          } else {
           new.phr.id <<- numeric()
         }
-        rm(phrase.log)
         
         
         
