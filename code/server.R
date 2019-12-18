@@ -700,7 +700,7 @@ server <- function(input, output, session) {
           # update code.source to include the values of the original phrase ID for the new one
           
           gta_sql_update_table(paste0("INSERT INTO hs_code_source
-                                    SELECT hs_new.suggestion_id, hs_src.source_id
+                                       SELECT hs_new.suggestion_id, hs_src.source_id
                                        FROM hs_code_suggested hs_new
                                        JOIN hs_code_suggested hs_old
                                        ON hs_old.hs_code_6=hs_new.hs_code_6
