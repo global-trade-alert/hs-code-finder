@@ -530,70 +530,78 @@ server <- function(input, output, session) {
 
     if (type == "check.suggestion") {
       
-      # COUNT REMAINING PHRASES FOR USER PER JOB
-      should.do <- gta_sql_get_value("SELECT * FROM hs_job_log WHERE job_processed=0;")
+      ## JF rewrite to:
+      ## (1) Are there any open phrases to which the user can contribute?
+      ## (2A) If so, get highest-priority phrase from highest-priority job.
+      ## (2B) If not, say thank you and set app to zero.
       
-      if(nrow(should.do)==0) {
-        
-        showNotification("No more phrases to process", duration = 5)
-        
-      } else {
-        
-        should.do$remaining <- 0
-        
-        for(j.id in unique(should.do$job.id)) {
-          should.do$remaining[should.do$job.id == j.id] = length(gta_sql_get_value(paste0("SELECT DISTINCT(phrase_id) 
-                                                                                          FROM hs_job_phrase 
-                                                                                          WHERE job_id=",j.id," 
-                                                                                          AND processed=0
-                                                                                          AND phrase_id NOT IN (SELECT phrase_id
-                                                                                                                FROM hs_check_phrases
-                                                                                                                WHERE check_id IN (SELECT check_id
-                                                                                                                                   FROM hs_check_log
-                                                                                                                                   WHERE user_id =",
-                                                                                                                                   gta_sql_get_value(paste0("SELECT user_id from gta_user_log WHERE user_login ='",input$users,"';")),
-                                                                                                                                   "));")))
-        }
-        
-        # ORDER JOBS BY PRIORITY AND REMAINING PHRASES, CHOOSE JOB ID FROM ROW 1
-        if (nrow(should.do)>0) {
-          should.do$is.priority <- ifelse(should.do$is.priority, 1, 0)
-          should.do <- should.do[with(should.do, order(-is.priority, remaining)),]
+      ## I do this all in one SQL query. First, to show off that I can, but more nobely because this avoid handling 'NA's along the way.
+      ## Before reading the quers note that there are in general two branches starting with 'WHERE/AND phrase_id'. 
+      ## The first branch retrieves all unprocessed phrases from the job with the highest priority that the user can still contribute to.
+      ## The second branch retrieves all phrase id's which the user can process.
+      ## The first branch is so long because one has prioritise over jobs that the user can still contribute to. 
+      
+      ## It feels like this query is longer than it needs to be but I can't put my finger on it. 
+      
+      next.phrase=gta_sql_get_value(paste0( "SELECT phrase_id 
+                                             FROM (SELECT phrase_id, COUNT(check_id)
+                                                   FROM hs_check_phrases AS tbl1
+                                                   WHERE phrase_id IN (SELECT phrase_id 
+                                                                       FROM hs_job_phrase
+                                                                       WHERE job_id = (SELECT job_id 
+                                                                                       FROM (SELECT jp.job_id, is_priority, COUNT(DISTINCT(jp.phrase_id))
+                                                                                             FROM hs_job_phrase jp
+                                                                                             JOIN hs_job_log jl
+                                                                                             ON jp.job_id = jl.job_id 
+                                                                                             WHERE jp.processed=0
+                                                                                             AND jp.job_id IN (SELECT job_id
+                                                                                                                FROM hs_job_phrase
+                                                                                                                WHERE processed = 0
+                                                                                                                AND phrase_id NOT IN (SELECT cp.phrase_id
+                                                                                                                                      FROM hs_check_phrases cp
+                                                                                                                                      JOIN hs_phrase_log pl
+                                                                                                                                      ON cp.phrase_id = pl.phrase_id
+                                                                                                                                      AND cp.processing_round = pl.processing_round
+                                                                                                                                      AND cp.check_id IN (SELECT check_id
+                                                                                                                                                         FROM hs_check_log
+                                                                                                                                                         WHERE user_id = ",
+                                                                                                                                                          gta_sql_get_value(paste0("SELECT user_id from gta_user_log WHERE user_login ='",input$users,"';")),
+                                                                                                                                                          ")))
+                                                                                             GROUP BY job_id
+                                                                                             ORDER by is_priority DESC, COUNT(jp.phrase_id) ASC
+                                                                                             LIMIT 1) 
+                                                                                            AS tbl_jobs_priority))
+                                                   AND phrase_id IN (SELECT phrase_id
+                                                                      FROM hs_job_phrase
+                                                                      WHERE processed = 0
+                                                                      AND phrase_id NOT IN (SELECT cp.phrase_id
+                                                                                            FROM hs_check_phrases cp
+                                                                                            JOIN hs_phrase_log pl
+                                                                                            ON cp.phrase_id = pl.phrase_id
+                                                                                            AND cp.processing_round = pl.processing_round
+                                                                                            AND cp.check_id IN (SELECT check_id
+                                                                                                               FROM hs_check_log
+                                                                                                               WHERE user_id = ",
+                                                                                                               gta_sql_get_value(paste0("SELECT user_id from gta_user_log WHERE user_login ='",input.users,"';")),
+                                                                    ")))
+                                                   GROUP BY phrase_id
+                                                   ORDER by COUNT(check_id) DESC
+                                                   LIMIT 1) 
+                                             AS tbl_phrase_priority"))
+      
+
+        if(is.na(next.phrase) == F) {
           
-          job.id <- should.do$job.id[1]
-          job.id <<- job.id
-          jobID.temp <- job.id
-          jobID.temp <<- jobID.temp
-          
-          should.do <- job.phrase$phrase.id[job.phrase$job.id == jobID.temp & job.phrase$processed == FALSE & ! job.phrase$phrase.id %in% subset(check.phrases, check.id %in% subset(check.log, user.id == users$user.id[users$user.login == input$users] & job.id == jobID.temp)$check.id)$phrase.id]
-          should.do <<- should.do
-          
-          rm(jobID.temp)
-          
-        } else {
-          showNotification("You are all done, thank you!", duration = 1000)
-          all.done = T
-        }
-        
-        
-        if (all.done == F) {
-          
-          if(length(should.do)>1) {
-            phr.id <<- sample(should.do,1)
-            # phr.id <<- 2326
-          } else {
-            phr.id <<- should.do
-            # phr.id <<- 2326
-          }
-          
-          query <<- paste(unlist(strsplit(as.character(phrase.log$phrase[phrase.log$phrase.id == phr.id])," ")))
+          phr.id<<-next.phrase
+          query <<- paste(unlist(strsplit(as.character(gta_sql_get_value(paste0("SELECT phrase FROM hs_phrase_log WHERE phrase_id =",next.phrase)))," ")))
           updateCheckboxGroupButtons(session, "query.refine", choices = query, selected = query)
           
-          data.subset <- subset(data.base, hs.code.6 %in% subset(code.suggested, phrase.id == phr.id)$hs.code)
+          data.subset <- subset(data.base, hs.code.6 %in% gta_sql_get_value(paste0("SELECT hs_code_6 FROM hs_code_suggested WHERE phrase_id =",next.phrase)))
           row.names(data.subset) <- NULL
           data.subset <<- data.subset
           
         } else {
+          showNotification("You are all done, thank you!", duration = 1000)
           
           phr.id <<- 0
           query <<- ""
