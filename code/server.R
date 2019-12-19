@@ -613,7 +613,7 @@ server <- function(input, output, session) {
         }
         
       }
-    }
+    
     
     print(paste0("JOB ID:", job.id))
     print(paste0("PHRASE ID:", phr.id))
@@ -641,7 +641,6 @@ server <- function(input, output, session) {
   }
   
   # Functions for HS Code finder App
-  
   save_selection <- function(type) {
     print("SAVE_SELECTION()")
     # load_all(path) 
@@ -1144,5 +1143,5 @@ server <- function(input, output, session) {
     }
     
   }
-  
 }
+  
