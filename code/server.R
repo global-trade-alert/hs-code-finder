@@ -778,7 +778,7 @@ server <- function(input, output, session) {
         rm(current.user.id, current.job.id)
         
         
-        gta_sql_get_value(paste0("SELECT user_id from gta_user_log WHERE user_login ='",input$users,"';"))
+
         # Add code.selected
         
         gta_sql_multiple_queries(paste0("DROP TABLE IF EXISTS hs_cs_temp;
@@ -849,6 +849,7 @@ server <- function(input, output, session) {
         
         gta_sql_update_table(paste0("INSERT INTO hs_check_certainty (check_id, certainty_level)
                                     VALUES (",this.check.id,",'",input$radio1,"');"))
+        
         
         # Updating job.phrase (only for original phrase.id, not new phrase id [if exists])
         successful.checks=gta_sql_get_value(paste0("SELECT COUNT(DISTINCT check_id)
