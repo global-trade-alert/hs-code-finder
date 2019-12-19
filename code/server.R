@@ -1044,32 +1044,15 @@ server <- function(input, output, session) {
         
         # CREATE NEW CHECK and store its ID
         # Check.log
-        c.time=Sys.time()
-        check.log.update <- data.frame(check.id = 123456789,
-                                       user.id = users$user.id[users$user.login == input$users],
-                                       time.stamp = c.time,
-                                       check.successful = FALSE,
-                                       job.id = job.id)
-        check.log.update <<- check.log.update
         
-        gta_sql_append_table(append.table = "check.log",
-                             append.by.df = "check.log.update")
+        current.user.id=gta_sql_get_value(paste0("SELECT user_id from gta_user_log WHERE user_login ='",input$users,"';"))
+        current.job.id=gta_sql_get_value(paste0("SELECT job_id from hs_job_phrase WHERE phrase_id ='",phr.id,"';")) ### JF would prefer this to be set differently. We should know what job the user is working on at this point. The present query could result in more than 1 answer (if a phrase is associated to more than 1 job).
         
-        rm(check.log.update)
-        
-        c.log=gta_sql_get_value(paste0("SELECT *
-                                       FROM hs_check_log
-                                       WHERE check_id = (SELECT MAX(check_id)  
-                                       FROM hs_check_log
-                                       WHERE user_id =",users$user.id[users$user.login == input$users],");"))
-        
-        if(as.POSIXct(c.log$time.stamp)==as.character(c.time)){
-          this.check.id<<-c.log$check.id
-          rm(c.log, c.time)
-          
-        } else {
-          stop("Check log update failed")
-        }
+        this.check.id=gta_sql_multiple_queries(paste0("INSERT INTO hs_check_log (user_id, time_stamp, check_successful, job_id)
+                                                  VALUES (",current.user.id,",CURRENT_TIMESTAMP,0,",current.job.id,");
+                                                  SELECT MAX(check_id) FROM hs_check_log;"),
+                                               output.queries = 2)
+        rm(current.user.id,current.job.id)
         
         
         # Check.phrases
