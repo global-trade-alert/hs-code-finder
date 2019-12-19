@@ -847,14 +847,8 @@ server <- function(input, output, session) {
         
         # check.certainty
         
-        check.certainty.update <- data.frame(check.id = this.check.id,
-                                             certainty.level = input$radio1)
-        check.certainty.update <<- check.certainty.update
-        
-        gta_sql_append_table(append.table = "check.certainty",
-                             append.by.df = "check.certainty.update")
-        
-        checks <- c(checks, list("check.certainty" = nrow(check.certainty.update)))
+        gta_sql_update_table(paste0("INSERT INTO hs_check_certainty (check_id, certainty_level)
+                                    VALUES (",this.check.id,",'",input$radio1,"');"))
         
         # Updating job.phrase (only for original phrase.id, not new phrase id [if exists])
         successful.checks=gta_sql_get_value(paste0("SELECT COUNT(DISTINCT check_id)
