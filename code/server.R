@@ -775,8 +775,10 @@ server <- function(input, output, session) {
                                                   VALUES (",current.user.id,",CURRENT_TIMESTAMP,1,",current.job.id,");
                                                   SELECT MAX(check_id) FROM hs_check_log;"),
                                               output.queries = 2)
+        rm(current.user.id, current.job.id)
         
         
+        gta_sql_get_value(paste0("SELECT user_id from gta_user_log WHERE user_login ='",input$users,"';"))
         # Add code.selected
         
         gta_sql_multiple_queries(paste0("DROP TABLE IF EXISTS hs_cs_temp;
@@ -832,19 +834,15 @@ server <- function(input, output, session) {
         
         if (input$suggestions.search.terms != "") {
           
-          additional.suggestions.phrases=as.data.frame(strsplit(input$suggestions.search.terms,split=';', fixed=TRUE))
+          for(add.wd in unique(strsplit(input$suggestions.search.terms,split=';', fixed=TRUE))){
+            
+            gta_sql_update_table(paste0("INSERT INTO hs_additional_suggestions (check_id, user_id, term)
+                                         VALUES (",this.check.id,",",gta_sql_get_value(paste0("SELECT user_id from gta_user_log WHERE user_login ='",input$users,"';")),",'",add.wd,"');"))
+            
+          }
           
-          additional.suggestions.update <- data.frame(check.id = this.check.id,
-                                                      term = additional.suggestions.phrases[,1],
-                                                      user.id = users$user.id[users$user.login == input$users])
-          additional.suggestions.update <<- additional.suggestions.update
+          checks <- c(checks, list("additional.suggestions" = length(strsplit(input$suggestions.search.terms,split=';', fixed=TRUE))))
           
-          gta_sql_append_table(append.table = "additional.suggestions",
-                               append.by.df = "additional.suggestions.update")
-          
-          checks <- c(checks, list("additional.suggestions" = nrow(additional.suggestions.update)))
-          
-          rm(additional.suggestions.phrases, additional.suggestions.update)
         }
         
         # check.certainty
