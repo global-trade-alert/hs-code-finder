@@ -810,21 +810,23 @@ server <- function(input, output, session) {
           
         }
         
-        
+        phrase.log$phrase[phrase.log$phrase.id == phr.id]
         # words.removed
-        words.all <- paste(unlist(strsplit(as.character(tolower(phrase.log$phrase[phrase.log$phrase.id == phr.id]))," ")))
+        words.all <- paste(unlist(strsplit(as.character(tolower(gta_sql_get_value(paste0("SELECT phrase 
+                                                                                         FROM hs_phrase_log 
+                                                                                         WHERE phrase_id =",phr.id,";"))))," ")))
         removed <- words.all[! words.all %in% paste(unlist(strsplit(as.character(tolower(input$query.refine))," ")))]
         
         checks <- c(checks, list("words.removed" = length(removed)))
         
         if (length(removed) > 0) {
           
-          words.removed.update <- data.frame(check.id = c(rep(this.check.id, length(removed))),
-                                             words.removed = removed)
-          words.removed.update <<- words.removed.update
-          
-          gta_sql_append_table(append.table = "words.removed",
-                               append.by.df = "words.removed.update")
+          for(rm.wd in unique(removed)){
+            
+            gta_sql_update_table(paste0("INSERT INTO hs_words_removed (check_id, words_removed)
+                                         VALUES (",this.check.id,",'",rm.wd,"');"))
+            
+          }
         }
         
         
