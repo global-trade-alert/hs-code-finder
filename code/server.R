@@ -1076,12 +1076,42 @@ server <- function(input, output, session) {
         found.temp <- . ## IS THIS CORRECT?
         # found.temp <- gta_hs_code_finder(products = tolower(paste(query.refine.future, collapse=" ")))
         
-        phrase.log.future <- gta_sql_load_table("phrase.log")
-        code.suggested.future <- gta_sql_load_table("code.suggested")
-        suggestion.sources.future <- gta_sql_load_table("suggestion.sources")
         
-        codes <- code.suggested.future$hs.code.6[code.suggested.future$phrase.id == phr.id.future]
-        new.codes <- subset(found.temp, ! hs.code %in% codes)
+        #### COMMENT START
+        ## I don't know what's in found.temp and thus can't do the following change myself.
+        ## I am pretty sure it would be better to do all of the below in a single SQL query similar to the one used above to update code.suggested and code.source simultaneously:
+        
+        # gta_sql_multiple_queries(paste0("DROP TABLE IF EXISTS hs_cs_temp;
+        #                               CREATE TABLE hs_cs_temp AS
+        #                               SELECT * 
+        #                               FROM hs_code_suggested
+        #                               WHERE phrase_id =",new.phr.id,"
+        #                               AND hs_code_6 NOT IN (SELECT hs_code_6
+        #                                                     FROM hs_code_suggested
+        #                                                     WHERE phrase_id =",phr.id,");
+        #                               UPDATE hs_cs_temp
+        #                               SET phrase_id=",phr.id,";
+        #                               INSERT INTO hs_code_suggested (phrase_id, hs_code_6, probability)
+        #                               SELECT phrase_id, hs_code_6, probability
+        #                               FROM hs_cs_temp;
+        #                               
+        #                               INSERT INTO hs_code_source
+        #                               SELECT hs_new.suggestion_id, hs_src.source_id
+        #                               FROM hs_cs_temp hs_new
+        #                               JOIN hs_code_suggested hs_old
+        #                               ON hs_old.hs_code_6=hs_new.hs_code_6
+        #                               JOIN hs_code_source hs_src
+        #                               ON hs_new.suggestion_id=hs_src.suggestion_id
+        #                               WHERE hs_new.phrase_id=",new.phr.id,"
+        #                               AND hs_old.phrase_id=",phr.id,";
+        #                               
+        #                               DROP TABLE IF EXISTS hs_cs_temp;
+        #                               "),
+        #                          output.queries = 1)
+        
+        new.codes <- subset(found.temp, ! hs.code %in% gta_sql_get_value(paste0("SELECT hs_code_6
+                                                                                 FROM hs_code_suggested
+                                                                                 WHERE phrase_id =",phr.id.future,";")))
         
         if (nrow(new.codes)>0) {
           new.codes <- new.codes[,c("hs.code","source.names")]
@@ -1129,6 +1159,8 @@ server <- function(input, output, session) {
           print("ALL DONE ASYNC")
         }
         rm(new.codes)
+        
+        #### COMMENT END
       }
       
       
