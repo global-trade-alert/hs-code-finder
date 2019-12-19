@@ -812,7 +812,7 @@ server <- function(input, output, session) {
           
         }
         
-        phrase.log$phrase[phrase.log$phrase.id == phr.id]
+        
         # words.removed
         words.all <- paste(unlist(strsplit(as.character(tolower(gta_sql_get_value(paste0("SELECT phrase 
                                                                                          FROM hs_phrase_log 
