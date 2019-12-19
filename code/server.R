@@ -790,7 +790,10 @@ server <- function(input, output, session) {
                                       AND hs_code_6 IN(",paste(paste0("'",subset(data.ledger, selected == 1)$hs.code.6,"'"), collapse=","),");
                                       
                                       ALTER TABLE hs_cs_temp
-                                      ADD check_id INT ",this.check.id,";
+                                      ADD check_id INT NULL;
+                                      
+                                      UPDATE hs_cs_temp
+                                      SET chek_id = ",this.check.id,";
                                       
                                       INSERT INTO hs_code_selected
                                       SELECT check_id, suggestion_id
@@ -1073,94 +1076,46 @@ server <- function(input, output, session) {
       # phr.id.future <<- 2561
       
       future({ gta_hs_code_finder(products = tolower(paste(query.refine.future, collapse=" ")))}) %...>%  {
-        found.temp <- . ## IS THIS CORRECT?
+        found.temp <- .
         # found.temp <- gta_hs_code_finder(products = tolower(paste(query.refine.future, collapse=" ")))
         
         
-        #### COMMENT START
-        ## I don't know what's in found.temp and thus can't do the following change myself.
-        ## I am pretty sure it would be better to do all of the below in a single SQL query similar to the one used above to update code.suggested and code.source simultaneously:
+        gta_sql_update_table("DROP TABLE IF EXISTS hs_found_temp;")
+  
+        found.temp=splitstackshape::cSplit(found.temp, which(names(found.temp)=="source.names"), sep="; ", direction="long")
+        gta_sql_create_table(write.df = "found.temp")
+        rm(found.temp)
         
-        # gta_sql_multiple_queries(paste0("DROP TABLE IF EXISTS hs_cs_temp;
-        #                               CREATE TABLE hs_cs_temp AS
-        #                               SELECT * 
-        #                               FROM hs_code_suggested
-        #                               WHERE phrase_id =",new.phr.id,"
-        #                               AND hs_code_6 NOT IN (SELECT hs_code_6
-        #                                                     FROM hs_code_suggested
-        #                                                     WHERE phrase_id =",phr.id,");
-        #                               UPDATE hs_cs_temp
-        #                               SET phrase_id=",phr.id,";
-        #                               INSERT INTO hs_code_suggested (phrase_id, hs_code_6, probability)
-        #                               SELECT phrase_id, hs_code_6, probability
-        #                               FROM hs_cs_temp;
-        #                               
-        #                               INSERT INTO hs_code_source
-        #                               SELECT hs_new.suggestion_id, hs_src.source_id
-        #                               FROM hs_cs_temp hs_new
-        #                               JOIN hs_code_suggested hs_old
-        #                               ON hs_old.hs_code_6=hs_new.hs_code_6
-        #                               JOIN hs_code_source hs_src
-        #                               ON hs_new.suggestion_id=hs_src.suggestion_id
-        #                               WHERE hs_new.phrase_id=",new.phr.id,"
-        #                               AND hs_old.phrase_id=",phr.id,";
-        #                               
-        #                               DROP TABLE IF EXISTS hs_cs_temp;
-        #                               "),
-        #                          output.queries = 1)
+        gta_sql_multiple_queries(paste0("DELETE FROM hs_found_temp
+                                        WHERE hs_code IN (SELECT hs_code_6
+                                                          FROM hs_code_suggested
+                                                          WHERE phrase_id =",phr.id.future,");
+                                                          
+                                        ALTER TABLE hs_found_temp
+                                        ADD phrase_id INT NULL;
+                                        
+                                        UPDATE hs_found_temp
+                                        SET phrase_id = ",phr.id.future,";
+                                        
+                                        ALTER TABLE hs_found_temp
+                                        ADD probability DOUBLE NULL;
+                                      
+                                        INSERT INTO hs_code_suggested (phrase_id, hs_code_6, probability)
+                                        SELECT phrase_id, hs_code, probability
+                                        FROM hs_found_temp;
+
+                                        INSERT INTO hs_code_source
+                                        SELECT hs_sug.suggestion_id, hs_src.source_id
+                                        FROM hs_found_temp hs_found
+                                        JOIN hs_code_suggested hs_sug
+                                        ON hs_found.hs_code=hs_sug.hs_code_6
+                                        AND hs_found.phrase_id=hs_sug.phrase_id
+                                        JOIN hs_suggestion_sources hs_src
+                                        ON hs_found.source_names=hs_src.source_name;
+                                        
+                                        DROP TABLE IF EXISTS hs_found_temp;"),
+                                 output.queries = 1)
         
-        new.codes <- subset(found.temp, ! hs.code %in% gta_sql_get_value(paste0("SELECT hs_code_6
-                                                                                 FROM hs_code_suggested
-                                                                                 WHERE phrase_id =",phr.id.future,";")))
-        
-        if (nrow(new.codes)>0) {
-          new.codes <- new.codes[,c("hs.code","source.names")]
-          new.codes$phrase.id <- phr.id.future
-          new.codes$suggestion.id <- seq(max(code.suggested.future$suggestion.id)+1,max(code.suggested.future$suggestion.id)+nrow(new.codes),1)
-          names(new.codes) <- c("hs.code.6","source.names","phrase.id","suggestion.id")
-          new.codes$probability=NA
-          
-          # code.suggested <- rbind(code.suggested, new.codes[,c("hs.code.6","phrase.id","suggestion.id", "probability")])
-          # code.suggested <<- code.suggested
-          
-          code.suggested.update.future <- new.codes[,c("hs.code.6","phrase.id","suggestion.id", "probability")]
-          code.suggested.update.future <<- code.suggested.update.future
-          
-          gta_sql_append_table(append.table = "code.suggested",
-                               append.by.df = "code.suggested.update.future")
-          
-          # Get newly added suggestion.ids, because of primary key, they can differ from the ones in this environment
-          sql <- "SELECT * FROM hs_code_suggested WHERE phrase_id = ?phraseID;" # the WHERE condition is a safeguard in case another user saves at the exact same time
-          query <- sqlInterpolate(pool, 
-                                  sql, 
-                                  phraseID = phr.id.future)
-          
-          new.codes.current=gta_sql_get_value(query)
-          new.codes.current = subset(new.codes.current, hs.code.6 %in% code.suggested.update.future$hs.code.6)
-          
-          new.codes <- merge(new.codes[,c("source.names","hs.code.6")], new.codes.current[,c("hs.code.6","suggestion.id")], by="hs.code.6")[,c("source.names","suggestion.id")]
-          
-          new.codes <- cSplit(new.codes, which(colnames(new.codes)=="source.names"), direction="long", sep=";")
-          names(new.codes) <- c("source.name","suggestion.id")
-          new.codes <- merge(new.codes, suggestion.sources.future, by="source.name", all.x=T)
-          
-          # code.source <- rbind(code.source, new.codes[,c("source.id","suggestion.id")])
-          
-          code.source.update.future <- new.codes[,c("source.id","suggestion.id")]
-          code.source.update.future <<- code.source.update.future
-          
-          gta_sql_append_table(append.table = "code.source",
-                               append.by.df = "code.source.update.future")
-          
-          rm(code.source.update.future, code.suggested.update, codes,found.temp, new.codes.current)
-          
-          print("Number of new codes found:")
-          print(nrow(new.codes))
-          print("ALL DONE ASYNC")
-        }
-        rm(new.codes)
-        
-        #### COMMENT END
       }
       
       
