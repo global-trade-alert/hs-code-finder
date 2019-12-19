@@ -1056,33 +1056,13 @@ server <- function(input, output, session) {
         
         
         # Check.phrases
-        check.phrases <- change_encoding(gta_sql_load_table("check_phrases"))
-        check.phrases <<- check.phrases
+        gta_sql_update_table(paste0("INSERT INTO hs_check_phrases (check_id, phrase_id, processing_round)
+                                     VALUES (",this.check.id,",",phr.id,",",p.round,");"))
         
-        check.phrases.update <- data.frame(check.id = this.check.id,
-                                           phrase.id = phr.id,
-                                           processing.round=p.round)
-        check.phrases.update <<- check.phrases.update
-        
-        gta_sql_append_table(append.table = "check.phrases",
-                             append.by.df = "check.phrases.update")
-        
-        rm(check.phrases.update)
         
         # check.certainty
-        
-        check.certainty <- change_encoding(gta_sql_load_table("check_certainty"))
-        check.certainty <<- check.certainty
-        
-        check.certainty.update <- data.frame(check.id = this.check.id,
-                                             certainty.level = input$radio1)
-        check.certainty.update <<- check.certainty.update
-        
-        gta_sql_append_table(append.table = "check.certainty",
-                             append.by.df = "check.certainty.update")
-        
-        rm(check.certainty.update)
-        
+        gta_sql_update_table(paste0("INSERT INTO hs_check_certainty (check_id, certainty_level)
+                                    VALUES (",this.check.id,",'",input$radio1,"');"))
       }
       
       
