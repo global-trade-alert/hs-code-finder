@@ -777,45 +777,36 @@ server <- function(input, output, session) {
                                               output.queries = 2)
         
         
-
         # Add code.selected
-        code.suggested <- change_encoding(gta_sql_load_table("code_suggested"))
-        code.suggested <<- code.suggested
         
-        code.selected.new <- subset(code.suggested, hs.code.6 %in% subset(data.ledger, selected == 1)$hs.code.6 & phrase.id == phr.id)
+        gta_sql_multiple_queries(paste0("DROP TABLE IF EXISTS hs_cs_temp;
         
-        checks <- c(checks, list("selected.new" = nrow(code.selected.new)))
+                                      CREATE TABLE hs_cs_temp AS
+                                      SELECT * 
+                                      FROM hs_code_suggested 
+                                      WHERE phrase_id = ",phr.id,"
+                                      AND hs_code_6 IN(",paste(paste0("'",subset(data.ledger, selected == 1)$hs.code.6,"'"), collapse=","),");
+                                      
+                                      ALTER TABLE hs_cs_temp
+                                      ADD check_id INT ",this.check.id,";
+                                      
+                                      INSERT INTO hs_code_selected
+                                      SELECT check_id, suggestion_id
+                                      FROM hs_cs_temp;
+                                      
+                                      DROP TABLE IF EXISTS hs_cs_temp;
+                                      "),
+                                 output.queries = 1)
         
-        if (nrow(code.selected.new) > 0) {
-          
-          code.selected.update <- data.frame(check.id = this.check.id,
-                                             suggestion.id = code.selected.new$suggestion.id)
-          code.selected.update <<- code.selected.update
-          
-          gta_sql_append_table(append.table = "code.selected",
-                               append.by.df = "code.selected.update")
-          
-          print(code.selected.update)
-          
-          rm(code.selected.update, code.selected.new)
-        }
-        
-        
+      
         # Check.phrases
         checks <- c(checks, list("check.phrases.new" = 0))
         for(p.id in c(phr.id, new.phr.id)){
           
           checks[['check.phrases.new']] <- checks[['check.phrases.new']]+1
           
-          check.phrases.update <- data.frame(check.id = this.check.id,
-                                             phrase.id = p.id,
-                                             processing.round=p.round)
-          check.phrases.update <<- check.phrases.update
-          
-          gta_sql_append_table(append.table = "check.phrases",
-                               append.by.df = "check.phrases.update")
-          
-          rm(check.phrases.update)
+          gta_sql_update_table(paste0("INSERT INTO hs_check_phrases (check_id, phrase_id, processing_round)
+                                       VALUES (",this.check.id,",",p.id,",",p.round,");"))
           
         }
         
