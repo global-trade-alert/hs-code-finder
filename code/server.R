@@ -1073,7 +1073,7 @@ server <- function(input, output, session) {
       # phr.id.future <<- 2561
       
       future({ gta_hs_code_finder(products = tolower(paste(query.refine.future, collapse=" ")))}) %...>%  {
-        found.temp <- .
+        found.temp <- . ## IS THIS CORRECT?
         # found.temp <- gta_hs_code_finder(products = tolower(paste(query.refine.future, collapse=" ")))
         
         phrase.log.future <- gta_sql_load_table("phrase.log")
