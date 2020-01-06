@@ -1,17 +1,16 @@
-
-
+addResourcePath(prefix = 'www', directoryPath = paste0(path,'code/www'))
 
 ui <- fluidPage(
   useShinyjs(),
-  theme = "style.css",
-  tags$head(tags$link(rel="stylesheet", type="text/css", href="tipped.css")),
-  tags$head(tags$script(src="tipped.js")),
+  theme = "www/style.css",
+  tags$head(tags$link(rel="stylesheet", type="text/css", href="www/tipped.css")),
+  tags$head(tags$script(src="www/tipped.js")),
   
   ######## DATA COUNTS #########
   tags$div(id="loading",
            tags$div(class="loading-background"),
            tags$div(class="img-holder",
-                    tags$img(src="loading.svg"))),
+                    tags$img(src="www/loading.svg"))),
   tags$div(class="header",
            tags$div(class="username",
                     textInput("username",
@@ -27,7 +26,7 @@ ui <- fluidPage(
                     tags$div(class="import-button",
                              actionButton("import.toggle.button",
                                           "Import Values")),
-                    img(src="gta logo-white.svg"))),
+                    img(src="www/gta logo-white.svg"))),
   
   tags$div(class="overall-wrap",
            tags$div(class = "settings",
@@ -36,14 +35,11 @@ ui <- fluidPage(
                                       HTML("<p class='search-term'>Search term:</p>"),
                                       actionButton("call_names_refresh",
                                                    "Refresh"),
-                                      checkboxGroupButtons("query.refine",
-                                                           label=NULL,
-                                                           choices = query,
-                                                           selected = query),
-                                      conditionalPanel(condition = "output.showFinderCheck",
-                                                       tags$div(class="finder_check",
-                                                                uiOutput("finder_check_text"),
-                                                                uiOutput("finder_check_button"))),
+                                      uiOutput("query.refine"),
+                                      # conditionalPanel(condition = "output.showFinderCheck",
+                                      #                  tags$div(class="finder_check",
+                                      #                           uiOutput("finder_check_text"),
+                                      #                           uiOutput("finder_check_button"))),
                                       tags$div(class="not-a-product",
                                                # tags$p("This is not a good/product, but a service:"),
                                                actionButton("not.product",
