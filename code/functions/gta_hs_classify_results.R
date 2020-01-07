@@ -3,24 +3,26 @@ gta_hs_classify_results<- function(processed.phrase=NULL,
                                    relevance.threshold=.5,
                                    path.to.cloud=NULL,
                                    source.data="17 Shiny/5 HS code finder/database/HS classifier.Rdata"){
- 
-  # variable.df="classifier.variables"
+  
   # relevance.threshold=.5
   # path.to.cloud=NULL
   # source.data="17 Shiny/5 HS code finder/database/HS classifier.Rdata"
+  # processed.phrase = "classifier.variables"
+  # job.id=NULL
   
   library(gtalibrary)
   library(gtasql)
   library(pool)
   library(data.table)
   
-  setwd("/home/rstudio/Dropbox/GTA cloud")
-
-  gta_sql_pool_open(db.title="ricardomain",
-                   db.host = gta_pwd("ricardomain")$host,
-                   db.name = gta_pwd("ricardomain")$name,
-                   db.user = gta_pwd("ricardomain")$user,
-                   db.password = gta_pwd("ricardomain")$password,
+  # setwd("/home/rstudio/Dropbox/GTA cloud")
+  gta_setwd()
+  
+  gta_sql_pool_open(db.title="ricardodev",
+                   db.host = gta_pwd("ricardodev")$host,
+                   db.name = gta_pwd("ricardodev")$name,
+                   db.user = gta_pwd("ricardodev")$user,
+                   db.password = gta_pwd("ricardodev")$password,
                    table.prefix = "hs_")
 
   if(is.null(processed.phrase)){
