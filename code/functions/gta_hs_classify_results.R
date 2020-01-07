@@ -4,6 +4,9 @@ gta_hs_classify_results<- function(processed.phrase=NULL,
                                    path.to.cloud=NULL,
                                    source.data="17 Shiny/5 HS code finder/database/HS classifier.Rdata"){
   
+
+  # variable.df="classifier.variables"
+
   # relevance.threshold=.5
   # path.to.cloud=NULL
   # source.data="17 Shiny/5 HS code finder/database/HS classifier.Rdata"
@@ -25,6 +28,7 @@ gta_hs_classify_results<- function(processed.phrase=NULL,
                    db.password = gta_pwd("ricardodev")$password,
                    table.prefix = "hs_")
 
+
   if(is.null(processed.phrase)){
     stop("gta_hs_classify_results: No ID for the processed phrase is specified.")
   }
@@ -36,7 +40,7 @@ gta_hs_classify_results<- function(processed.phrase=NULL,
   agreed.parts$relevant=agreed.parts$selection.share
   
   estimation.set=subset(estimation.set, ! selection.share %in% c(0,1))
-   
+  
   if(is.null(path.to.cloud)==F){
     setwd(path.to.cloud)
   } else {
@@ -53,16 +57,18 @@ gta_hs_classify_results<- function(processed.phrase=NULL,
     
     load(source.data)
     
-    ## compare whether variables are the same as in estimator, if not re-estimate classifier
+    ## A variable i smissing
     if(any(! classifier.variables %in% names(estimation.set))){
+      
+      miss.vars=paste(classifier.variables[! classifier.variables %in% names(estimation.set)], collapse=";")
       
       # SEND EMAIL TO JF
       sender = gta_pwd("mail")$mail  
       recipients = c("fritz.johannes@gmail.com","patrick.buess@student.unisg.ch")
       attachment=NULL
       
-      sbjct=paste("[HS App] Classifier reestimation", sep="")
-      message=paste0("Hello Johannes\n\n The HS App classifier is being reestimated. \n\nRegards\nGTA data team\n\n\n\n", sep="")
+      sbjct=paste("[HS App] URGENT: Classifier misses variable", sep="")
+      message=paste0("Hello \n\n The HS App classifier needs re-estimation.\n\nThe missing variable(s): ",miss.vars,"\n\nRegards\nHS app\n\n\n\n", sep="")
       send.mail(from = sender,
                 to = recipients,
                 subject=sbjct,
@@ -78,14 +84,44 @@ gta_hs_classify_results<- function(processed.phrase=NULL,
       
       rm(recipients, message, sbjct, sender)
       
-      gta_hs_estimate_classifier()
+      stop("FATAL ERROR: Variable MISSING for classifier.")
       
       
-    } else {
+    } 
+    
+    ## there is a new variable
+    if(any(! names(estimation.set) %in% classifier.variables)){
       
-      estimate=estimation.set[,classifier.variables]
+      new.vars=paste(names(estimation.set)[! names(estimation.set) %in% classifier.variables], collapse=";")
       
-    }
+      # SEND EMAIL TO JF
+      sender = gta_pwd("mail")$mail  
+      recipients = c("fritz.johannes@gmail.com","patrick.buess@student.unisg.ch")
+      attachment=NULL
+      
+      sbjct=paste("[HS App] Classifier needs re-estimation", sep="")
+      message=paste0("Hello \n\n The HS App classifier needs re-estimation.\n\nThe new variable(s): ",new.vars,"\n\nWhen you find the time, someone please run 'gta_hs_estimate_classifier()' on his local machine (not a server).\n\nRegards\nHS app\n\n\n\n", sep="")
+      send.mail(from = sender,
+                to = recipients,
+                subject=sbjct,
+                body=message,
+                html=F,
+                attach.files = attachment,
+                smtp = list(host.name = gta_pwd("mail")$host,
+                            port=gta_pwd("mail")$port,
+                            user.name=sender, 
+                            passwd=gta_pwd("mail")$password,
+                            tls=T),
+                authenticate = T)
+      
+      rm(recipients, message, sbjct, sender)
+      
+      
+    } 
+    
+    
+    estimate=estimation.set[,classifier.variables]
+    
     
     ## estimating the unsure cases
     estimation.set$probability=round(predict(hs.classifier, estimate)$pred[,1],3)
