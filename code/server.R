@@ -53,6 +53,7 @@ server <- function(input, output, session) {
   userinput = F
   nonefound.check = F
   searchinput = F
+  load.new.phrase = T
   
   # FUNCTION TO GET LIST OF SELECTED ROWS
   initialSelectAll <- T
@@ -73,7 +74,6 @@ server <- function(input, output, session) {
           selected.codes <- c(data.ledger$selected, data.ledger.user$selected)
           existing.rows$selected <- 0
           existing.rows$selected[existing.rows$hs.code.6 %in% selected.codes] <- 1
-          
           return(c(which(existing.rows$selected == 1, arr.ind = T)))
         } else {
           return (c())
@@ -154,9 +154,13 @@ server <- function(input, output, session) {
       data.output <- unique(data.output[,c("indicator","hs.code.6","probability.html","hs.description.6","hs.description.4","hs.code.4","hs.code.2","hs.id")])
     }
     
+    if (load.new.phrase) {
+      data.ledger$selected <- data.ledger$codes
+      load.new.phrase <<- F
+    }
+    
     row.names(data.output) <- NULL
     data.output <<- data.output
-    
     
   })
   
@@ -211,7 +215,7 @@ server <- function(input, output, session) {
   
   # OBSERVE CHANGES IN REFINE.QUERY
   observeEvent(input$query.refine, ignoreNULL = F, {
-    if (length(input$query.refine)==0) {
+    if (length(input$query.refine)==0 & is.null(user$name)==F) {
       showNotification("Please select at least one word of the original phrase", duration = 3)
       updateCheckboxGroupButtons(session, "query.refine", choices = query$phrase, selected = query$phrase[1])
     }
@@ -327,18 +331,17 @@ server <- function(input, output, session) {
         # FILL IMPORTER LOG
         ticket.nr=gta_sql_multiple_queries(paste0("INSERT INTO hs_importer_log (user_id, order_email, job_name, time_order, under_preparation, is_priority, process_by_others, related_state_act) 
                VALUES (",
-                                                  gta_sql_get_value(paste0("SELECT user_id from gta_user_log WHERE user_login ='",input$users,"';")),",'",
+                                                  user$id,",'",
                                                   email.address,"','",
                                                   input$import.job.name,
                                                   "',CURRENT_TIMESTAMP,1,",
                                                   as.numeric(input$prioritize),",",
                                                   as.numeric(input$process.by.others),",",
                                                   input$state.act.id,");
-               SELECT MAX(ticket_number) FROM ricardo.hs_importer_log;"),
+               SELECT MAX(ticket_number) FROM hs_importer_log;"),
                                            output.queries = 2)
         
         filename=paste0(Sys.Date()," - ", ticket.nr, " - ",input$user,".xlsx")
-        
         gta_sql_get_value(paste0("UPDATE hs_importer_log SET xlsx_file = '",
                                  filename,
                                  "' WHERE ticket_number=",ticket.nr,";"))
@@ -432,8 +435,8 @@ server <- function(input, output, session) {
   # Report terms which are not a product 
   observeEvent(input$not.product, {
     
-    current.user.id=gta_sql_get_value(paste0("SELECT user_id from gta_user_log WHERE user_login ='",input$users,"';"))
-    current.job.id=gta_sql_get_value(paste0("SELECT job_id from hs_job_phrase WHERE phrase_id ='",phr.id$id,"';")) ### JF would prefer this to be set differently. We should know what job the user is working on at this point. The present query could result in more than 1 answer (if a phrase is associated to more than 1 job).
+    current.user.id=user$id
+    current.job.id=job.id$id
     
     new.check.id=gta_sql_multiple_queries(paste0("INSERT INTO hs_check_log (user_id, time_stamp, check_successful, job_id)
                                                   VALUES (",current.user.id,",CURRENT_TIMESTAMP,1,",current.job.id,");
@@ -443,8 +446,9 @@ server <- function(input, output, session) {
     gta_sql_update_table(paste0("INSERT INTO hs_report_services (user_id,check_id,phrase_id)
                                  VALUES (",current.user.id,",",new.check.id,",",phr.id$id,");"))
     
-    gta_sql_update_table(paste0("INSERT INTO hs_check_phrases (check_id, phrase_id)
-                                 VALUES (",new.check.id,",",phr.id$id,");"))
+    p.round <- gta_sql_get_value(paste0("SELECT processing_round FROM hs_phrase_log WHERE phrase_id = ", phr.id$id))
+    gta_sql_update_table(paste0("INSERT INTO hs_check_phrases (check_id, phrase_id, processing_round)
+                                 VALUES (",new.check.id,",",phr.id$id,",",p.round,");"))
     
     refresh_names()
   })
@@ -588,15 +592,18 @@ server <- function(input, output, session) {
                                              AS tbl_phrase_priority"))
       
       
+      
       if(is.na(next.phrase) == F) {
-        
+      
         phr.id$id <- next.phrase
+      
+        job.id$id <- gta_sql_get_value(paste0("SELECT job_id FROM hs_job_phrase WHERE (phrase_id = ",phr.id$id, " AND processed = 0) LIMIT 1")) # CHECKLATER: How do we know which job is being processed?
 
         query.temp <- paste(unlist(strsplit(as.character(gta_sql_get_value(paste0("SELECT phrase FROM hs_phrase_log WHERE phrase_id =",phr.id$id)))," ")))
         query$phrase <<- query.temp
         updateCheckboxGroupButtons(session, "query.refine", choices = query.temp, selected = query.temp)
         
-        data.subset <- subset(data.base, hs.code.6 %in% gta_sql_get_value(paste0("SELECT hs_code_6 FROM hs_code_suggested WHERE phrase_id =",phr.id$id)))
+        data.subset <- subset(data.base, as.numeric(hs.code.6) %in% gta_sql_get_value(paste0("SELECT hs_code_6 FROM hs_code_suggested WHERE phrase_id =",phr.id$id)))
         row.names(data.subset) <- NULL
         data.subset <<- data.subset
         
@@ -631,7 +638,7 @@ server <- function(input, output, session) {
     # data.ledger$selected <- 0
     # data.ledger$selected[data.ledger$hs.code.6 %in% unique(data.subset$hs.code.6)] <- 1
     # data.ledger <<- data.ledger
-    
+    load.new.phrase <<- T
     click("names.refresh")
   }
   
@@ -640,13 +647,16 @@ server <- function(input, output, session) {
     print("SAVE_SELECTION()")
     cat("\n")
     
+    
     # load_all(path) 
     toggleClass("loading","active")
     
     if(is.null(user$name)){
       showNotification("Please select or create a user before saving your selection",duration = 1000)
+      toggleClass("loading","active")
     } else if (is.null(input$radio1)==T) {
       showNotification("Please select a confidence level",duration = 5)
+      toggleClass("loading","active")
     } else {
       
       
@@ -659,6 +669,42 @@ server <- function(input, output, session) {
         # check if phrase has been adjusted
         # phrase.log
         
+        # codes.suggested
+        # get user added phrases, which are not yet stored in the code.suggested table
+        suggested.new <- data.ledger.user$selected[! data.ledger.user$selected %in% gta_sql_get_value(paste0("SELECT hs_code_6 
+                                                                                                              FROM hs_code_suggested
+                                                                                                              WHERE phrase_id=",phr.id$id,";"))]
+        
+        
+        # UDPATE CODE SUGGESTED WITH USER ADDED PHRASES
+        if (length(suggested.new)>0) {
+          gta_sql_multiple_queries(paste0("INSERT INTO hs_code_suggested (phrase_id, hs_code_6, probability) 
+                                          VALUES ",paste0("(",phr.id$id,",",suggested.new,", NULL)",collapse=", ")), output.queries = 1)
+        }
+        
+        
+        # UPDATE CODE SOURCE WITH NEW CODE SUGGESTED ROWS
+        gta_sql_multiple_queries(paste0("DROP TABLE IF EXISTS hs_cs_temp;
+        
+                                        CREATE TABLE hs_cs_temp AS
+                                        SELECT * 
+                                        FROM hs_code_suggested
+                                        WHERE phrase_id =",phr.id$id,"
+                                        AND suggestion_id NOT IN (SELECT suggestion_id
+                                                              FROM hs_code_source);
+                                        
+                                        ALTER TABLE hs_cs_temp ADD source_id int DEFAULT 1;
+                                        
+                                        INSERT INTO hs_code_source
+                                        SELECT hs_new.suggestion_id, hs_new.source_id
+                                        FROM hs_cs_temp hs_new
+                                        WHERE phrase_id = ",phr.id$id,";
+                                        
+                                        DROP TABLE IF EXISTS hs_cs_temp;"),
+                                 output.queries = 1)
+        
+        
+        # IF NEW PHRASE, ADD OLD PHRASE SUGGESTIONS TO NEW PHRASE
         if (! tolower(paste(input$query.refine, collapse=" ")) %in% unique(tolower(gta_sql_get_value("SELECT phrase FROM hs_phrase_log")))) {
           
           
@@ -667,7 +713,7 @@ server <- function(input, output, session) {
                                                   SELECT MAX(phrase_id) FROM hs_phrase_log;"),
                                               output.queries = 2)
           
-          checks <- c(checks, list("nrow.phraselog" = 1))
+          # checks <- c(checks, list("nrow.phraselog" = 1))
           
           if(is.na(new.phr.id)){
             stop("SAVE_SELECTION - new phrase: The phrase log update went wrong. I cannot find the phrase I just added.")
@@ -694,7 +740,6 @@ server <- function(input, output, session) {
           
           
           # update code.source to include the values of the original phrase ID for the new one
-          
           gta_sql_update_table(paste0("INSERT INTO hs_code_source
                                        SELECT hs_new.suggestion_id, hs_src.source_id
                                        FROM hs_code_suggested hs_new
@@ -712,73 +757,14 @@ server <- function(input, output, session) {
         } 
         
         
-        
-        # codes.suggested
-        # get user added phrases, which are not yet stored in the code.suggested table
-        suggested.new <- data.ledger.user$selected[! data.ledger.user$selected %in% gta_sql_get_value(paste0("SELECT hs_code_6 
-                                                                                                              FROM hs_code_suggested
-                                                                                                              WHERE phrase_id=",phr.id$id,";"))]
-        print(paste0("rmlater: suggested new: ",paste0(suggested.new,collapse = ", ")))
-        # suggested.new <- subset(data.ledger, (user.generated == 1 | search.generated == 1) & selected == 1)
-        # suggested.new <- subset(suggested.new, ! hs.code.6 %in% gta_sql_get_value(paste0("SELECT hs_code_6 
-        #                                                                                   FROM hs_code_suggested
-        #                                                                                   WHERE phrase_id=",phr.id$id,";")))
-        
-        # count the number of existing suggestions for the original phrase id
-        # checks <- c(checks, list("suggested.old" =  gta_sql_get_value(paste0("SELECT COUNT(*) 
-                                                                              # FROM hs_code_suggested
-                                                                              # WHERE phrase_id=",phr.id$id,";"))))
-        # count the number of new suggestions for the original phrase
-        # checks <- c(checks, list("suggested.new" = length(suggested.new)))
-        
-
-        # update code.suggested with user-provided information
-        ### I delete this block since I want to replace it with SQL but am not sure we need to.
-        ### The problem addressed here is that user-added HS codes to the new.phr.id must be transferred to the original phrase.id. 
-        ### How are those additions to new-phr.id stored? If they are stored as user suggestions to the new phrase, then I think the below should do the trick
-        
-        # 1. get the hs_code_suggested WHERE phrase.id = NEW, and which are not yet in hs_code_suggested WHERE phrase.id = OLD
-        # 2. change phrase.id to old
-        # 3. insert into hs_code_suggested as new suggestions
-        # 4. insert into hs_code_source with SOURCE ID == 1
-        
         print(paste0("PHR ID: ",phr.id$id))
         print(paste0("NEW PRHASE ID: ",new.phr.id))
-        
-        gta_sql_multiple_queries(paste0("DROP TABLE IF EXISTS hs_cs_temp;
-                                      CREATE TABLE hs_cs_temp AS
-                                      SELECT * 
-                                      FROM hs_code_suggested
-                                      WHERE phrase_id =",new.phr.id,"
-                                      AND hs_code_6 NOT IN (SELECT hs_code_6
-                                                            FROM hs_code_suggested
-                                                            WHERE phrase_id =",phr.id$id,");
-                                      UPDATE hs_cs_temp
-                                      SET phrase_id=",phr.id$id,";
-                                      INSERT INTO hs_code_suggested (phrase_id, hs_code_6, probability)
-                                      SELECT phrase_id, hs_code_6, probability
-                                      FROM hs_cs_temp;
-                                      
-                                      INSERT INTO hs_code_source
-                                      SELECT hs_new.suggestion_id, hs_src.source_id
-                                      FROM hs_cs_temp hs_new
-                                      JOIN hs_code_suggested hs_old
-                                      ON hs_old.hs_code_6=hs_new.hs_code_6
-                                      JOIN hs_code_source hs_src
-                                      ON hs_new.suggestion_id=hs_src.suggestion_id
-                                      WHERE hs_new.phrase_id=",new.phr.id,"
-                                      AND hs_old.phrase_id=",phr.id$id,";
-                                      
-                                      DROP TABLE IF EXISTS hs_cs_temp;
-                                      "),
-                                 output.queries = 1)
-          
         
         # CREATE NEW CHECK and store its ID
         # Check.log
         
         current.user.id=user$id
-        current.job.id=job.id$id ### JF would prefer this to be set differently. We should know what job the user is working on at this point. The present query could result in more than 1 answer (if a phrase is associated to more than 1 job).
+        current.job.id=job.id$id
         
         this.check.id=gta_sql_multiple_queries(paste0("INSERT INTO hs_check_log (user_id, time_stamp, check_successful, job_id)
                                                   VALUES (",current.user.id,",CURRENT_TIMESTAMP,1,",current.job.id,");
@@ -789,14 +775,14 @@ server <- function(input, output, session) {
         
         
         # Add code.selected
-        
+      
         gta_sql_multiple_queries(paste0("DROP TABLE IF EXISTS hs_cs_temp;
         
                                       CREATE TABLE hs_cs_temp AS
                                       SELECT * 
                                       FROM hs_code_suggested 
                                       WHERE phrase_id = ",phr.id$id,"
-                                      AND hs_code_6 IN(",paste(paste0("'",c(data.ledger$selected, data.ledger.user$selected),"'"), collapse=","),");
+                                      AND hs_code_6 IN(",paste(paste0("'",as.numeric(c(data.ledger$selected, data.ledger.user$selected)),"'"), collapse=","),");
                                       
                                       ALTER TABLE hs_cs_temp
                                       ADD check_id INT NULL;
@@ -812,6 +798,30 @@ server <- function(input, output, session) {
                                       "),
                                  output.queries = 1)
         
+        # Add code selected suggestion ids for new.phr.id
+        if(new.phr.id != phr.id$id) {
+          gta_sql_multiple_queries(paste0("DROP TABLE IF EXISTS hs_cs_temp;
+        
+                                      CREATE TABLE hs_cs_temp AS
+                                      SELECT * 
+                                      FROM hs_code_suggested 
+                                      WHERE phrase_id = ",new.phr.id,"
+                                      AND hs_code_6 IN(",paste(paste0("'",as.numeric(c(data.ledger$selected, data.ledger.user$selected)),"'"), collapse=","),");
+                                      
+                                      ALTER TABLE hs_cs_temp
+                                      ADD check_id INT NULL;
+                                      
+                                      UPDATE hs_cs_temp
+                                      SET check_id = ",this.check.id,";
+                                      
+                                      INSERT INTO hs_code_selected
+                                      SELECT check_id, suggestion_id
+                                      FROM hs_cs_temp;
+                                      
+                                      DROP TABLE IF EXISTS hs_cs_temp;
+                                      "),
+                                   output.queries = 1)
+        }
         
         # Check.phrases
         # checks <- c(checks, list("check.phrases.new" = 0))
@@ -820,11 +830,12 @@ server <- function(input, output, session) {
         
         for(p.id in toCheck){
           
-        # checks[['check.phrases.new']] <- checks[['check.phrases.new']]+1
-        
-        # WHERE SHOULD p.round be defined, check.phrases will be updated with a new row for each phrase, how would processing round increase here?
-        gta_sql_update_table(paste0("INSERT INTO hs_check_phrases (check_id, phrase_id, processing_round)
-                                     VALUES (",this.check.id,",",p.id,",",p.round,");"))
+          # checks[['check.phrases.new']] <- checks[['check.phrases.new']]+1
+          p.round <- gta_sql_get_value(paste0("SELECT processing_round FROM hs_phrase_log WHERE phrase_id = ", p.id))
+          # WHERE SHOULD p.round be defined, check.phrases will be updated with a new row for each phrase, how would processing round increase here?
+          # CHECKLATER: replaced p.round with 1, as not sure if processing round really needed here
+          gta_sql_update_table(paste0("INSERT INTO hs_check_phrases (check_id, phrase_id, processing_round)
+                                       VALUES (",this.check.id,",",p.id,",",p.round,");"))
           
         }
         
@@ -850,19 +861,18 @@ server <- function(input, output, session) {
         
         if (input$suggestions.search.terms != "") {
           
-          for(add.wd in unique(strsplit(input$suggestions.search.terms,split=';', fixed=TRUE))){
-            
+          for(add.wd in unique(strsplit(input$suggestions.search.terms,split=';', fixed=TRUE))[[1]]) {
+            add.wd <- trimws(add.wd, which="both")
             gta_sql_update_table(paste0("INSERT INTO hs_additional_suggestions (check_id, user_id, term)
-                                         VALUES (",this.check.id,",",gta_sql_get_value(paste0("SELECT user_id from gta_user_log WHERE user_login ='",input$users,"';")),",'",add.wd,"');"))
+                                         VALUES (",this.check.id,",",user$id,",'",add.wd,"');"))
             
           }
           
-          checks <- c(checks, list("additional.suggestions" = length(strsplit(input$suggestions.search.terms,split=';', fixed=TRUE))))
+          # checks <- c(checks, list("additional.suggestions" = length(strsplit(input$suggestions.search.terms,split=';', fixed=TRUE))))
           
         }
-        
-        # check.certainty
-        
+      
+          # check.certainty
         gta_sql_update_table(paste0("INSERT INTO hs_check_certainty (check_id, certainty_level)
                                     VALUES (",this.check.id,",'",input$radio1,"');"))
         
@@ -883,10 +893,9 @@ server <- function(input, output, session) {
         jobs.incl.phrase=gta_sql_get_value(paste0("SELECT job_id
                                                  FROM hs_job_phrase
                                                   WHERE phrase_id =",phr.id$id,";"))
-        
         if(is.na(jobs.incl.phrase[1])==F){
           
-          for(j.id in 1:jobs.incl.phrase){
+          for(j.id in jobs.incl.phrase){
             required.checks=gta_sql_get_value(paste0("SELECT nr_of_checks
                                                      FROM hs_job_log
                                                      WHERE job_id =",j.id,";"))
@@ -967,9 +976,11 @@ server <- function(input, output, session) {
                     
                     # SAVE PROBABILITIES FOR THAT PHRASE
                     phr.id.probability.future <- phr.id$id
-                    future({ gta_hs_classify_results(processed.phrase = phr.id$id,
+                    # gta_hs_classify_results(processed.phrase = phr.id$id,
+                                            # job.id=j.id) 
+                    future({ gta_hs_classify_results(processed.phrase = phr.id.probability.future,
                                                      job.id=j.id) }) %...>% {
-                                                       print(paste0("Phrase ",phr.id.probability.future," processed"))
+                                                     print(paste0("Phrase ",phr.id.probability.future," processed"))
                                                      }
                     
                     
@@ -985,7 +996,7 @@ server <- function(input, output, session) {
                                          exitStatus = exit.status,
                                          phraseID = phr.id$id)
               gta_sql_update_table(querysql)
-              
+
               sql <- "UPDATE hs_job_phrase SET processed = 1 WHERE (phrase_id = ?phraseID AND job_id = ?jobID);"
               querysql <- sqlInterpolate(pool,
                                          sql,
@@ -1000,8 +1011,7 @@ server <- function(input, output, session) {
             
             # Check if job is fully processed 
             # (could be more than one as one phrase may be part of more than one job)
-            
-            
+
             remaining.phrases=gta_sql_get_value(paste0("SELECT COUNT(DISTINCT phrase_id)
                                                        FROM hs_job_phrase
                                                        WHERE processed = FALSE 
@@ -1053,7 +1063,6 @@ server <- function(input, output, session) {
         #                               }
         
         
-        
       }
       
       if (type == "none_found") {
@@ -1062,8 +1071,8 @@ server <- function(input, output, session) {
         # CREATE NEW CHECK and store its ID
         # Check.log
         
-        current.user.id=gta_sql_get_value(paste0("SELECT user_id from gta_user_log WHERE user_login ='",input$users,"';"))
-        current.job.id=gta_sql_get_value(paste0("SELECT job_id from hs_job_phrase WHERE phrase_id ='",phr.id$id,"';")) ### JF would prefer this to be set differently. We should know what job the user is working on at this point. The present query could result in more than 1 answer (if a phrase is associated to more than 1 job).
+        current.user.id=user$id
+        current.job.id=job.id$id
         
         this.check.id=gta_sql_multiple_queries(paste0("INSERT INTO hs_check_log (user_id, time_stamp, check_successful, job_id)
                                                   VALUES (",current.user.id,",CURRENT_TIMESTAMP,0,",current.job.id,");
@@ -1072,7 +1081,10 @@ server <- function(input, output, session) {
         rm(current.user.id,current.job.id)
         
         
+        
         # Check.phrases
+        p.round <- gta_sql_get_value(paste0("SELECT processing_round FROM hs_phrase_log WHERE phrase_id = ", phr.id$id))
+        print(paste0("THIS IS THE P ROUND NONE FOUND: ",p.round))
         gta_sql_update_table(paste0("INSERT INTO hs_check_phrases (check_id, phrase_id, processing_round)
                                      VALUES (",this.check.id,",",phr.id$id,",",p.round,");"))
         
@@ -1088,46 +1100,53 @@ server <- function(input, output, session) {
       query.refine.future <- input$query.refine
       # query.refine.future <<- "keyring"
       # phr.id.future <<- 2561
-      
+
       future({ gta_hs_code_finder(products = tolower(paste(query.refine.future, collapse=" ")))}) %...>%  {
         found.temp <- .
         # found.temp <- gta_hs_code_finder(products = tolower(paste(query.refine.future, collapse=" ")))
         
-        gta_sql_update_table("DROP TABLE IF EXISTS hs_found_temp_async;")
+        gta_sql_update_table("DROP TABLE IF EXISTS hs_found_temp;")
         
         found.temp=splitstackshape::cSplit(found.temp, which(names(found.temp)=="source.names"), sep="; ", direction="long")
-        gta_sql_create_table(write.df = "found.temp.async")
+        gta_sql_create_table(write.df = "found.temp")
         rm(found.temp)
         
-        gta_sql_multiple_queries(paste0("DELETE FROM hs_found_temp_async
+        before <- nrow(gta_sql_get_value(paste0("SELECT * FROM hs_code_suggested WHERE phrase_id = ",phr.id.future)))
+        
+        gta_sql_multiple_queries(paste0("DELETE FROM hs_found_temp
                                         WHERE hs_code IN (SELECT hs_code_6
                                                           FROM hs_code_suggested
                                                           WHERE phrase_id =",phr.id.future,");
                                                           
-                                        ALTER TABLE hs_found_temp_async
+                                        ALTER TABLE hs_found_temp
                                         ADD phrase_id INT NULL;
                                         
-                                        UPDATE hs_found_temp_async
+                                        UPDATE hs_found_temp
                                         SET phrase_id = ",phr.id.future,";
                                         
-                                        ALTER TABLE hs_found_temp_async
+                                        ALTER TABLE hs_found_temp
                                         ADD probability DOUBLE NULL;
                                       
                                         INSERT INTO hs_code_suggested (phrase_id, hs_code_6, probability)
                                         SELECT phrase_id, hs_code, probability
-                                        FROM hs_found_temp_async;
+                                        FROM hs_found_temp;
 
                                         INSERT INTO hs_code_source
                                         SELECT hs_sug.suggestion_id, hs_src.source_id
-                                        FROM hs_found_temp_async hs_found
+                                        FROM hs_found_temp hs_found
                                         JOIN hs_code_suggested hs_sug
                                         ON hs_found.hs_code=hs_sug.hs_code_6
                                         AND hs_found.phrase_id=hs_sug.phrase_id
                                         JOIN hs_suggestion_sources hs_src
                                         ON hs_found.source_names=hs_src.source_name;
                                         
-                                        DROP TABLE IF EXISTS hs_found_temp_async;"),
+                                        DROP TABLE IF EXISTS hs_found_temp;
+                                        "),
                                  output.queries = 1)
+        
+        after <- nrow(gta_sql_get_value(paste0("SELECT * FROM hs_code_suggested WHERE phrase_id = ",phr.id.future)))
+        print(paste0(after-before, " NEW SUGGESTIONS FOR PHRASE ", phr.id.future))
+                       
         
       }
       
@@ -1141,7 +1160,7 @@ server <- function(input, output, session) {
         # clipr::write_clip(printSelected())
       }
       
-      codes.old <- paste(data.ledger$hs.code.6[data.ledger$selected == 1], collapse = ", ")
+      codes.old <- paste(c(data.ledger$selected, data.ledger.user$selected))
       updateTextAreaInput(session,
                           inputId = "selected_codes_output_old_area",
                           label= "These are your selected codes from the query before:",
@@ -1150,7 +1169,6 @@ server <- function(input, output, session) {
       )
       
       toggleClass("selected_codes_output_old","active")
-      
       toggleClass("save-selection","active")
       toggleClass("loading","active")
       refresh_names()
