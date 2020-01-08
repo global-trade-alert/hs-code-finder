@@ -46,9 +46,11 @@ gta_hs_create_classifier_variables_phrase<- function(phrase.ids=NULL,
   
   chosen.suggestions=unique(subset(code.selected, check.id %in% subset(check.phrases, phrase.id %in% phrase.ids)$check.id))
   
+  chosen.suggestions=merge(chosen.suggestions, unique(check.phrases[,c("check.id","phrase.id")]), by="check.id")
+  
   chosen.suggestions=merge(chosen.suggestions,
                            unique(code.suggested[,c("phrase.id","suggestion.id","hs.code.6")]),
-                           by="suggestion.id", all.x=T)
+                           by=c("phrase.id","suggestion.id"), all.x=T)
   chosen.suggestions=aggregate(check.id ~hs.code.6 + phrase.id, chosen.suggestions, function(x) length(unique(x)))
   names(chosen.suggestions)=c("hs.code.6","phrase.id","nr.times.chosen")
   
@@ -62,7 +64,8 @@ gta_hs_create_classifier_variables_phrase<- function(phrase.ids=NULL,
   
   hs.candidates=merge(hs.candidates, checks.per.phrase, by="phrase.id", all.x=T)
   hs.candidates$selection.share=hs.candidates$nr.times.chosen/hs.candidates$nr.of.checks
-  hs.candidates$selection.share[hs.candidates$selection.share>=1]=1
+  
+  if(any(hs.candidates$selection.share>1)){stop("Selection shares are above 1")}
   
   
   hs.mx=aggregate(nr.times.chosen ~phrase.id, hs.candidates, max)
