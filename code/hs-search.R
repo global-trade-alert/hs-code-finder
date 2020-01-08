@@ -19,11 +19,12 @@ setwd("/home/rstudio/Dropbox/GTA cloud")
 wdpath="17 Shiny/5 HS code finder/"
 # wdpath="0 dev/hs-code-finder-pb/"
 
-gta_sql_pool_open(db.title="ricardomain",
-                  db.host = gta_pwd("ricardomain")$host,
-                  db.name = gta_pwd("ricardomain")$name,
-                  db.user = gta_pwd("ricardomain")$user,
-                  db.password = gta_pwd("ricardomain")$password,
+database = "ricardomain"
+gta_sql_pool_open(db.title=database,
+                  db.host = gta_pwd(database)$host,
+                  db.name = gta_pwd(database)$name,
+                  db.user = gta_pwd(database)$user,
+                  db.password = gta_pwd(database)$password,
                   table.prefix = "hs_")
 
 ## check if a process is running on the server

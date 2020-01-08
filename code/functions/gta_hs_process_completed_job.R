@@ -4,14 +4,15 @@ gta_hs_process_completed_job <- function(processed.job=NULL, path = NULL){
   library(gtasql)
   library(pool)
   
-  # setwd("/home/rstudio/Dropbox/GTA cloud")
-  gta_setwd()
+  setwd("/home/rstudio/Dropbox/GTA cloud")
+  # gta_setwd()
   
-  gta_sql_pool_open(db.title="ricardodev",
-                    db.host = gta_pwd("ricardodev")$host,
-                    db.name = gta_pwd("ricardodev")$name,
-                    db.user = gta_pwd("ricardodev")$user,
-                    db.password = gta_pwd("ricardodev")$password,
+  database = "ricardomain"
+  gta_sql_pool_open(db.title=database,
+                    db.host = gta_pwd(database)$host,
+                    db.name = gta_pwd(database)$name,
+                    db.user = gta_pwd(database)$user,
+                    db.password = gta_pwd(database)$password,
                     table.prefix = "hs_")
   
   

@@ -32,16 +32,17 @@
     
     gta_setwd()
     # setwd("/home/rstudio/Dropbox/GTA cloud")
-    # path="17 Shiny/5 HS code finder/"
+    path="17 Shiny/5 HS code finder/"
     # path="0 dev/hs-code-finder-jf/"
-    path="0 dev/hs-code-finder-pb/"
+    # path="0 dev/hs-code-finder-pb/"
+    database <- "ricardomain"
     
     gta_sql_kill_connections()
-    gta_sql_pool_open(db.title="ricardodev",
-                      db.host = gta_pwd("ricardodev")$host,
-                      db.name = gta_pwd("ricardodev")$name,
-                      db.user = gta_pwd("ricardodev")$user,
-                      db.password = gta_pwd("ricardodev")$password,
+    gta_sql_pool_open(db.title=database,
+                      db.host = gta_pwd(database)$host,
+                      db.name = gta_pwd(database)$name,
+                      db.user = gta_pwd(database)$user,
+                      db.password = gta_pwd(database)$password,
                       table.prefix = "hs_")
     
                   
@@ -69,11 +70,11 @@
     shinyApp(ui = ui,
              server = server,
              onStart = function() {
-               gta_sql_pool_open(db.title="ricardodev",
-                                 db.host = gta_pwd("ricardodev")$host,
-                                 db.name = gta_pwd("ricardodev")$name,
-                                 db.user = gta_pwd("ricardodev")$user,
-                                 db.password = gta_pwd("ricardodev")$password,
+               gta_sql_pool_open(db.title=database,
+                                 db.host = gta_pwd(database)$host,
+                                 db.name = gta_pwd(database)$name,
+                                 db.user = gta_pwd(database)$user,
+                                 db.password = gta_pwd(database)$password,
                                  table.prefix = "hs_")
                
                onStop(function() {
