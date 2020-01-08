@@ -217,6 +217,10 @@ gta_hs_create_classifier_variables_phrase<- function(phrase.ids=NULL,
       u.check=merge(base.phrase, u.check, by=c("phrase.id", "suggestion.id"), all.x=T)
       u.check$user.choice=factor(u.check$user.choice, levels=choice.factors)
       
+      ##  correcting for multiple checks in different processing rounds.
+      u.check=unique(subset(u.check, processing.round==max(u.check$processing.round)))
+      u.check$processing.round=NULL
+      
             
     } else {
       
@@ -234,9 +238,9 @@ gta_hs_create_classifier_variables_phrase<- function(phrase.ids=NULL,
       
     }
     
-    setnames(u.check, "user.choice", paste0("user.",u.id))  
+    setnames(u.check, "user.choice", paste0("user.",u.id))
     
-    hs.candidates=merge(hs.candidates, unique(u.check), by=c("phrase.id","suggestion.id"), all.x=T)
+    hs.candidates=merge(hs.candidates, u.check, by=c("phrase.id","suggestion.id"), all.x=T)
     
     
     rm(u.check)
