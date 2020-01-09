@@ -59,4 +59,5 @@ gta_hs_check_job_completion <- function(processed.job=NULL){
     }
     
   }
+  gta_sql_pool_close()
 }
