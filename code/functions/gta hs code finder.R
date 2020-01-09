@@ -43,513 +43,324 @@ gta_hs_code_finder=function(products,
     print(paste("Finding matches for '",prd,"'.", sep=""))
 
 
-    tryCatch({
+    if(sum(as.numeric(c("eurostat", "eu.customs", "zauba", "e.to.china", "google","hsbianma","eximguru", "cybex") %in% tolower(sources)))>0){
 
 
-      if(sum(as.numeric(c("eurostat", "eu.customs", "zauba", "e.to.china", "google","hsbianma","eximguru", "cybex") %in% tolower(sources)))>0){
+      if("eurostat" %in% tolower(sources)){
 
+        print("Checking Eurostat ...")
 
-        tryCatch({
-          if("eurostat" %in% tolower(sources)){
+        remDr$go("https://eurostat.prod.3ceonline.com")
+        html <- htmlParse(remDr$getSource()[[1]], asText=T)
 
-          print("Checking Eurostat ...")
+        e=remDr$findElement(xpath="//textarea[@id='ccce-queryBox']")
+        e$sendKeys(as.character(prd))
+        e$sendKeys('\ue007')
 
-          remDr$go("https://eurostat.prod.3ceonline.com")
-          html <- htmlParse(remDr$getSource()[[1]], asText=T)
+        b_load_site(xpath="//h2[contains(text(),'assumed characteristics')]",
+                    wait=wait.time)
 
-          e=remDr$findElement(xpath="//textarea[@id='ccce-queryBox']")
-          e$sendKeys(as.character(prd))
-          e$sendKeys('\ue007')
+        html <- htmlParse(remDr$getSource()[[1]], asText=T)
+        if(length(xpathSApply(html, "//div[@id='hscode']",xmlValue))>0){
 
-          b_load_site(xpath="//h2[contains(text(),'assumed characteristics')]",
-                      wait=wait.time)
-
-          html <- htmlParse(remDr$getSource()[[1]], asText=T)
-          if(length(xpathSApply(html, "//div[@id='hscode']",xmlValue))>0){
-
-            find.hs=rbind(find.hs,
-                          data.frame(product.name=prd,
-                                     hs.code=as.character(paste(unlist(str_extract_all(xpathSApply(html, "//div[@id='hscode']",xmlValue), "\\d+")),collapse="")),
-                                     hs.order=1,
-                                     source="Eurostat",
-                                     stringsAsFactors = F)
-            )
-          }
-
-          rm(html)
-
-          }
-        },
-        error = function(c) {
-
-          print(paste("Eurostat: Error for '",prd,"'. Please try it separately later.", sep=""))
-          check.errors<<-c(check.errors, prd)
-
-          if(nrow(find.hs)>0){
-            findings.thusfar<<-find.hs
-          }
-        },
-        warning = function(c) {
-
-          print(paste("Eurostat: Error for '",prd,"'. Please try it separately later.", sep=""))
-          check.errors<<-c(check.errors, prd)
-
-          if(nrow(find.hs)>0){
-            findings.thusfar<<-find.hs
-          }
-        }
-        )
-
-        tryCatch({
-          if("eximguru" %in% tolower(sources)){
-
-          print("Checking Eximguru ...")
-
-          remDr$go("http://www.eximguru.com/hs-codes/default.aspx")
-          html <- htmlParse(remDr$getSource()[[1]], asText=T)
-
-          e=remDr$findElement(css="#uxContentPlaceHolder_ucSearchBox1_ContentPanel1_uxValueToSearchTextBox")
-          e$sendKeys(as.character(prd))
-          e$sendKeys('\ue007')
-
-          guru.path="//div[@class='Search']/descendant::table/descendant::tr/td[1]/a"
-
-
-          b_load_site(xpath=guru.path,
-                      wait=wait.time)
-
-          html <- htmlParse(remDr$getSource()[[1]], asText=T)
-
-          if(length(xpathSApply(html, guru.path,xmlValue))>0){
-
-            guru.hs=unique(substr(unlist(str_extract_all(xpathSApply(html, guru.path,xmlValue),"\\d+")),1,6))
-            guru.hs=guru.hs[nchar(guru.hs)>=4]
-
-            if(length(guru.hs)>0){
-
-              find.hs=rbind(find.hs,
-                            data.frame(product.name=prd,
-                                       hs.code=guru.hs,
-                                       hs.order=1:length(guru.hs),
-                                       source="Eximguru",
-                                       stringsAsFactors = F)
-              )
-
-
-            }
-
-            rm(guru.hs, html)
-
-          }
-
-
-        }
-        },
-        error = function(c) {
-
-          print(paste("Eximguru: Error for '",prd,"'. Please try it separately later.", sep=""))
-          check.errors<<-c(check.errors, prd)
-
-          if(nrow(find.hs)>0){
-            findings.thusfar<<-find.hs
-          }
-        },
-        warning = function(c) {
-
-          print(paste("Eximguru: Error for '",prd,"'. Please try it separately later.", sep=""))
-          check.errors<<-c(check.errors, prd)
-
-          if(nrow(find.hs)>0){
-            findings.thusfar<<-find.hs
-          }
-        }
-        )
-
-        tryCatch({
-          if("eu.customs" %in% tolower(sources)){
-
-          print("Checking EU customs ...")
-
-          remDr$go(paste("https://www.tariffnumber.com/2013/", gsub(" ","%20", prd),sep=""))
-
-          html <- htmlParse(remDr$getSource()[[1]], asText=T)
-
-          if(length(gsub("/2013/","",xpathSApply(html, "//a[@class='light text-nowrap']",xmlGetAttr, "href"))[nchar(gsub("/2013/","",xpathSApply(html, "//a[@class='light text-nowrap']",xmlGetAttr, "href")))>=6])>0){
-
-            customs.found=unique(substr(gsub("/2013/","",xpathSApply(html, "//a[@class='light text-nowrap']",xmlGetAttr, "href"))[nchar(gsub("/2013/","",xpathSApply(html, "//a[@class='light text-nowrap']",xmlGetAttr, "href")))>=6],1,6))
-
-            find.hs=rbind(find.hs,
-                          data.frame(product.name=prd,
-                                     hs.code=customs.found,
-                                     hs.order=1:length(customs.found),
-                                     source="EU Customs (2013 edition)",
-                                     stringsAsFactors = F)
-            )
-
-            rm(customs.found, html)
-          }
-        }
-        },
-        error = function(c) {
-
-          print(paste("EU customs: Error for '",prd,"'. Please try it separately later.", sep=""))
-          check.errors<<-c(check.errors, prd)
-
-          if(nrow(find.hs)>0){
-            findings.thusfar<<-find.hs
-          }
-
-        },
-        warning = function(c) {
-
-          print(paste("EU customs: Error for '",prd,"'. Please try it separately later.", sep=""))
-          check.errors<<-c(check.errors, prd)
-
-          if(nrow(find.hs)>0){
-            findings.thusfar<<-find.hs
-          }
-
-        }
-        )
-
-        tryCatch({
-          if("google" %in% tolower(sources)){
-
-          print("Checking Google ...")
-
-          remDr$go(paste("https://google.com/search?q=", paste("HS+Code",gsub(" ","+", prd), sep="+"),sep=""))
-          html <- htmlParse(remDr$getSource()[[1]], asText=T)
-
-          google.txt=tolower(paste(xpathSApply(html, "//*[descendant-or-self::text()]", xmlValue), collapse=" "))
-
-          google.hs=unique(substr(unlist(str_extract_all(str_extract_all(google.txt, "(hs ?)?codes? \\d+"), "\\d+")), 1,6))
-          google.hs=google.hs[nchar(google.hs)>=4]
-
-          if(sum(as.numeric(google.hs!=0))>0){
-
-            find.hs=rbind(find.hs,
-                          data.frame(product.name=prd,
-                                     hs.code=google.hs,
-                                     hs.order=1:length(google.hs),
-                                     source="Google",
-                                     stringsAsFactors = F)
-            )
-
-          }
-
-          rm(google.txt, google.hs, html)
-        }
-        },
-        error = function(c) {
-
-          print(paste("Google: Error for '",prd,"'. Please try it separately later.", sep=""))
-          check.errors<<-c(check.errors, prd)
-
-          if(nrow(find.hs)>0){
-            findings.thusfar<<-find.hs
-          }
-        },
-        warning=function(c) {
-          print(paste("Google: Error for '",prd,"'. Please try it separately later.", sep=""))
-          check.errors<<-c(check.errors, prd)
-
-          if(nrow(find.hs)>0){
-            findings.thusfar<<-find.hs
-          }
-        }
-        )
-
-        tryCatch({
-          if("zauba" %in% tolower(sources)){
-
-          print("Checking Zauba ...")
-
-          remDr$go(paste("https://www.zauba.com/USA-htscodes/", paste(gsub(" ","+", prd), sep="-"),sep=""))
-
-          zauba.path="//table/descendant::td/descendant::a"
-
-          b_load_site(xpath=zauba.path,
-                      wait=wait.time)
-
-
-          html <- htmlParse(remDr$getSource()[[1]], asText=T)
-
-          if(length(xpathSApply(html, zauba.path, xmlValue))>0){
-
-
-            zauba.hs=unique(substr(unlist(str_extract_all(xpathSApply(html, zauba.path, xmlValue), "\\d+")),1,6))
-            zauba.hs=zauba.hs[nchar(zauba.hs)>=4]
-
-            if(length(zauba.hs)>0){
-
-              find.hs=rbind(find.hs,
-                            data.frame(product.name=prd,
-                                       hs.code=zauba.hs,
-                                       hs.order=1:length(zauba.hs),
-                                       source="Zauba",
-                                       stringsAsFactors = F)
-              )
-
-
-            }
-            rm(zauba.hs)
-
-          }
-
-          rm(html)
-        }
-        },
-        error = function(c) {
-
-          print(paste("Zauba: Error for '",prd,"'. Please try it separately later.", sep=""))
-          check.errors<<-c(check.errors, prd)
-
-          if(nrow(find.hs)>0){
-            findings.thusfar<<-find.hs
-          }
-        },
-        warning = function(c) {
-
-          print(paste("Zauba: Error for '",prd,"'. Please try it separately later.", sep=""))
-          check.errors<<-c(check.errors, prd)
-
-          if(nrow(find.hs)>0){
-            findings.thusfar<<-find.hs
-          }
-        }
-        )
-
-        tryCatch({
-          if("e.to.china" %in% tolower(sources)){
-
-          print("Checking E-to-China ...")
-
-          remDr$go(paste("http://hs.e-to-china.com/ks-", paste(gsub(" ","+", prd), sep="+"),"-d_3-t_1.html",sep=""))
-
-          etc.path="//a[@class='hs_tree']"
-
-          b_load_site(xpath=etc.path,
-                      wait=wait.time)
-
-          html <- htmlParse(remDr$getSource()[[1]], asText=T)
-
-          if(length(xpathSApply(html, etc.path, xmlGetAttr, "name"))>0){
-
-            etc.hs=unique(substr(xpathSApply(html, etc.path, xmlGetAttr, "name"), 1,6))
-            etc.hs=etc.hs[nchar(etc.hs)>=4]
-
-            if(length(etc.hs)>0){
-
-              find.hs=rbind(find.hs,
-                            data.frame(product.name=prd,
-                                       hs.code=etc.hs,
-                                       hs.order=1:length(etc.hs),
-                                       source="E-to-China",
-                                       stringsAsFactors = F)
-              )
-
-
-            }
-
-            rm(etc.hs)
-
-          }
-
-
-          rm(html)
-
-        }
-        },
-        error = function(c) {
-
-          print(paste("HS e-t-n: Error for '",prd,"'. Please try it separately later.", sep=""))
-          check.errors<<-c(check.errors, prd)
-
-          if(nrow(find.hs)>0){
-            findings.thusfar<<-find.hs
-          }
-        },
-        warning = function(c) {
-
-          print(paste("HS e-t-n: Error for '",prd,"'. Please try it separately later.", sep=""))
-          check.errors<<-c(check.errors, prd)
-
-          if(nrow(find.hs)>0){
-            findings.thusfar<<-find.hs
-          }
-        }
-        )
-
-        tryCatch({
-          if("hsbianma" %in% tolower(sources)){
-
-          print("Checking HSbianma ...")
-
-          remDr$go(paste("https://hsbianma.com/Search?keywords=",gsub(" ","%20",prd),"&filterFailureCode=true", sep=""))
-
-          bianma.path="//table[@class='result']//descendant::tr/td[1]/a"
-
-          b_load_site(xpath=bianma.path,
-                      wait=wait.time)
-
-          html <- htmlParse(remDr$getSource()[[1]], asText=T)
-
-          if(length(xpathSApply(html, bianma.path, xmlValue))>0){
-
-            bianma.hs=unique(substr(unlist(str_extract_all(xpathSApply(html, bianma.path, xmlValue),"\\d+")),1,6))
-            bianma.hs=bianma.hs[nchar(bianma.hs)>=4]
-
-            if(length(bianma.hs)>0){
-
-              find.hs=rbind(find.hs,
-                            data.frame(product.name=prd,
-                                       hs.code=bianma.hs,
-                                       hs.order=1:length(bianma.hs),
-                                       source="HSbianma",
-                                       stringsAsFactors = F)
-              )
-
-
-            }
-
-            rm(bianma.hs)
-
-          }
-          rm(html)
-
-
-        }
-        },
-        error = function(c) {
-
-          print(paste("hsbianma: Error for '",prd,"'. Please try it separately later.", sep=""))
-          check.errors<<-c(check.errors, prd)
-
-          if(nrow(find.hs)>0){
-            findings.thusfar<<-find.hs
-          }
-        },
-        warning = function(c) {
-
-          print(paste("hsbianma: Error for '",prd,"'. Please try it separately later.", sep=""))
-          check.errors<<-c(check.errors, prd)
-
-          if(nrow(find.hs)>0){
-            findings.thusfar<<-find.hs
-          }
-        }
-        )
-
-        tryCatch({
-          if("cybex" %in% tolower(sources)){
-
-          print("Checking Cybex ...")
-
-          remDr$go(paste("http://www.cybex.in/HS-Codes/of-",gsub(" ","-",prd),".aspx", sep=""))
-
-          cybex.path="//span[contains(text(),'Hs Code')]/following-sibling::a[1]"
-
-          b_load_site(xpath=cybex.path,
-                      wait=wait.time)
-
-          html <- htmlParse(remDr$getSource()[[1]], asText=T)
-
-          if(length(xpathSApply(html, cybex.path, xmlValue))>0){
-
-            cybex.hs=unique(substr(unlist(str_extract_all(xpathSApply(html, cybex.path, xmlValue),"\\d+")),1,6))
-            cybex.hs=cybex.hs[nchar(cybex.hs)>=4]
-
-            if(length(cybex.hs)>0){
-
-              find.hs=rbind(find.hs,
-                            data.frame(product.name=prd,
-                                       hs.code=cybex.hs,
-                                       hs.order=1:length(cybex.hs),
-                                       source="Cybex",
-                                       stringsAsFactors = F)
-              )
-
-
-            }
-
-            rm(cybex.hs, html)
-
-          }
-
-
-        }
-        },
-        error = function(c) {
-
-          print(paste("Cybex: Error for '",prd,"'. Please try it separately later.", sep=""))
-          check.errors<<-c(check.errors, prd)
-
-          if(nrow(find.hs)>0){
-            findings.thusfar<<-find.hs
-          }
-        },
-        warning = function(c) {
-
-          print(paste("Cybex: Error for '",prd,"'. Please try it separately later.", sep=""))
-          check.errors<<-c(check.errors, prd)
-
-          if(nrow(find.hs)>0){
-            findings.thusfar<<-find.hs
-          }
-        }
-        )
-
-      } else {
-        stop("No valid source specified.")
-      }
-
-      if("hs.descriptions" %in% tolower(sources)){
-        print("Checking HS code descriptions ...")
-
-        simple.hs=hs.names$HS12code[grepl(prd, hs.names$hs.name)]
-
-        if(length(simple.hs)==0 &
-           length(unique(unlist(str_split(prd, " "))))>1 &
-           nrow(subset(find.hs, product.name==prd))==0){
-          simple.hs=character()
-          for(word in unique(unlist(str_split(prd, " ")))){
-            simple.hs=c(simple.hs, hs.names$HS12code[grepl(word, hs.names$hs.name)])
-
-          }
-
-          simple.hs=unique(simple.hs)
-        }
-
-        if(length(simple.hs)>0)
           find.hs=rbind(find.hs,
                         data.frame(product.name=prd,
-                                   hs.code=simple.hs,
-                                   hs.order=1:length(simple.hs),
-                                   source="HS code descriptions",
+                                   hs.code=as.character(paste(unlist(str_extract_all(xpathSApply(html, "//div[@id='hscode']",xmlValue), "\\d+")),collapse="")),
+                                   hs.order=1,
+                                   source="Eurostat",
                                    stringsAsFactors = F)
           )
+        }
+
+        rm(html)
+
       }
 
-    },
-    error = function(c) {
 
-      print(paste("Error for '",prd,"'. Please try it separately later.", sep=""))
-      check.errors<<-c(check.errors, prd)
+      if("eximguru" %in% tolower(sources)){
 
-      if(nrow(find.hs)>0){
-        findings.thusfar<<-find.hs
+        print("Checking Eximguru ...")
+
+        remDr$go("http://www.eximguru.com/hs-codes/default.aspx")
+        html <- htmlParse(remDr$getSource()[[1]], asText=T)
+
+        e=remDr$findElement(css="#uxContentPlaceHolder_ucSearchBox1_ContentPanel1_uxValueToSearchTextBox")
+        e$sendKeys(as.character(prd))
+        e$sendKeys('\ue007')
+
+        guru.path="//div[@class='Search']/descendant::table/descendant::tr/td[1]/a"
+
+
+        b_load_site(xpath=guru.path,
+                    wait=wait.time)
+
+        html <- htmlParse(remDr$getSource()[[1]], asText=T)
+
+        if(length(xpathSApply(html, guru.path,xmlValue))>0){
+
+          guru.hs=unique(substr(unlist(str_extract_all(xpathSApply(html, guru.path,xmlValue),"\\d+")),1,6))
+          guru.hs=guru.hs[nchar(guru.hs)>=4]
+
+          if(length(guru.hs)>0){
+
+            find.hs=rbind(find.hs,
+                          data.frame(product.name=prd,
+                                     hs.code=guru.hs,
+                                     hs.order=1:length(guru.hs),
+                                     source="Eximguru",
+                                     stringsAsFactors = F)
+            )
+
+
+          }
+
+          rm(guru.hs, html)
+
+        }
+
+
       }
-    },
-    warning = function(c) {
 
-      print(paste("Error for '",prd,"'. Please try it separately later.", sep=""))
-      check.errors<<-c(check.errors, prd)
 
-      if(nrow(find.hs)>0){
-        findings.thusfar<<-find.hs
+      if("eu.customs" %in% tolower(sources)){
+
+        print("Checking EU customs ...")
+
+        remDr$go(paste("https://www.tariffnumber.com/2013/", gsub(" ","%20", prd),sep=""))
+
+        html <- htmlParse(remDr$getSource()[[1]], asText=T)
+
+        if(length(gsub("/2013/","",xpathSApply(html, "//a[@class='light text-nowrap']",xmlGetAttr, "href"))[nchar(gsub("/2013/","",xpathSApply(html, "//a[@class='light text-nowrap']",xmlGetAttr, "href")))>=6])>0){
+
+          customs.found=unique(substr(gsub("/2013/","",xpathSApply(html, "//a[@class='light text-nowrap']",xmlGetAttr, "href"))[nchar(gsub("/2013/","",xpathSApply(html, "//a[@class='light text-nowrap']",xmlGetAttr, "href")))>=6],1,6))
+
+          find.hs=rbind(find.hs,
+                        data.frame(product.name=prd,
+                                   hs.code=customs.found,
+                                   hs.order=1:length(customs.found),
+                                   source="EU Customs (2013 edition)",
+                                   stringsAsFactors = F)
+          )
+
+          rm(customs.found, html)
+        }
       }
+
+      if("google" %in% tolower(sources)){
+
+        print("Checking Google ...")
+
+        remDr$go(paste("https://google.com/search?q=", paste("HS+Code",gsub(" ","+", prd), sep="+"),sep=""))
+        html <- htmlParse(remDr$getSource()[[1]], asText=T)
+
+        google.txt=tolower(paste(xpathSApply(html, "//*[descendant-or-self::text()]", xmlValue), collapse=" "))
+
+        google.hs=unique(substr(unlist(str_extract_all(str_extract_all(google.txt, "(hs ?)?codes? \\d+"), "\\d+")), 1,6))
+        google.hs=google.hs[nchar(google.hs)>=4]
+
+        if(sum(as.numeric(google.hs!=0))>0){
+
+          find.hs=rbind(find.hs,
+                        data.frame(product.name=prd,
+                                   hs.code=google.hs,
+                                   hs.order=1:length(google.hs),
+                                   source="Google",
+                                   stringsAsFactors = F)
+          )
+
+        }
+
+        rm(google.txt, google.hs, html)
+      }
+
+      if("zauba" %in% tolower(sources)){
+
+        print("Checking Zauba ...")
+
+        remDr$go(paste("https://www.zauba.com/USA-htscodes/", paste(gsub(" ","+", prd), sep="-"),sep=""))
+
+        zauba.path="//table/descendant::td/descendant::a"
+
+        b_load_site(xpath=zauba.path,
+                    wait=wait.time)
+
+
+        html <- htmlParse(remDr$getSource()[[1]], asText=T)
+
+        if(length(xpathSApply(html, zauba.path, xmlValue))>0){
+
+
+          zauba.hs=unique(substr(unlist(str_extract_all(xpathSApply(html, zauba.path, xmlValue), "\\d+")),1,6))
+          zauba.hs=zauba.hs[nchar(zauba.hs)>=4]
+
+          if(length(zauba.hs)>0){
+
+            find.hs=rbind(find.hs,
+                          data.frame(product.name=prd,
+                                     hs.code=zauba.hs,
+                                     hs.order=1:length(zauba.hs),
+                                     source="Zauba",
+                                     stringsAsFactors = F)
+            )
+
+
+          }
+          rm(zauba.hs)
+
+        }
+
+        rm(html)
+      }
+
+      if("e.to.china" %in% tolower(sources)){
+
+        print("Checking E-to-China ...")
+
+        remDr$go(paste("http://hs.e-to-china.com/ks-", paste(gsub(" ","+", prd), sep="+"),"-d_3-t_1.html",sep=""))
+
+        etc.path="//a[@class='hs_tree']"
+
+        b_load_site(xpath=etc.path,
+                    wait=wait.time)
+
+        html <- htmlParse(remDr$getSource()[[1]], asText=T)
+
+        if(length(xpathSApply(html, etc.path, xmlGetAttr, "name"))>0){
+
+          etc.hs=unique(substr(xpathSApply(html, etc.path, xmlGetAttr, "name"), 1,6))
+          etc.hs=etc.hs[nchar(etc.hs)>=4]
+
+          if(length(etc.hs)>0){
+
+            find.hs=rbind(find.hs,
+                          data.frame(product.name=prd,
+                                     hs.code=etc.hs,
+                                     hs.order=1:length(etc.hs),
+                                     source="E-to-China",
+                                     stringsAsFactors = F)
+            )
+
+
+          }
+
+          rm(etc.hs)
+
+        }
+
+
+        rm(html)
+
+      }
+
+
+      if("hsbianma" %in% tolower(sources)){
+
+        print("Checking HSbianma ...")
+
+        remDr$go(paste("https://hsbianma.com/Search?keywords=",gsub(" ","%20",prd),"&filterFailureCode=true", sep=""))
+
+        bianma.path="//table[@class='result']//descendant::tr/td[1]/a"
+
+        b_load_site(xpath=bianma.path,
+                    wait=wait.time)
+
+        html <- htmlParse(remDr$getSource()[[1]], asText=T)
+
+        if(length(xpathSApply(html, bianma.path, xmlValue))>0){
+
+          bianma.hs=unique(substr(unlist(str_extract_all(xpathSApply(html, bianma.path, xmlValue),"\\d+")),1,6))
+          bianma.hs=bianma.hs[nchar(bianma.hs)>=4]
+
+          if(length(bianma.hs)>0){
+
+            find.hs=rbind(find.hs,
+                          data.frame(product.name=prd,
+                                     hs.code=bianma.hs,
+                                     hs.order=1:length(bianma.hs),
+                                     source="HSbianma",
+                                     stringsAsFactors = F)
+            )
+
+
+          }
+
+          rm(bianma.hs)
+
+        }
+        rm(html)
+
+
+      }
+
+
+      if("cybex" %in% tolower(sources)){
+
+        print("Checking Cybex ...")
+
+        remDr$go(paste("http://www.cybex.in/HS-Codes/of-",gsub(" ","-",prd),".aspx", sep=""))
+
+        cybex.path="//span[contains(text(),'Hs Code')]/following-sibling::a[1]"
+
+        b_load_site(xpath=cybex.path,
+                    wait=wait.time)
+
+        html <- htmlParse(remDr$getSource()[[1]], asText=T)
+
+        if(length(xpathSApply(html, cybex.path, xmlValue))>0){
+
+          cybex.hs=unique(substr(unlist(str_extract_all(xpathSApply(html, cybex.path, xmlValue),"\\d+")),1,6))
+          cybex.hs=cybex.hs[nchar(cybex.hs)>=4]
+
+          if(length(cybex.hs)>0){
+
+            find.hs=rbind(find.hs,
+                          data.frame(product.name=prd,
+                                     hs.code=cybex.hs,
+                                     hs.order=1:length(cybex.hs),
+                                     source="Cybex",
+                                     stringsAsFactors = F)
+            )
+
+
+          }
+
+          rm(cybex.hs, html)
+
+        }
+
+
+      }
+
+    } else {
+      stop("No valid source specified.")
     }
-    )
+
+    if("hs.descriptions" %in% tolower(sources)){
+      print("Checking HS code descriptions ...")
+
+      simple.hs=hs.names$HS12code[grepl(prd, hs.names$hs.name)]
+
+      if(length(simple.hs)==0 &
+         length(unique(unlist(str_split(prd, " "))))>1 &
+         nrow(subset(find.hs, product.name==prd))==0){
+        simple.hs=character()
+        for(word in unique(unlist(str_split(prd, " ")))){
+          simple.hs=c(simple.hs, hs.names$HS12code[grepl(word, hs.names$hs.name)])
+
+        }
+
+        simple.hs=unique(simple.hs)
+      }
+
+      if(length(simple.hs)>0)
+        find.hs=rbind(find.hs,
+                      data.frame(product.name=prd,
+                                 hs.code=simple.hs,
+                                 hs.order=1:length(simple.hs),
+                                 source="HS code descriptions",
+                                 stringsAsFactors = F)
+        )
+    }
 
 
 
