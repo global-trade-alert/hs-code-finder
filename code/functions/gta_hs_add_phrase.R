@@ -89,18 +89,14 @@ gta_hs_add_phrase<- function(add.job.id=NULL,
     job.phrase <- change_encoding(gta_sql_load_table("job_phrase"))
     job.phrase <<- job.phrase
     
-    if(nrow(subset(job.phrase, job.id==add.job.id & phrase.id==new.phrase.id))>0){
+    if(nrow(subset(job.phrase, job.id %in% add.job.id & phrase.id==new.phrase.id))>0){
       
-      sql <- "UPDATE hs_job_phrase SET processed = ?newvalue WHERE (job_id = ?jobID AND phrase_id = ?phraseID);"
-      query <- sqlInterpolate(pool, 
-                              sql, 
-                              newvalue = is.processed,
-                              jobID = add.job.id,
-                              phraseID = new.phrase.id)
+ 
+      gta_sql_update_table(paste0("UPDATE hs_job_phrase 
+                                  SET processed = ",is.processed,"
+                                  WHERE (job_id IN (",paste(add.job.id, collapse=","),")
+                                  AND phrase_id = ",new.phrase.id,");"))
       
-      gta_sql_update_table(query)
-      
-      # job.phrase$processed[job.phrase$job.id==add.job.id & job.phrase$phrase.id==new.phrase.id]=is.processed
       
     }else{
       
