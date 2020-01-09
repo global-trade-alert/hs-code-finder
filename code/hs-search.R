@@ -10,6 +10,10 @@ library("pool")
 library("RMariaDB")
 library(stringr)
 library(mailR)
+library(webdriver)
+library(XML)
+library(gtabastiat)
+
 rm(list = ls())
 
 # gta_setwd()
