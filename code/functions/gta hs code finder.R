@@ -31,7 +31,7 @@ gta_hs_code_finder=function(products,
   library(gtalibrary)
   library(gtabastiat)
 
-  find.hs=data.frame(product.name=character(), hs.code=character(), source=character(), stringsAsFactors = F)
+  find.hs=data.frame()
 
   pjs <- run_phantomjs()
   remDr<<-Session$new(port=pjs$port)
@@ -330,6 +330,14 @@ gta_hs_code_finder=function(products,
 
 
       }
+
+      if("sair" %in% tolower(sources)){
+
+        # ADD this at some point:
+        # https://www.seair.co.in/blue-cars-hs-code.aspx
+      }
+
+
 
     } else {
       stop("No valid source specified.")
