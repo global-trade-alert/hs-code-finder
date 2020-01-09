@@ -329,6 +329,11 @@ server <- function(input, output, session) {
         
         
         # FILL IMPORTER LOG
+        if (input$state.act.id != "") {
+          state.act <- input$state.act.id
+        } else {
+          state.act <- "NULL"
+        }
         ticket.nr=gta_sql_multiple_queries(paste0("INSERT INTO hs_importer_log (user_id, order_email, job_name, time_order, under_preparation, is_priority, process_by_others, related_state_act) 
                VALUES (",
                                                   user$id,",'",
@@ -337,7 +342,7 @@ server <- function(input, output, session) {
                                                   "',CURRENT_TIMESTAMP,1,",
                                                   as.numeric(input$prioritize),",",
                                                   as.numeric(input$process.by.others),",",
-                                                  input$state.act.id,");
+                                                  state.act,");
                SELECT MAX(ticket_number) FROM hs_importer_log;"),
                                            output.queries = 2)
         
@@ -1003,53 +1008,11 @@ server <- function(input, output, session) {
                                          phraseID = phr.id$id,
                                          jobID = j.id)
               gta_sql_update_table(querysql)
+              
+              gta_hs_check_job_completion(j.id)
             }
             
             rm(required.checks)
-            
-            
-            
-            # Check if job is fully processed 
-            # (could be more than one as one phrase may be part of more than one job)
-
-            remaining.phrases=gta_sql_get_value(paste0("SELECT COUNT(DISTINCT phrase_id)
-                                                       FROM hs_job_phrase
-                                                       WHERE processed = FALSE 
-                                                       AND job_id = ",j.id,";"))
-            
-            if(remaining.phrases==0){        
-              
-              sql <- "UPDATE hs_job_log SET job_processed = true WHERE job_id = ?jobID;"
-              querysql <- sqlInterpolate(pool, 
-                                         sql, 
-                                         jobID = j.id)
-              
-              gta_sql_update_table(querysql)
-              
-              sql <- "UPDATE hs_job_log SET phrases_remaining = 0 WHERE job_id = ?jobID;"
-              querysql <- sqlInterpolate(pool, 
-                                         sql, 
-                                         jobID = j.id)
-              
-              gta_sql_update_table(querysql)
-              
-              job.id.future <- j.id
-              future({ gta_hs_process_completed_job(processed.job=job.id.future, path = path) }) %...>% {
-                print("JOB PROCESSED")
-              }
-              
-            } else {
-              
-              sql <- "UPDATE hs_job_log SET phrases_remaining = ?left WHERE job_id = ?jobID;"
-              querysql <- sqlInterpolate(pool, 
-                                         sql, 
-                                         left = remaining.phrases,
-                                         jobID = j.id)
-              
-              gta_sql_update_table(querysql)
-            }
-            
-            
             
           }
           

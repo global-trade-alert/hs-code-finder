@@ -1,6 +1,7 @@
 gta_hs_classify_results<- function(processed.phrase=NULL,
                                    job.id=NULL,
                                    relevance.threshold=.5,
+                                   return.result=F,
                                    path.to.cloud=NULL,
                                    source.data="17 Shiny/5 HS code finder/database/HS classifier.Rdata"){
   
@@ -171,6 +172,8 @@ gta_hs_classify_results<- function(processed.phrase=NULL,
                               phraseID = this.phrase)
       gta_sql_update_table(query)
       
+      gta_hs_check_job_completion(job.id)
+      
     } else {
       
       sql <- "UPDATE hs_phrase_log SET processing_round = processing_round + 1 WHERE phrase_id = ?phraseID;"
@@ -191,4 +194,6 @@ gta_hs_classify_results<- function(processed.phrase=NULL,
   }
   print("Fully classified!")
   gta_sql_pool_close()
+  
+  if(return.result){return(unique(estimation.set[,c("pharse.id","suggestion.id","hs.code.6","probability","relevant")]))}
 }
