@@ -65,20 +65,24 @@ if(hs.search.busy>=nr.parallel.processes){
     system(paste("kill -9", process.to.kill), intern=T)
     
 
+    rm(run.not.finished)
+    
+    # phrases.to.import$search.underway[]=F
+    sql <- "UPDATE hs_phrases_to_import SET search_underway = 0"
+    query <- sqlInterpolate(pool,
+                            sql)
+    
+    gta_sql_update_table(query)
+    
+    print(paste(Sys.time(), ": HS searches aborted"))
+    
+  } else {
+    
+    print(paste(Sys.time(), ": HS Search is busy"))
+    print(running.processes[grepl("(hs-search.R)",running.processes, ignore.case = T)])
+    
   }
-
-  rm(run.not.finished)
-
-  # phrases.to.import$search.underway[]=F
-  sql <- "UPDATE phrases_to_import SET search_underway = 0"
-  query <- sqlInterpolate(pool,
-                          sql)
-
-  gta_sql_update_table(query)
-
-  print(paste(Sys.time(), ": HS Search is busy"))
-  print(running.processes[grepl("(hs-search.R)",running.processes, ignore.case = T)])
-
+  
 } else {
 
   ## updating phrases to import
