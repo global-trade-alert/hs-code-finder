@@ -98,11 +98,11 @@ if(hs.search.busy>=nr.parallel.processes){
     while(length(search.phrases)>0){
       ## updating phrases to import
 
-      phrases.to.import <- change_encoding(gta_sql_load_table("phrases_to_import"))
+      phrases.to.import <- gta_sql_load_table("phrases_to_import")
       phrases.to.import <<- phrases.to.import
-      job.log <- change_encoding(gta_sql_load_table("job_log"))
+      job.log <- gta_sql_load_table("job_log")
       job.log <<- job.log
-      users <- change_encoding(gta_sql_load_table("user_log", table.prefix = "gta_"))
+      users <- gta_sql_load_table("user_log", table.prefix = "gta_")
       users <<- users
 
       search.phrases=unique(subset(phrases.to.import, search.underway==F & search.concluded==F)$phrase)
@@ -175,7 +175,7 @@ if(hs.search.busy>=nr.parallel.processes){
   
             ## check whether suggestions have been made in an earlier job for this phrase
   
-            code.suggested <- change_encoding(gta_sql_load_table("code_suggested"))
+            code.suggested <- gta_sql_load_table("code_suggested")
             code.suggested <<- code.suggested
   
             search.result$hs.code=as.numeric(search.result$hs.code)
@@ -216,7 +216,7 @@ if(hs.search.busy>=nr.parallel.processes){
   
   
               ## Updating code.source
-              suggestion.sources <- change_encoding(gta_sql_load_table("suggestion.sources"))
+              suggestion.sources <- gta_sql_load_table("suggestion.sources")
               suggestion.sources <<- suggestion.sources
   
               code.source.new=unique(cSplit(search.result[,c("suggestion.id","source.names","hs.code")], 2, direction="long",sep=";"))
@@ -239,7 +239,7 @@ if(hs.search.busy>=nr.parallel.processes){
   
                 # suggestion.sources<<-suggestion.sources
   
-                suggestion.sources <- change_encoding(gta_sql_load_table("suggestion.sources"))
+                suggestion.sources <- gta_sql_load_table("suggestion.sources")
                 suggestion.sources <<- suggestion.sources
   
                 new.src=subset(code.source.new, is.na(source.id))
@@ -333,7 +333,7 @@ if(hs.search.busy>=nr.parallel.processes){
 
       ## Check whether a job is complete
 
-      phrases.to.import <- change_encoding(gta_sql_load_table("phrases_to_import"))
+      phrases.to.import <- gta_sql_load_table("phrases_to_import")
       phrases.to.import <<- phrases.to.import
 
       job.import.complete=nrow(subset(phrases.to.import, job.id %in% this.phrase.jobs & search.concluded==F))==0
