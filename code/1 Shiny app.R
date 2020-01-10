@@ -38,7 +38,7 @@ path <<- "17 Shiny/5 HS code finder/"
 
 database <- "ricardomain"
 
-# gta_sql_kill_connections()
+gta_sql_kill_connections()
 gta_sql_pool_open(db.title=database,
                   db.host = gta_pwd(database)$host,
                   db.name = gta_pwd(database)$name,
