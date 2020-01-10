@@ -4,6 +4,9 @@ server <- function(input, output, session) {
   print("START APP")
   cat("\n")
   
+  # users <- change_encoding(gta_sql_load_table("user_log", table.prefix = "gta_"))
+  # users <<- users
+  
   data.base <- data.base.0
   data.subset <- data.base.0[NULL,]
   
@@ -515,12 +518,7 @@ server <- function(input, output, session) {
       
       
       gta_sql_update_table(paste0("INSERT INTO gta_user_log (user_login,gta_layer)
-                                 VALUES ('",input$username,"','core');"))
-      
-      
-      ## those two lines should be removed in this update.
-      users <- change_encoding(gta_sql_load_table("user_log", table.prefix = "gta_"))
-      users <<- users 
+                                 VALUES ('",input$username,"','upwork');"))
       
       updateSelectInput(session, "users", choices = gta_sql_get_value("SELECT user_login from gta_user_log;"), selected = input$username)
       reset("username")
