@@ -515,7 +515,7 @@ server <- function(input, output, session) {
       
       
       gta_sql_update_table(paste0("INSERT INTO gta_user_log (user_login,gta_layer)
-                                 VALUES (",input$username,",'core');"))
+                                 VALUES ('",input$username,"','core');"))
       
       
       ## those two lines should be removed in this update.
