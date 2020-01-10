@@ -580,18 +580,7 @@ server <- function(input, output, session) {
                                                                                              ORDER by is_priority DESC, COUNT(jp.phrase_id) ASC
                                                                                              LIMIT 1) 
                                                                                             AS tbl_jobs_priority))
-                                                   AND phrase_id IN (SELECT phrase_id
-                                                                      FROM hs_job_phrase
-                                                                      WHERE processed = 0
-                                                                      AND phrase_id NOT IN (SELECT cp.phrase_id
-                                                                                            FROM hs_check_phrases cp
-                                                                                            JOIN hs_phrase_log pl
-                                                                                            ON cp.phrase_id = pl.phrase_id
-                                                                                            AND cp.processing_round = pl.processing_round
-                                                                                            AND cp.check_id IN (SELECT check_id
-                                                                                                               FROM hs_check_log
-                                                                                                               WHERE user_id = ",user$id,
-                                            ")))
+                                                  
                                                    GROUP BY phrase_id) AS tbl_of_checks
                                           ON hs_job_phrase.phrase_id=tbl_of_checks.phrase_id2
                                           WHERE job_id=(SELECT job_id 
@@ -614,8 +603,20 @@ server <- function(input, output, session) {
                                             ")))
                                                                                              GROUP BY job_id
                                                                                              ORDER by is_priority DESC, COUNT(jp.phrase_id) ASC
-                                                                                             LIMIT 1) 
-                                                                                            AS tbl_jobs_priority2)
+                                                                                             LIMIT 1)
+                                          AS tbl_jobs_priority2)
+                                           AND phrase_id IN (SELECT phrase_id
+                                                                      FROM hs_job_phrase
+                                                                      WHERE processed = 0
+                                                                      AND phrase_id NOT IN (SELECT cp.phrase_id
+                                                                                            FROM hs_check_phrases cp
+                                                                                            JOIN hs_phrase_log pl
+                                                                                            ON cp.phrase_id = pl.phrase_id
+                                                                                            AND cp.processing_round = pl.processing_round
+                                                                                            AND cp.check_id IN (SELECT check_id
+                                                                                                               FROM hs_check_log
+                                                                                                               WHERE user_id = ",user$id,
+                                            ")))
                                           ORDER by tbl_of_checks.count_column DESC
                                           LIMIT 1"))
       
