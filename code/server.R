@@ -747,7 +747,7 @@ server <- function(input, output, session) {
         
         
         # IF NEW PHRASE, ADD OLD PHRASE SUGGESTIONS TO NEW PHRASE
-        if (! tolower(paste(input$query.refine, collapse=" ")) %in% unique(tolower(gta_sql_get_value("SELECT phrase FROM hs_phrase_log")))) {
+        if (! trimws(tolower(paste(input$query.refine, collapse=" ")), which="both") %in% trimws(unique(tolower(gta_sql_get_value("SELECT phrase FROM hs_phrase_log"))), which="both")) {
           
           
           new.phr.id=gta_sql_multiple_queries(paste0("INSERT INTO hs_phrase_log (phrase, source, processing_round, exit_status)

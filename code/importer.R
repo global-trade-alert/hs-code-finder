@@ -175,7 +175,7 @@ if(importer.busy>2){
         ## adding it to the range of HS code searches
         
         phrases.to.import.update = data.frame(job.id=job.id.import,
-                                             phrase=imported.phrases,
+                                             phrase=trimws(imported.phrases, which="both"),
                                              search.underway=F,
                                              search.concluded=F,
                                              run.time=NA,
