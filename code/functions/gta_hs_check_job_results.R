@@ -7,7 +7,7 @@ gta_hs_check_job_results <- function(job.ids=NULL,
   
   for (j.id in job.ids) {
   
-    query <- paste0("SELECT jp.job_id, cs.hs_code_6, hd.hs_description_4, hd.hs_description_6, jp.phrase_id, pl.phrase",if(prob.return){", cs.probability"},", pl.exit_status
+    query <- paste0("SELECT jp.job_id, jp.phrase_id, pl.phrase",if(prob.return){", cs.probability"},", pl.exit_status, cs.hs_code_6, hd.hs_description_4, hd.hs_description_6
                     FROM hs_job_phrase jp 
                     JOIN hs_phrase_log pl
                     ON pl.phrase_id = jp.phrase_id
