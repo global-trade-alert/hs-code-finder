@@ -7,12 +7,16 @@ gta_hs_check_job_results <- function(job.ids=NULL,
   
   for (j.id in job.ids) {
   
-    query <- paste0("SELECT jp.job_id, cs.hs_code_6, jp.phrase_id, pl.phrase",if(prob.return){", cs.probability"},", pl.exit_status
+    query <- paste0("SELECT jp.job_id, cs.hs_code_6, hd.hs_description_4, hd.hs_description_6, jp.phrase_id, pl.phrase",if(prob.return){", cs.probability"},", pl.exit_status
                     FROM hs_job_phrase jp 
                     JOIN hs_phrase_log pl
                     ON pl.phrase_id = jp.phrase_id
                     JOIN hs_code_suggested cs
                     ON cs.phrase_id = jp.phrase_id
+                    LEFT JOIN hs_codes_app happ
+                    ON cs.hs_code_6=happ.hs_code_6
+                    LEFT JOIN hs_descriptions hd
+                    ON happ.hs_id = hd.hs_id                    
                     WHERE (jp.job_id = ",j.id,")",if(prob.return){paste0(" AND (cs.probability >= ",prob.threshold, " ", if(prob.is.na){"OR cs.probability IS"}else{"AND cs.probability IS NOT"}," NULL)")},";")
     
     result = gta_sql_get_value(query)
