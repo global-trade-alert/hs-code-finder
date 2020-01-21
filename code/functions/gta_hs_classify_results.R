@@ -3,7 +3,8 @@ gta_hs_classify_results<- function(processed.phrase=NULL,
                                    relevance.threshold=.5,
                                    return.result=F,
                                    path.to.cloud=NULL,
-                                   source.data="17 Shiny/5 HS code finder/database/HS classifier.Rdata"){
+                                   source.data="17 Shiny/5 HS code finder/database/HS classifier.Rdata",
+                                   open.pool=F){
   
 
   # variable.df="classifier.variables"
@@ -22,14 +23,18 @@ gta_hs_classify_results<- function(processed.phrase=NULL,
   setwd("/home/rstudio/Dropbox/GTA cloud")
   # gta_setwd()
   
-  database = "ricardomain"
-  gta_sql_pool_open(db.title=database,
-                   db.host = gta_pwd(database)$host,
-                   db.name = gta_pwd(database)$name,
-                   db.user = gta_pwd(database)$user,
-                   db.password = gta_pwd(database)$password,
-                   table.prefix = "hs_")
-
+  if(open.pool){
+    gta_sql_kill_connections()
+    database = "ricardomain"
+    gta_sql_pool_open(db.title=database,
+                      db.host = gta_pwd(database)$host,
+                      db.name = gta_pwd(database)$name,
+                      db.user = gta_pwd(database)$user,
+                      db.password = gta_pwd(database)$password,
+                      table.prefix = "hs_")
+    
+  }
+  
 
   if(is.null(processed.phrase)){
     stop("gta_hs_classify_results: No ID for the processed phrase is specified.")
@@ -193,7 +198,7 @@ gta_hs_classify_results<- function(processed.phrase=NULL,
     
   }
   print("Fully classified!")
-  gta_sql_pool_close()
+  if(open.pool){gta_sql_pool_close()}
   
   if(return.result){return(unique(estimation.set[,c("pharse.id","suggestion.id","hs.code.6","probability","relevant")]))}
 }
