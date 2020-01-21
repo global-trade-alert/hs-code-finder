@@ -1,4 +1,5 @@
-gta_hs_check_job_completion <- function(processed.job=NULL){
+gta_hs_check_job_completion <- function(processed.job=NULL, 
+                                        open.pool=F){
   
   library(gtalibrary)
   library(gtasql)
@@ -7,13 +8,17 @@ gta_hs_check_job_completion <- function(processed.job=NULL){
   setwd("/home/rstudio/Dropbox/GTA cloud")
   # gta_setwd()
   
-  database = "ricardomain"
-  gta_sql_pool_open(db.title=database,
-                    db.host = gta_pwd(database)$host,
-                    db.name = gta_pwd(database)$name,
-                    db.user = gta_pwd(database)$user,
-                    db.password = gta_pwd(database)$password,
-                    table.prefix = "hs_")
+  if(open.pool){
+    gta_sql_kill_connections()
+    database = "ricardomain"
+    gta_sql_pool_open(db.title=database,
+                      db.host = gta_pwd(database)$host,
+                      db.name = gta_pwd(database)$name,
+                      db.user = gta_pwd(database)$user,
+                      db.password = gta_pwd(database)$password,
+                      table.prefix = "hs_")
+    
+  }
   
   
   if(is.null(processed.job)){
@@ -59,5 +64,7 @@ gta_hs_check_job_completion <- function(processed.job=NULL){
     }
     
   }
-  gta_sql_pool_close()
+  
+  if(open.pool){gta_sql_pool_close()}
+  
 }
