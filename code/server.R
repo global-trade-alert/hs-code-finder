@@ -1021,7 +1021,8 @@ server <- function(input, output, session) {
                     # gta_hs_classify_results(processed.phrase = phr.id$id,
                                             # job.id=j.id) 
                     future({ gta_hs_classify_results(processed.phrase = phr.id.probability.future,
-                                                     job.id=j.id) }) %...>% {
+                                                     job.id=j.id,
+                                                     open.pool=T) }) %...>% {
                                                      print(paste0("Phrase ",phr.id.probability.future," processed"))
                                                      }
                     
@@ -1102,6 +1103,7 @@ server <- function(input, output, session) {
       # phr.id.future <<- 2561
 
       future({ gta_hs_code_finder(products = tolower(paste(query.refine.future, collapse=" ")))}) %...>%  {
+
         found.temp <- .
         # found.temp <- gta_hs_code_finder(products = tolower(paste(query.refine.future, collapse=" ")))
         
@@ -1146,8 +1148,7 @@ server <- function(input, output, session) {
         
         after <- nrow(gta_sql_get_value(paste0("SELECT * FROM hs_code_suggested WHERE phrase_id = ",phr.id.future)))
         print(paste0(after-before, " NEW SUGGESTIONS FOR PHRASE ", phr.id.future))
-                       
-        
+   
       }
       
       
