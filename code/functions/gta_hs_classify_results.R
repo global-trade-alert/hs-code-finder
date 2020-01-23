@@ -24,7 +24,6 @@ gta_hs_classify_results<- function(processed.phrase=NULL,
   # gta_setwd()
   
   if(open.pool){
-    gta_sql_kill_connections()
     database = "ricardomain"
     gta_sql_pool_open(db.title=database,
                       db.host = gta_pwd(database)$host,
@@ -198,7 +197,12 @@ gta_hs_classify_results<- function(processed.phrase=NULL,
     
   }
   print("Fully classified!")
-  if(open.pool){gta_sql_pool_close()}
+  if(open.pool){
+    gta_sql_pool_close()
+    gta_sql_kill_connections()
+    }
   
   if(return.result){return(unique(estimation.set[,c("pharse.id","suggestion.id","hs.code.6","probability","relevant")]))}
+  
+  print("Classify results function run until the end.")
 }

@@ -10,7 +10,6 @@ gta_hs_process_completed_job <- function(processed.job=NULL,
   
   
   if(open.pool){
-    gta_sql_kill_connections()
     database = "ricardomain"
     gta_sql_pool_open(db.title=database,
                       db.host = gta_pwd(database)$host,
@@ -115,5 +114,9 @@ gta_hs_process_completed_job <- function(processed.job=NULL,
   # 
   # 
   
-  if(open.pool){gta_sql_pool_close()}
+  if(open.pool){
+    gta_sql_pool_close()
+    gta_sql_kill_connections()
+    
+    }
 }
