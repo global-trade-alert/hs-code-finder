@@ -1096,60 +1096,60 @@ server <- function(input, output, session) {
       }
       
       
-      # START NEW ASYNC HS_CODE_FINDER SEARCH FOR THAT TERM
-      phr.id.future <- phr.id$id
-      query.refine.future <- input$query.refine
-      # query.refine.future <<- "keyring"
-      # phr.id.future <<- 2561
-
-      future({ gta_hs_code_finder(products = tolower(paste(query.refine.future, collapse=" ")))}) %...>%  {
-
-        found.temp <- .
-        # found.temp <- gta_hs_code_finder(products = tolower(paste(query.refine.future, collapse=" ")))
-        
-        gta_sql_update_table("DROP TABLE IF EXISTS hs_found_temp;")
-        
-        found.temp=splitstackshape::cSplit(found.temp, which(names(found.temp)=="source.names"), sep="; ", direction="long")
-        gta_sql_create_table(write.df = "found.temp")
-        rm(found.temp)
-        
-        before <- nrow(gta_sql_get_value(paste0("SELECT * FROM hs_code_suggested WHERE phrase_id = ",phr.id.future)))
-        
-        gta_sql_multiple_queries(paste0("DELETE FROM hs_found_temp
-                                        WHERE hs_code IN (SELECT hs_code_6
-                                                          FROM hs_code_suggested
-                                                          WHERE phrase_id =",phr.id.future,");
-                                                          
-                                        ALTER TABLE hs_found_temp
-                                        ADD phrase_id INT NULL;
-                                        
-                                        UPDATE hs_found_temp
-                                        SET phrase_id = ",phr.id.future,";
-                                        
-                                        ALTER TABLE hs_found_temp
-                                        ADD probability DOUBLE NULL;
-                                      
-                                        INSERT INTO hs_code_suggested (phrase_id, hs_code_6, probability)
-                                        SELECT phrase_id, hs_code, probability
-                                        FROM hs_found_temp;
-
-                                        INSERT INTO hs_code_source
-                                        SELECT hs_sug.suggestion_id, hs_src.source_id
-                                        FROM hs_found_temp hs_found
-                                        JOIN hs_code_suggested hs_sug
-                                        ON hs_found.hs_code=hs_sug.hs_code_6
-                                        AND hs_found.phrase_id=hs_sug.phrase_id
-                                        JOIN hs_suggestion_sources hs_src
-                                        ON hs_found.source_names=hs_src.source_name;
-                                        
-                                        DROP TABLE IF EXISTS hs_found_temp;
-                                        "),
-                                 output.queries = 1)
-        
-        after <- nrow(gta_sql_get_value(paste0("SELECT * FROM hs_code_suggested WHERE phrase_id = ",phr.id.future)))
-        print(paste0(after-before, " NEW SUGGESTIONS FOR PHRASE ", phr.id.future))
-   
-      }
+      # # START NEW ASYNC HS_CODE_FINDER SEARCH FOR THAT TERM
+      # phr.id.future <- phr.id$id
+      # query.refine.future <- input$query.refine
+      # # query.refine.future <<- "keyring"
+      # # phr.id.future <<- 2561
+      # 
+      # future({ gta_hs_code_finder(products = tolower(paste(query.refine.future, collapse=" ")))}) %...>%  {
+      # 
+      #   found.temp <- .
+      #   # found.temp <- gta_hs_code_finder(products = tolower(paste(query.refine.future, collapse=" ")))
+      #   
+      #   gta_sql_update_table("DROP TABLE IF EXISTS hs_found_temp;")
+      #   
+      #   found.temp=splitstackshape::cSplit(found.temp, which(names(found.temp)=="source.names"), sep="; ", direction="long")
+      #   gta_sql_create_table(write.df = "found.temp")
+      #   rm(found.temp)
+      #   
+      #   before <- nrow(gta_sql_get_value(paste0("SELECT * FROM hs_code_suggested WHERE phrase_id = ",phr.id.future)))
+      #   
+      #   gta_sql_multiple_queries(paste0("DELETE FROM hs_found_temp
+      #                                   WHERE hs_code IN (SELECT hs_code_6
+      #                                                     FROM hs_code_suggested
+      #                                                     WHERE phrase_id =",phr.id.future,");
+      #                                                     
+      #                                   ALTER TABLE hs_found_temp
+      #                                   ADD phrase_id INT NULL;
+      #                                   
+      #                                   UPDATE hs_found_temp
+      #                                   SET phrase_id = ",phr.id.future,";
+      #                                   
+      #                                   ALTER TABLE hs_found_temp
+      #                                   ADD probability DOUBLE NULL;
+      #                                 
+      #                                   INSERT INTO hs_code_suggested (phrase_id, hs_code_6, probability)
+      #                                   SELECT phrase_id, hs_code, probability
+      #                                   FROM hs_found_temp;
+      # 
+      #                                   INSERT INTO hs_code_source
+      #                                   SELECT hs_sug.suggestion_id, hs_src.source_id
+      #                                   FROM hs_found_temp hs_found
+      #                                   JOIN hs_code_suggested hs_sug
+      #                                   ON hs_found.hs_code=hs_sug.hs_code_6
+      #                                   AND hs_found.phrase_id=hs_sug.phrase_id
+      #                                   JOIN hs_suggestion_sources hs_src
+      #                                   ON hs_found.source_names=hs_src.source_name;
+      #                                   
+      #                                   DROP TABLE IF EXISTS hs_found_temp;
+      #                                   "),
+      #                            output.queries = 1)
+      #   
+      #   after <- nrow(gta_sql_get_value(paste0("SELECT * FROM hs_code_suggested WHERE phrase_id = ",phr.id.future)))
+      #   print(paste0(after-before, " NEW SUGGESTIONS FOR PHRASE ", phr.id.future))
+      # 
+      # }
       
       
       if (type %in% c("clipboard","unrelated_search")) {
