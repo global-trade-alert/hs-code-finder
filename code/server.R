@@ -329,7 +329,7 @@ server <- function(input, output, session) {
         
         
         # FILL IMPORTER LOG
-        ticket.nr=gta_sql_multiple_queries(paste0("INSERT INTO hs_importer_log (user_id, order_email, job_name, time_order, under_preparation, is_priority, process_by_others, related_state_act) 
+        ticket.nr=gta_sql_multiple_queries(paste0("INSERT INTO hs_importer_log (user_id, order_email, job_name, time_order, under_preparation, is_priority, process_by_others, related_intervention) 
                VALUES (",
                                                   user$id,",'",
                                                   email.address,"','",
@@ -337,7 +337,7 @@ server <- function(input, output, session) {
                                                   "',CURRENT_TIMESTAMP,1,",
                                                   as.numeric(input$prioritize),",",
                                                   as.numeric(input$process.by.others),",",
-                                                  input$state.act.id,");
+                                                  input$intervention.id,");
                SELECT MAX(ticket_number) FROM hs_importer_log;"),
                                            output.queries = 2)
         

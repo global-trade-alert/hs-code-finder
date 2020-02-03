@@ -162,7 +162,7 @@ if(importer.busy>2){
                                     check.hierarchy = FALSE,
                                     is.priority = kl$is.priority,
                                     self.check = TRUE,
-                                    related.state.act = kl$related.state.act,
+                                    related.intervention = kl$related.intervention,
                                     job.processed = TRUE, ## will be set to FALSE by HS searcher.
                                     submission.id = Sys.Date())
         
