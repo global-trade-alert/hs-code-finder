@@ -55,7 +55,70 @@ if(importer.busy>2){
     source(fct)
   }
   
-  importer.log <- change_encoding(gta_sql_load_table("importer_log"))
+  ## import from GTA main db
+  gta_sql_pool_open(pool.name="pool.main",
+                    db.title="gtamain",
+                    db.host = gta_pwd("gtamain")$host,
+                    db.name = gta_pwd("gtamain")$name,
+                    db.user = gta_pwd("gtamain")$user,
+                    db.password = gta_pwd("gtamain")$password,
+                    table.prefix = "hs_")
+  
+  
+  new.hs.queries=gta_sql_get_value("SELECT * FROM gta_import_product_log WHERE ric_transfer=0;", 
+                                   "pool.main")
+  
+  if(nrow(new.hs.queries)>0){
+    
+    for(int in unique(new.hs.queries$intervention.id)){
+      
+      ## Updating job.log
+      
+      new.job.id=gta_sql_multiple_queries(paste0("INSERT INTO hs_job_log (user_id, job_type, job_name, nr_of_checks, check_hierarchy, is_priority, self_check, related_state_act, job_processed, submission_id, phrases_remaining)
+                                                  VALUES (70, 'GTA main', 'ricardo', 3,0, 1,1, ",int,", 1, CURRENT_TIMESTAMP, NULL);
+                                                  SELECT MAX(job_id) FROM hs_job_log;"),
+                                          output.queries = 2)
+      
+      
+      
+      ## adding it to the range of HS code searches
+      
+      phrases.to.import.update = data.frame(job.id=new.job.id,
+                                            phrase=unique(new.hs.queries$import.product.name[new.hs.queries$intervention.id==int]),
+                                            search.underway=F,
+                                            search.concluded=F,
+                                            run.time=NA,
+                                            nr.attempts=0,
+                                            stringsAsFactors = F)
+      
+      gta_sql_append_table(append.table = "phrases.to.import",
+                           append.by.df = "phrases.to.import.update")
+      
+      rm(phrases.to.import.update)
+      
+      
+      gta_sql_update_table(paste0("UPDATE gta_import_product_log
+                            SET ric_transfer=1
+                            WHERE intervention_id=",int,";"), "pool.main")
+
+      }
+    
+    
+  }
+  
+  
+  
+  
+  
+  gta_sql_pool_close("pool.main")
+  
+  
+  
+  
+  
+  
+  ### import from HS app XLSX
+  importer.log <- gta_sql_load_table("importer_log")
   importer.log <<- importer.log
   
   if(sum(importer.log$under.preparation)==0){
