@@ -7,6 +7,7 @@ gta_hs_classify_results<- function(processed.phrase=NULL,
                                    open.pool=F){
   
 
+  
   # variable.df="classifier.variables"
 
   # relevance.threshold=.5

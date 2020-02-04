@@ -36,7 +36,7 @@ path <<- "17 Shiny/5 HS code finder/"
 # path="0 dev/hs-code-finder-jf/"
 # path="0 dev/hs-code-finder-pb/"
 
-database <- "ricardomain"
+database <<- "ricardomain"
 
 gta_sql_kill_connections()
 gta_sql_pool_open(db.title=database,
@@ -45,7 +45,6 @@ gta_sql_pool_open(db.title=database,
                   db.user = gta_pwd(database)$user,
                   db.password = gta_pwd(database)$password,
                   table.prefix = "hs_")
-
 
 ## helpful functions
 ## HS app functions
@@ -78,6 +77,7 @@ shinyApp(ui = ui,
            
            onStop(function() {
              gta_sql_pool_close()
+             gta_sql_kill_connections()
            })
          },
          options = list(launch.browser=T)
