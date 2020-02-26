@@ -51,10 +51,10 @@ gta_hs_check_job_completion <- function(processed.job=NULL,
     
     gta_sql_update_table(querysql)
     
-        job.id.future <- processed.job
+    job.id.future <- processed.job
     future({ gta_hs_process_completed_job(processed.job=job.id.future,
                                           open.pool=T) }) %...>% {
-      print("JOB PROCESSED")
+    print("JOB PROCESSED")
     }
     
   }
