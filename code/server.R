@@ -1,6 +1,7 @@
 
 
 server <- function(input, output, session) {
+
   print("START APP")
   cat("\n")
   
@@ -570,10 +571,10 @@ server <- function(input, output, session) {
                                                                                                                                       JOIN hs_phrase_log pl
                                                                                                                                       ON cp.phrase_id = pl.phrase_id
                                                                                                                                       AND cp.processing_round = pl.processing_round
-                                                                                                                                      AND cp.check_id IN (SELECT check_id
+                                                                                                                                      WHERE cp.check_id IN (SELECT check_id
                                                                                                                                                          FROM hs_check_log
                                                                                                                                                          WHERE user_id = ",user$id,
-                                            ")))
+                                                   ")))
                                                                                              GROUP BY job_id
                                                                                              ORDER by is_priority DESC, COUNT(jp.phrase_id) ASC
                                                                                              LIMIT 1) 
@@ -581,7 +582,8 @@ server <- function(input, output, session) {
                                                   
                                                    GROUP BY phrase_id) AS tbl_of_checks
                                           ON hs_job_phrase.phrase_id=tbl_of_checks.phrase_id2
-                                          WHERE job_id=(SELECT job_id 
+                                          WHERE processed=0
+                                          AND job_id=(SELECT job_id 
                                                                                        FROM (SELECT jp.job_id, is_priority, COUNT(DISTINCT(jp.phrase_id))
                                                                                              FROM hs_job_phrase jp
                                                                                              JOIN hs_job_log jl
@@ -595,10 +597,10 @@ server <- function(input, output, session) {
                                                                                                                                       JOIN hs_phrase_log pl
                                                                                                                                       ON cp.phrase_id = pl.phrase_id
                                                                                                                                       AND cp.processing_round = pl.processing_round
-                                                                                                                                      AND cp.check_id IN (SELECT check_id
+                                                                                                                                      WHERE cp.check_id IN (SELECT check_id
                                                                                                                                                          FROM hs_check_log
                                                                                                                                                          WHERE user_id = ",user$id,
-                                            ")))
+                                                   ")))
                                                                                              GROUP BY job_id
                                                                                              ORDER by is_priority DESC, COUNT(jp.phrase_id) ASC
                                                                                              LIMIT 1)
@@ -611,10 +613,10 @@ server <- function(input, output, session) {
                                                                                             JOIN hs_phrase_log pl
                                                                                             ON cp.phrase_id = pl.phrase_id
                                                                                             AND cp.processing_round = pl.processing_round
-                                                                                            AND cp.check_id IN (SELECT check_id
+                                                                                            WHERE cp.check_id IN (SELECT check_id
                                                                                                                FROM hs_check_log
                                                                                                                WHERE user_id = ",user$id,
-                                            ")))
+                                                   ")))
                                           ORDER by tbl_of_checks.count_column DESC
                                           LIMIT 10")),1)
       
