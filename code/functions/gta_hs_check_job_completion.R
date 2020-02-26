@@ -32,17 +32,17 @@ gta_hs_check_job_completion <- function(processed.job=NULL,
                                                        WHERE processed = FALSE 
                                                        AND job_id = ",processed.job,";"))
   
-  if(remaining.phrases>0){
+
+  sql <- "UPDATE hs_job_log SET phrases_remaining = ?left WHERE job_id = ?jobID;"
+  querysql <- sqlInterpolate(pool, 
+                             sql, 
+                             left = remaining.phrases,
+                             jobID = processed.job)
+  
+  gta_sql_update_table(querysql)
+  
+ if(remaining.phrases==0){
     
-    sql <- "UPDATE hs_job_log SET phrases_remaining = ?left WHERE job_id = ?jobID;"
-    querysql <- sqlInterpolate(pool, 
-                               sql, 
-                               left = remaining.phrases,
-                               jobID = processed.job)
-    
-    gta_sql_update_table(querysql)
-    
-  } else {
     
     sql <- "UPDATE hs_job_log SET job_processed = true WHERE job_id = ?jobID;"
     querysql <- sqlInterpolate(pool, 
@@ -51,14 +51,7 @@ gta_hs_check_job_completion <- function(processed.job=NULL,
     
     gta_sql_update_table(querysql)
     
-    sql <- "UPDATE hs_job_log SET phrases_remaining = 0 WHERE job_id = ?jobID;"
-    querysql <- sqlInterpolate(pool, 
-                               sql, 
-                               jobID = processed.job)
-    
-    gta_sql_update_table(querysql)
-    
-    job.id.future <- processed.job
+        job.id.future <- processed.job
     future({ gta_hs_process_completed_job(processed.job=job.id.future,
                                           open.pool=T) }) %...>% {
       print("JOB PROCESSED")
