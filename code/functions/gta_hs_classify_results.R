@@ -1,6 +1,6 @@
 gta_hs_classify_results<- function(processed.phrase=NULL,
                                    job.id=NULL,
-                                   relevance.threshold=.5,
+                                   relevance.threshold=.6,
                                    return.result=F,
                                    path.to.cloud=NULL,
                                    source.data="17 Shiny/5 HS code finder/database/HS classifier.Rdata",
