@@ -716,7 +716,7 @@ server <- function(input, output, session) {
           
           
           new.phr.id=gta_sql_multiple_queries(paste0("INSERT INTO hs_phrase_log (phrase, source, processing_round, exit_status)
-                                                  VALUES ('",tolower(paste(input$query.refine, collapse = " ")),"','adjusted',1,1);
+                                                  VALUES ('",gsub(";","",tolower(paste(input$query.refine, collapse = " "))),"','adjusted',1,1);
                                                   SELECT MAX(phrase_id) FROM hs_phrase_log;"),
                                               output.queries = 2)
           
