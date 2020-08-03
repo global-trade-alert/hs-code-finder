@@ -571,7 +571,7 @@ server <- function(input, output, session) {
                                                       		GROUP BY phrase_id
                                                       	) AS cp
                                                       	ON (cp.phrase_id = jp.phrase_id)
-                                                  WHERE (job_processed = 0 AND jp.phrase_id NOT IN (
+                                                  WHERE jp.phrase_id NOT IN (
                                                       	SELECT cp.phrase_id
                                                       	FROM hs_check_log AS cl
                                                       		JOIN hs_check_phrases AS cp
@@ -579,7 +579,7 @@ server <- function(input, output, session) {
                                                       			JOIN hs_phrase_log as pl2
                                                       			ON (cp.phrase_id = pl2.phrase_id AND cp.processing_round = pl2.processing_round)
                                                       	WHERE user_id = ",user$id,"
-                                                      ))
+                                                      )
                                                   ORDER BY is_priority DESC, phrases_remaining ASC, count_column DESC
                                                   LIMIT 10")),1)
       
