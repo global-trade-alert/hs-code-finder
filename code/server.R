@@ -338,7 +338,7 @@ server <- function(input, output, session) {
         } else {
           state.act <- "NULL"
         }
-        ticket.nr=gta_sql_multiple_queries(paste0("INSERT INTO hs_importer_log (user_id, order_email, job_name, time_order, under_preparation, is_priority, process_by_others, related_state_act) 
+        ticket.nr=gta_sql_multiple_queries(paste0("INSERT INTO hs_importer_log (user_id, order_email, job_name, time_order, under_preparation, is_priority, process_by_others, related_intervention) 
                VALUES (",
                                                   user$id,",'",
                                                   email.address,"','",
