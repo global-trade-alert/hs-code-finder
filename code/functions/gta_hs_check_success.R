@@ -11,12 +11,11 @@ gta_hs_check_success <- function(check.id=NULL,
 
   setwd("/home/rstudio/Dropbox/GTA cloud")
   
-  credential <- gta_pwd('ricardomain')
-  gta_sql_pool_open(db.title=credential[['name']],
-                    db.host = credential[['host']],
-                    db.name = credential[['name']],
-                    db.user = credential[['user']],
-                    db.password = credential[['password']],
+  gta_sql_pool_open(db.title="ricardomainclone",
+                    db.host = gta_pwd("ricardodev")[['host']],
+                    db.name = 'ricardomainclone',
+                    db.user = gta_pwd("ricardodev")[['user']],
+                    db.password = gta_pwd("ricardodev")[['password']],
                     table.prefix = "hs_")
   
   # new code selected
