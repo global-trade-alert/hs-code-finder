@@ -39,7 +39,7 @@ path <<- "17 Shiny/5 HS code finder (DEV)/"
 gta_sql_kill_connections()
 gta_sql_pool_open(db.title="ricardomain",
                   db.host = gta_pwd("ricardomain")[['host']],
-                  db.name = 'ricardomain',
+                  db.name = gta_pwd("ricardomain")[['name']],
                   db.user = gta_pwd("ricardomain")[['user']],
                   db.password = gta_pwd("ricardomain")[['password']],
                   table.prefix = "hs_")
@@ -68,7 +68,7 @@ shinyApp(ui = ui,
          onStart = function() {
            gta_sql_pool_open(db.title="ricardomain",
                   db.host = gta_pwd("ricardomain")[['host']],
-                  db.name = 'ricardomain',
+                  db.name = gta_pwd("ricardomain")[['name']],
                   db.user = gta_pwd("ricardomain")[['user']],
                   db.password = gta_pwd("ricardomain")[['password']],
                   table.prefix = "hs_")

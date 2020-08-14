@@ -11,11 +11,11 @@ library("ggplot2")
 library(mailR)
 rm(list = ls())
 
-# gta_setwd()
-setwd("/home/rstudio/Dropbox/GTA cloud")
+gta_setwd()
+# setwd("/home/rstudio/Dropbox/GTA cloud")
 # setwd("/Users/patrickbuess/Dropbox/Collaborations/GTA cloud")
 
-wdpath="17 Shiny/5 HS code finder (DEV)/"
+wdpath="17 Shiny/5 HS code finder/"
 # wdpath="0 dev/hs-code-finder-pb/"
 
 # copying log over to the cloud
@@ -23,7 +23,7 @@ wdpath="17 Shiny/5 HS code finder (DEV)/"
           # "/home/rstudio/Dropbox/GTA cloud/17 Shiny/5 HS finder/code/importer.log",overwrite = T)
 gta_sql_pool_open(db.title="ricardomain",
                   db.host = gta_pwd("ricardomain")[['host']],
-                  db.name = 'ricardomain',
+                  db.name = gta_pwd("ricardomain")[['name']],
                   db.user = gta_pwd("ricardomain")[['user']],
                   db.password = gta_pwd("ricardomain")[['password']],
                   table.prefix = "hs_")
