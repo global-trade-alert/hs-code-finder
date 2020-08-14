@@ -32,7 +32,7 @@ gta_sql_pool_open(db.title="ricardomain",
 
 ## check if a process is running on the server
 search.time.allowance=5
-nr.parallel.processes=50000
+nr.parallel.processes=20
 running.processes=system("ps aux", intern=T)
 
 hs.search.busy=sum(as.numeric(grepl("(hs-search.R)",running.processes, ignore.case = T)))
@@ -57,7 +57,7 @@ if(hs.search.busy>=nr.parallel.processes){
     
     for(i in 1:nrow(run.not.finished)){
       # run.not.finished$search.underway=F
-      sql <- "UPDATE phrases_to_import SET search_underway = 0 WHERE phrase = ?forwhom;"
+      sql <- "UPDATE hs_phrases_to_import SET search_underway = 0 WHERE phrase = ?forwhom;"
       query <- sqlInterpolate(pool,
                               sql,
                               forwhom = run.not.finished$phrase[i])
@@ -593,7 +593,7 @@ if(hs.search.busy>=nr.parallel.processes){
 
       }
 
-
+  
 
 
       ## Check whether a job is complete

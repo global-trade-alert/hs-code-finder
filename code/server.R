@@ -350,7 +350,7 @@ server <- function(input, output, session) {
                SELECT MAX(ticket_number) FROM hs_importer_log;"),
                                            output.queries = 2)
         
-        filename=paste0(Sys.Date()," - ", ticket.nr, " - ",input$user,".xlsx")
+        filename=paste0(Sys.Date()," - ", ticket.nr, " - ",input$users,".xlsx")
         gta_sql_get_value(paste0("UPDATE hs_importer_log SET xlsx_file = '",
                                  filename,
                                  "' WHERE ticket_number=",ticket.nr,";"))
