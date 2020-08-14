@@ -25,12 +25,11 @@ gta_hs_classify_results<- function(processed.phrase=NULL,
   # gta_setwd()
   
   if(open.pool){
-    database = "ricardomain"
-    gta_sql_pool_open(db.title=database,
-                      db.host = gta_pwd(database)$host,
-                      db.name = gta_pwd(database)$name,
-                      db.user = gta_pwd(database)$user,
-                      db.password = gta_pwd(database)$password,
+    gta_sql_pool_open(db.title="ricardomainclone",
+                      db.host = gta_pwd("ricardodev")[['host']],
+                      db.name = 'ricardomainclone',
+                      db.user = gta_pwd("ricardodev")[['user']],
+                      db.password = gta_pwd("ricardodev")[['password']],
                       table.prefix = "hs_")
     
   }

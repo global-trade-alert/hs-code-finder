@@ -20,15 +20,14 @@ rm(list = ls())
 setwd("/home/rstudio/Dropbox/GTA cloud")
 # setwd("/Users/patrickbuess/Dropbox/Collaborations/GTA cloud")
 
-wdpath="17 Shiny/5 HS code finder/"
+wdpath="17 Shiny/5 HS code finder (DEV)/"
 # wdpath="0 dev/hs-code-finder-pb/"
 
-database = "ricardomain"
-gta_sql_pool_open(db.title=database,
-                  db.host = gta_pwd(database)$host,
-                  db.name = gta_pwd(database)$name,
-                  db.user = gta_pwd(database)$user,
-                  db.password = gta_pwd(database)$password,
+gta_sql_pool_open(db.title="ricardomainclone",
+                  db.host = gta_pwd("ricardodev")[['host']],
+                  db.name = 'ricardomainclone',
+                  db.user = gta_pwd("ricardodev")[['user']],
+                  db.password = gta_pwd("ricardodev")[['password']],
                   table.prefix = "hs_")
 
 ## check if a process is running on the server
@@ -47,7 +46,7 @@ for(fct in list.files(paste0(wdpath,"/code/functions"), pattern = ".R", full.nam
 phrases.to.import <- gta_sql_load_table("phrases_to_import")
 phrases.to.import <<- phrases.to.import
 
-stop("JOHANNES is working")
+# stop("JOHANNES is working")
 
 if(hs.search.busy>=nr.parallel.processes){
 

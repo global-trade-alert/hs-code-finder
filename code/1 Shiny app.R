@@ -30,20 +30,18 @@ plan(multiprocess)
 
 rm(list = ls())
 
-# gta_setwd()
-setwd("/home/rstudio/Dropbox/GTA cloud")
-path <<- "17 Shiny/5 HS code finder/"
+gta_setwd()
+# setwd("/home/rstudio/Dropbox/GTA cloud")
+path <<- "17 Shiny/5 HS code finder (DEV)/"
 # path="0 dev/hs-code-finder-jf/"
 # path="0 dev/hs-code-finder-pb/"
 
-database <<- "ricardomain"
-
 gta_sql_kill_connections()
-gta_sql_pool_open(db.title=database,
-                  db.host = gta_pwd(database)$host,
-                  db.name = gta_pwd(database)$name,
-                  db.user = gta_pwd(database)$user,
-                  db.password = gta_pwd(database)$password,
+gta_sql_pool_open(db.title="ricardomainclone",
+                  db.host = gta_pwd("ricardodev")[['host']],
+                  db.name = 'ricardomainclone',
+                  db.user = gta_pwd("ricardodev")[['user']],
+                  db.password = gta_pwd("ricardodev")[['password']],
                   table.prefix = "hs_")
 
 ## helpful functions
@@ -68,11 +66,11 @@ source(paste0(path,"code/ui.R"))
 shinyApp(ui = ui,
          server = server,
          onStart = function() {
-           gta_sql_pool_open(db.title=database,
-                             db.host = gta_pwd(database)$host,
-                             db.name = gta_pwd(database)$name,
-                             db.user = gta_pwd(database)$user,
-                             db.password = gta_pwd(database)$password,
+           gta_sql_pool_open(db.title="ricardomainclone",
+                             db.host = gta_pwd("ricardodev")[['host']],
+                             db.name = 'ricardomainclone',
+                             db.user = gta_pwd("ricardodev")[['user']],
+                             db.password = gta_pwd("ricardodev")[['password']],
                              table.prefix = "hs_")
            
            onStop(function() {
@@ -80,5 +78,5 @@ shinyApp(ui = ui,
              gta_sql_kill_connections()
            })
          },
-         options = list(launch.browser=T)
+         options = list(launch.browser=F)
 )

@@ -130,7 +130,7 @@ ui <- fluidPage(
                                                                      value = 3,
                                                                      label = "X users should check these products"),
                                                         textInput(inputId = "state.act.id",
-                                                                  label = "State Act ID, if existing"),
+                                                                  label = "Intervention ID, if existing"),
                                                         textInput(inputId = "import.email.adress",
                                                                   label = "Notify me when finished importing",
                                                                   placeholder = "Email address"),

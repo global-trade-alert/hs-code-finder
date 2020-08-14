@@ -15,18 +15,17 @@ rm(list = ls())
 setwd("/home/rstudio/Dropbox/GTA cloud")
 # setwd("/Users/patrickbuess/Dropbox/Collaborations/GTA cloud")
 
-wdpath="17 Shiny/5 HS code finder/"
+wdpath="17 Shiny/5 HS code finder (DEV)/"
 # wdpath="0 dev/hs-code-finder-pb/"
 
 # copying log over to the cloud
 # file.copy("/home/rstudio/Dropbox/GTA cloud/17 Shiny/5 HS code finder/code/importer.log",
           # "/home/rstudio/Dropbox/GTA cloud/17 Shiny/5 HS finder/code/importer.log",overwrite = T)
-database = "ricardomain"
-gta_sql_pool_open(db.title=database,
-                  db.host = gta_pwd(database)$host,
-                  db.name = gta_pwd(database)$name,
-                  db.user = gta_pwd(database)$user,
-                  db.password = gta_pwd(database)$password,
+gta_sql_pool_open(db.title="ricardomainclone",
+                  db.host = gta_pwd("ricardodev")[['host']],
+                  db.name = 'ricardomainclone',
+                  db.user = gta_pwd("ricardodev")[['user']],
+                  db.password = gta_pwd("ricardodev")[['password']],
                   table.prefix = "hs_")
 
 ## check if a process is running on the server
@@ -163,7 +162,7 @@ if(importer.busy>2){
                                     check.hierarchy = FALSE,
                                     is.priority = kl$is.priority,
                                     self.check = TRUE,
-                                    related.state.act = kl$related.state.act,
+                                    related.state.act = kl$related.intervention,
                                     job.processed = TRUE, ## will be set to FALSE by HS searcher.
                                     submission.id = Sys.Date())
         

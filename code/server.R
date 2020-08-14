@@ -338,7 +338,7 @@ server <- function(input, output, session) {
         } else {
           state.act <- "NULL"
         }
-        ticket.nr=gta_sql_multiple_queries(paste0("INSERT INTO hs_importer_log (user_id, order_email, job_name, time_order, under_preparation, is_priority, process_by_others, related_state_act) 
+        ticket.nr=gta_sql_multiple_queries(paste0("INSERT INTO hs_importer_log (user_id, order_email, job_name, time_order, under_preparation, is_priority, process_by_others, related_intervention) 
                VALUES (",
                                                   user$id,",'",
                                                   email.address,"','",
@@ -566,12 +566,12 @@ server <- function(input, output, session) {
                                                       	) AS pl
                                                       	ON pl.phrase_id = jp.phrase_id
                                                       	LEFT JOIN (
-                                                      		SELECT phrase_id, processing_round, COUNT(phrase_id) AS count_column
+                                                      		SELECT phrase_id, COUNT(phrase_id) AS count_column
                                                       		FROM hs_check_phrases
-                                                      		GROUP BY processing_round, phrase_id
+                                                      		GROUP BY phrase_id
                                                       	) AS cp
-                                                      	ON (cp.phrase_id = jp.phrase_id AND cp.processing_round = pl.processing_round)
-                                                  WHERE (job_processed = 0 AND jp.phrase_id NOT IN (
+                                                      	ON (cp.phrase_id = jp.phrase_id)
+                                                  WHERE jp.phrase_id NOT IN (
                                                       	SELECT cp.phrase_id
                                                       	FROM hs_check_log AS cl
                                                       		JOIN hs_check_phrases AS cp
@@ -579,7 +579,7 @@ server <- function(input, output, session) {
                                                       			JOIN hs_phrase_log as pl2
                                                       			ON (cp.phrase_id = pl2.phrase_id AND cp.processing_round = pl2.processing_round)
                                                       	WHERE user_id = ",user$id,"
-                                                      ))
+                                                      )
                                                   ORDER BY is_priority DESC, phrases_remaining ASC, count_column DESC
                                                   LIMIT 10")),1)
       
