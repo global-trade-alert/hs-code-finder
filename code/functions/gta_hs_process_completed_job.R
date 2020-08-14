@@ -30,7 +30,7 @@ gta_hs_process_completed_job <- function(processed.job=NULL,
   job.result=gta_hs_check_job_results(processed.job)$all
   job.result=subset(job.result, is.na(hs.code.6)==F)
   
-  related.intervention=as.numeric(gta_sql_get_value(paste0("SELECT related_intervention FROM hs_job_log WHERE job_id =",processed.job)))
+  related.intervention=as.numeric(gta_sql_get_value(paste0("SELECT related_state_act FROM hs_job_log WHERE job_id =",processed.job)))
   
   
   
