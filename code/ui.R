@@ -179,7 +179,7 @@ ui <- fluidPage(
                        $("#register_new_hs_code").click();
                        }}
                                                  });'),
-           tags$script('$( document ).on("click", ".group-start", function(){
+           tags$script('$( document ).on("click", ".dtrg-group.dtrg-start.dtrg-level-0", function(){
                        var hscode = $(this).find(".hs4code").html();
                        Shiny.setInputValue("checkGroupSelect", hscode, {priority: "event"});
                        console.log(hscode);

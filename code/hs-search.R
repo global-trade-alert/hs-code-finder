@@ -183,47 +183,47 @@ if(hs.search.busy>=nr.parallel.processes){
           
           
           
-          
-          print("Checking Eximguru ...")
-          
-          remDr$go("http://www.eximguru.com/hs-codes/default.aspx")
-          html <- htmlParse(remDr$getSource()[[1]], asText=T)
-          
-          e=remDr$findElement(css="#uxContentPlaceHolder_ucSearchBox1_ContentPanel1_uxValueToSearchTextBox")
-          e$sendKeys(as.character(this.phrase))
-          e$sendKeys('\ue007')
-          
-          guru.path="//div[@class='Search']/descendant::table/descendant::tr/td[1]/a"
-          
-          
-          b_load_site(xpath=guru.path,
-                      wait=wait.time)
-          
-          html <- htmlParse(remDr$getSource()[[1]], asText=T)
-          
-          if(length(xpathSApply(html, guru.path,xmlValue))>0){
-            
-            guru.hs=unique(substr(unlist(str_extract_all(xpathSApply(html, guru.path,xmlValue),"\\d+")),1,6))
-            guru.hs=guru.hs[nchar(guru.hs)>=4]
-            
-            if(length(guru.hs)>0){
-              
-              search.result=rbind(search.result,
-                                  data.frame(product.name=this.phrase,
-                                             hs.code=guru.hs,
-                                             hs.order=1:length(guru.hs),
-                                             source="Eximguru",
-                                             stringsAsFactors = F)
-              )
-              
-              
-            }
-            
-            rm(guru.hs, html)
-            
-          }
-          
-          
+          # 
+          # print("Checking Eximguru ...")
+          # 
+          # remDr$go("http://www.eximguru.com/hs-codes/default.aspx")
+          # html <- htmlParse(remDr$getSource()[[1]], asText=T)
+          # 
+          # e=remDr$findElement(css="#uxContentPlaceHolder_ucSearchBox1_ContentPanel1_uxValueToSearchTextBox")
+          # e$sendKeys(as.character(this.phrase))
+          # e$sendKeys('\ue007')
+          # 
+          # guru.path="//div[@class='Search']/descendant::table/descendant::tr/td[1]/a"
+          # 
+          # 
+          # b_load_site(xpath=guru.path,
+          #             wait=wait.time)
+          # 
+          # html <- htmlParse(remDr$getSource()[[1]], asText=T)
+          # 
+          # if(length(xpathSApply(html, guru.path,xmlValue))>0){
+          #   
+          #   guru.hs=unique(substr(unlist(str_extract_all(xpathSApply(html, guru.path,xmlValue),"\\d+")),1,6))
+          #   guru.hs=guru.hs[nchar(guru.hs)>=4]
+          #   
+          #   if(length(guru.hs)>0){
+          #     
+          #     search.result=rbind(search.result,
+          #                         data.frame(product.name=this.phrase,
+          #                                    hs.code=guru.hs,
+          #                                    hs.order=1:length(guru.hs),
+          #                                    source="Eximguru",
+          #                                    stringsAsFactors = F)
+          #     )
+          #     
+          #     
+          #   }
+          #   
+          #   rm(guru.hs, html)
+          #   
+          # }
+          # 
+          # 
           
           
           print("Checking EU customs ...")

@@ -334,13 +334,17 @@ table.dataTable tr.selected td, table.dataTable td.selected {
 	border-collapse:collapse !important;
 }
 
-.results table .group-start td {
+.results table .dtrg-group.dtrg-start.dtrg-level-0 td {
 	padding: 2vh 5px;
 	font-size:1.1em;
 }
 
-.results table .group-start {
-	border-top:2px solid #9c9c9c;
+.results table .dtrg-group.dtrg-start.dtrg-level-0.selected {
+	background-color:transparent !important;
+}
+
+.results table .dtrg-group.dtrg-start.dtrg-level-0 {
+	border-top:3px solid #c4c4c4;
 }
 
 
