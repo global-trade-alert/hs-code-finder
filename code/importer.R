@@ -21,11 +21,11 @@ wdpath="17 Shiny/5 HS code finder (DEV)/"
 # copying log over to the cloud
 # file.copy("/home/rstudio/Dropbox/GTA cloud/17 Shiny/5 HS code finder/code/importer.log",
           # "/home/rstudio/Dropbox/GTA cloud/17 Shiny/5 HS finder/code/importer.log",overwrite = T)
-gta_sql_pool_open(db.title="ricardomainclone",
-                  db.host = gta_pwd("ricardodev")[['host']],
-                  db.name = 'ricardomainclone',
-                  db.user = gta_pwd("ricardodev")[['user']],
-                  db.password = gta_pwd("ricardodev")[['password']],
+gta_sql_pool_open(db.title="ricardomain",
+                  db.host = gta_pwd("ricardomain")[['host']],
+                  db.name = 'ricardomain',
+                  db.user = gta_pwd("ricardomain")[['user']],
+                  db.password = gta_pwd("ricardomain")[['password']],
                   table.prefix = "hs_")
 
 ## check if a process is running on the server

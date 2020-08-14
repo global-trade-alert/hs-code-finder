@@ -37,11 +37,11 @@ path <<- "17 Shiny/5 HS code finder (DEV)/"
 # path="0 dev/hs-code-finder-pb/"
 
 gta_sql_kill_connections()
-gta_sql_pool_open(db.title="ricardomainclone",
-                  db.host = gta_pwd("ricardodev")[['host']],
-                  db.name = 'ricardomainclone',
-                  db.user = gta_pwd("ricardodev")[['user']],
-                  db.password = gta_pwd("ricardodev")[['password']],
+gta_sql_pool_open(db.title="ricardomain",
+                  db.host = gta_pwd("ricardomain")[['host']],
+                  db.name = 'ricardomain',
+                  db.user = gta_pwd("ricardomain")[['user']],
+                  db.password = gta_pwd("ricardomain")[['password']],
                   table.prefix = "hs_")
 
 ## helpful functions
@@ -66,12 +66,12 @@ source(paste0(path,"code/ui.R"))
 shinyApp(ui = ui,
          server = server,
          onStart = function() {
-           gta_sql_pool_open(db.title="ricardomainclone",
-                             db.host = gta_pwd("ricardodev")[['host']],
-                             db.name = 'ricardomainclone',
-                             db.user = gta_pwd("ricardodev")[['user']],
-                             db.password = gta_pwd("ricardodev")[['password']],
-                             table.prefix = "hs_")
+           gta_sql_pool_open(db.title="ricardomain",
+                  db.host = gta_pwd("ricardomain")[['host']],
+                  db.name = 'ricardomain',
+                  db.user = gta_pwd("ricardomain")[['user']],
+                  db.password = gta_pwd("ricardomain")[['password']],
+                  table.prefix = "hs_")
            
            onStop(function() {
              gta_sql_pool_close()

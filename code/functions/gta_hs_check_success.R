@@ -11,12 +11,12 @@ gta_hs_check_success <- function(check.id=NULL,
 
   setwd("/home/rstudio/Dropbox/GTA cloud")
   
-  gta_sql_pool_open(db.title="ricardomainclone",
-                    db.host = gta_pwd("ricardodev")[['host']],
-                    db.name = 'ricardomainclone',
-                    db.user = gta_pwd("ricardodev")[['user']],
-                    db.password = gta_pwd("ricardodev")[['password']],
-                    table.prefix = "hs_")
+  gta_sql_pool_open(db.title="ricardomain",
+                  db.host = gta_pwd("ricardomain")[['host']],
+                  db.name = 'ricardomain',
+                  db.user = gta_pwd("ricardomain")[['user']],
+                  db.password = gta_pwd("ricardomain")[['password']],
+                  table.prefix = "hs_")
   
   # new code selected
   codes.selected <- gta_sql_get_value(paste0("SELECT * FROM hs_code_selected WHERE check_id = ",check.id,";"))
