@@ -11,8 +11,8 @@ library("ggplot2")
 library(mailR)
 rm(list = ls())
 
-gta_setwd()
-# setwd("/home/rstudio/Dropbox/GTA cloud")
+# gta_setwd()
+setwd("/home/rstudio/Dropbox/GTA cloud")
 # setwd("/Users/patrickbuess/Dropbox/Collaborations/GTA cloud")
 
 wdpath="17 Shiny/5 HS code finder/"

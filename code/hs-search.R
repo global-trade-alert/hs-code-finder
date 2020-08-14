@@ -20,7 +20,7 @@ rm(list = ls())
 setwd("/home/rstudio/Dropbox/GTA cloud")
 # setwd("/Users/patrickbuess/Dropbox/Collaborations/GTA cloud")
 
-wdpath="17 Shiny/5 HS code finder (DEV)/"
+wdpath="17 Shiny/5 HS code finder/"
 # wdpath="0 dev/hs-code-finder-pb/"
 
 gta_sql_pool_open(db.title="ricardomain",

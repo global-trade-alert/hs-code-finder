@@ -30,9 +30,9 @@ plan(multiprocess)
 
 rm(list = ls())
 
-gta_setwd()
-# setwd("/home/rstudio/Dropbox/GTA cloud")
-path <<- "17 Shiny/5 HS code finder (DEV)/"
+# gta_setwd()
+setwd("/home/rstudio/Dropbox/GTA cloud")
+path <<- "17 Shiny/5 HS code finder/"
 # path="0 dev/hs-code-finder-jf/"
 # path="0 dev/hs-code-finder-pb/"
 
