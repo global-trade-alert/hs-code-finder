@@ -594,67 +594,80 @@ if(hs.search.busy>=nr.parallel.processes){
       }
 
   
-
-
-      ## Check whether a job is complete
-
-      phrases.to.import <- gta_sql_load_table("phrases_to_import")
-      phrases.to.import <<- phrases.to.import
-
-      job.import.complete=nrow(subset(phrases.to.import, job.id %in% this.phrase.jobs & search.concluded==F))==0
-
-      if(job.import.complete){
-
-        # SEND AVAILABILITY EMAIL TO USER
-        sender = gta_pwd("mail")$mail
-        recipients = this.job.email
-        sbjct=paste("[",this.job.name,"] Import available in the app",sep="")
-        message=paste0("Hello \n\nThank you for importing new terms. The job '",this.job.name,"' is now processed and the terms can be reviewed online. \n\nIn case of questions or suggestions, please reply to this message. \n\nRegards\nGTA data team")
-
-
-        send.mail(from = sender,
-                  to = recipients,
-                  subject=sbjct,
-                  body=message,
-                  html=F,
-                  smtp = list(host.name = gta_pwd("mail")$host,
-                              port=gta_pwd("mail")$port,
-                              user.name=sender,
-                              passwd=gta_pwd("mail")$password,
-                              tls=T),
-                  authenticate = T)
-
-        rm(recipients, message, sbjct, sender)
-
-
-        # SEND AVAILABILITY EMAIL TO UPWORK
-        sender = gta_pwd("mail")$mail
-        sbjct=paste("GTA/UpWork HS code classification: App updated",sep="")
-
-        nr.left=length(unique(subset(job.phrase, processed==F & job.id %in% subset(job.log, job.processed==F)$job.id)$phrase.id))
-        message=paste0("Hello \n\nThank you for your patience. We have just updated the HS code app.\n\nThere are now ",nr.left," products awaiting classification.\n\nRegards\nJohannes\nhttp://hs.globaltradealert.org/")
-
-        source("17 Shiny/5 HS code finder/setup/uw.R")
-
-        if(nr.left>0){
-          for(email.to in recipients){
-
-            # send.mail(from = sender,
-            #           to = email.to,
-            #           subject=sbjct,
-            #           body=message,
-            #           html=F,
-            #           smtp = list(host.name = gta_pwd("mail")$host,
-            #                       port=gta_pwd("mail")$port,
-            #                       user.name=sender,
-            #                       passwd=gta_pwd("mail")$password,
-            #                       tls=T),
-            #           authenticate = T)
+      
+      # Check whether all phrases are new phrases are imported correctly
+      # If some phrases are not imported correcty (process broke down) delete unfinished data and mark phrase as needing to be imported again
+      
+      phrases.log <- gta_sql_get_value("SELECT * FROM hs_phrase_log WHERE phrase_id >= 3818 AND phrase_id NOT IN (SELECT phrase_id FROM hs_job_phrase);")
+      
+      if (nrow(phrases.log)>0) {
+        gta_sql_multiple_queries("DELETE FROM hs_code_source WHERE suggestion_id IN (SELECT suggestion_id FROM hs_code_suggested WHERE phrase_id IN (SELECT phrase_id FROM hs_phrase_log WHERE phrase_id >= 3818 AND phrase_id NOT IN (SELECT phrase_id FROM hs_job_phrase)));
+                                 DELETE FROM hs_code_suggested WHERE phrase_id IN (SELECT phrase_id FROM hs_phrase_log WHERE phrase_id >= 3818 AND phrase_id NOT IN (SELECT phrase_id FROM hs_job_phrase));
+                                 UPDATE hs_phrases_to_import SET search_concluded = 0, nr_attempts = 0, run_time = NULL WHERE LCASE(phrase) IN (SELECT phrase FROM hs_phrase_log WHERE phrase_id >= 3818 AND phrase_id NOT IN (SELECT phrase_id FROM hs_job_phrase));
+                                 DELETE FROM hs_phrase_log WHERE phrase_id >= 3818 AND phrase_id NOT IN (SELECT phrase_id FROM hs_job_phrase);")
+      } else {
+      
+        ## Check whether a job is complete
+  
+        phrases.to.import <- gta_sql_load_table("phrases_to_import")
+        phrases.to.import <<- phrases.to.import
+  
+        job.import.complete=nrow(subset(phrases.to.import, job.id %in% this.phrase.jobs & search.concluded==F))==0
+  
+        if(job.import.complete){
+  
+          # SEND AVAILABILITY EMAIL TO USER
+          sender = gta_pwd("mail")$mail
+          recipients = this.job.email
+          sbjct=paste("[",this.job.name,"] Import available in the app",sep="")
+          message=paste0("Hello \n\nThank you for importing new terms. The job '",this.job.name,"' is now processed and the terms can be reviewed online. \n\nIn case of questions or suggestions, please reply to this message. \n\nRegards\nGTA data team")
+  
+  
+          send.mail(from = sender,
+                    to = recipients,
+                    subject=sbjct,
+                    body=message,
+                    html=F,
+                    smtp = list(host.name = gta_pwd("mail")$host,
+                                port=gta_pwd("mail")$port,
+                                user.name=sender,
+                                passwd=gta_pwd("mail")$password,
+                                tls=T),
+                    authenticate = T)
+  
+          rm(recipients, message, sbjct, sender)
+  
+  
+          # SEND AVAILABILITY EMAIL TO UPWORK
+          sender = gta_pwd("mail")$mail
+          sbjct=paste("GTA/UpWork HS code classification: App updated",sep="")
+  
+          nr.left=length(unique(subset(job.phrase, processed==F & job.id %in% subset(job.log, job.processed==F)$job.id)$phrase.id))
+          message=paste0("Hello \n\nThank you for your patience. We have just updated the HS code app.\n\nThere are now ",nr.left," products awaiting classification.\n\nRegards\nJohannes\nhttp://hs.globaltradealert.org/")
+  
+          source("17 Shiny/5 HS code finder/setup/uw.R")
+  
+          if(nr.left>0){
+            for(email.to in recipients){
+  
+              # send.mail(from = sender,
+              #           to = email.to,
+              #           subject=sbjct,
+              #           body=message,
+              #           html=F,
+              #           smtp = list(host.name = gta_pwd("mail")$host,
+              #                       port=gta_pwd("mail")$port,
+              #                       user.name=sender,
+              #                       passwd=gta_pwd("mail")$password,
+              #                       tls=T),
+              #           authenticate = T)
+              }
             }
-          }
         }
+      }
 
       print(paste("Processed: ",this.phrase$phrase))
+      
       }
   }
 }
