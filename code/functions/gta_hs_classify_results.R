@@ -64,9 +64,9 @@ gta_hs_classify_results<- function(processed.phrase=NULL,
     load(source.data)
     
     ## A variable i smissing
-    if(any(! classifier.variables %in% names(estimation.set))){
+    if(any(! classifier.variables %in% colnames(estimation.set))){
       
-      miss.vars=paste(classifier.variables[! classifier.variables %in% names(estimation.set)], collapse=";")
+      miss.vars=paste(classifier.variables[! classifier.variables %in% colnames(estimation.set)], collapse=";")
       
       # SEND EMAIL TO JF
       sender = gta_pwd("mail")$mail  
@@ -97,9 +97,9 @@ gta_hs_classify_results<- function(processed.phrase=NULL,
     
     ## there is a new variable
     estimation.vars=c(classifier.variables,"phrase.id","hs.code.6","suggestion.id","nr.times.chosen","nr.of.checks","selection.share")
-    if(any(! names(estimation.set) %in% estimation.vars)){
+    if(any(! colnames(estimation.set) %in% estimation.vars)){
       
-      new.vars=paste(names(estimation.set)[! names(estimation.set) %in% estimation.vars], collapse=";")
+      new.vars=paste(colnames(estimation.set)[! colnames(estimation.set) %in% estimation.vars], collapse=";")
       
       # SEND EMAIL TO JF
       sender = gta_pwd("mail")$mail  

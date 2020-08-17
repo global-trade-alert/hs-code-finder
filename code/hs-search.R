@@ -144,7 +144,7 @@ if(hs.search.busy>=nr.parallel.processes){
         
         print(this.phrase)
         
-        attempt=0
+        attempt = pti.nr.attemps
         while(nrow(search.result)==0 & attempt<=2){
           attempt=attempt+1
           
@@ -435,30 +435,30 @@ if(hs.search.busy>=nr.parallel.processes){
         
         
         ## formatting the findings
-        
-        ## expanding HS codes
-        if(nrow(subset(search.result, nchar(hs.code)<=4))>0){
-          
-          short.hs=subset(search.result, nchar(hs.code)<=4)
-          
-          for(i in 1:nrow(short.hs)){
-            hs=gta_hs_code_check(as.integer(short.hs$hs.code[i]))
+        if (nrow(search.result)>0) {
+          ## expanding HS codes
+          if(nrow(subset(search.result, nchar(hs.code)<=4))>0){
             
-            if(is.null(hs)==F){
-              short.hs$hs.code[i]=paste(gta_hs_code_check(as.integer(short.hs$hs.code[i])), collapse=";")
-            }else{
-              short.hs$hs.code[i]=999999
+            short.hs=subset(search.result, nchar(hs.code)<=4)
+            
+            for(i in 1:nrow(short.hs)){
+              hs=gta_hs_code_check(as.integer(short.hs$hs.code[i]))
+              
+              if(is.null(hs)==F){
+                short.hs$hs.code[i]=paste(gta_hs_code_check(as.integer(short.hs$hs.code[i])), collapse=";")
+              }else{
+                short.hs$hs.code[i]=999999
+              }
             }
+            short.hs=cSplit(short.hs, which(names(short.hs)=="hs.code"), sep=";", direction="long")
+            short.hs=subset(short.hs, hs.code!=999999)
+            
+            search.result=rbind(subset(search.result, nchar(hs.code)>4), short.hs)
+            
           }
-          short.hs=cSplit(short.hs, which(names(short.hs)=="hs.code"), sep=";", direction="long")
-          short.hs=subset(short.hs, hs.code!=999999)
-          
-          search.result=rbind(subset(search.result, nchar(hs.code)>4), short.hs)
-          
         }
-        
-        
-        
+          
+          
         if (nrow(search.result)>0){
           nr.hits=aggregate(source ~ product.name + hs.code, search.result, function(x) length(unique(x)))
           names(nr.hits)=c("product.name","hs.code","nr.sources")
