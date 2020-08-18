@@ -202,7 +202,7 @@ gta_hs_classify_results<- function(processed.phrase=NULL,
     gta_sql_kill_connections()
     }
   
-  if(return.result){return(unique(estimation.set[,c("pharse.id","suggestion.id","hs.code.6","probability","relevant")]))}
+  if(return.result){return(unique(estimation.set[,c("phrase.id","suggestion.id","hs.code.6","probability","relevant")]))}
   
   print("Classify results function run until the end.")
 }
