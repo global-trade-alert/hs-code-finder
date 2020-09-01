@@ -551,7 +551,7 @@ server <- function(input, output, session) {
       
       ## It feels like this query is longer than it needs to be but I can't put my finger on it. 
       
-      next.phrase=sample(gta_sql_get_value(paste0( "SELECT jp.phrase_id
+      next.phrase=as.numeric(sample(as.character(gta_sql_get_value(paste0( "SELECT jp.phrase_id
                                                     FROM hs_job_log AS jl
                                                       	JOIN (
                                                       		SELECT *
@@ -581,7 +581,7 @@ server <- function(input, output, session) {
                                                       	WHERE user_id = ",user$id,"
                                                       )
                                                   ORDER BY is_priority DESC, phrases_remaining ASC, count_column DESC
-                                                  LIMIT 10")),1)
+                                                  LIMIT 10"))),1))
       
       # THIS IS A DUMMY QUERY THAT SHOWS THE ESSENCE OF THE UPDATE which accounts for COUNT()=NA      
       # query2=paste0("SELECT phrase_id
