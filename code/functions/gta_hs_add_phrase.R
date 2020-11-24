@@ -22,6 +22,14 @@ gta_hs_add_phrase<- function(add.job.id=NULL,
   # load_all(source.data)
   
   phrase.log <- change_encoding(gta_sql_load_table("phrase_log"))
+  
+  # Filter out adjusted phrases from phrase log table, to prevent adding an adjusted phrase to a new job id
+  phrase.log <- subset(phrase.log, source != "adjusted")
+  
+  # Trim whitespace at the end and beginning of phrase log and phrase to import
+  phrase.log$phrase <- trimws(phrase.log$phrase, which="both")
+  phrase.to.add <- trimws(phrase.to.add, which = "both")
+  
   phrase.log <<- phrase.log
   code.suggested <- change_encoding(gta_sql_load_table("code_suggested"))
   code.suggested <<- code.suggested
