@@ -3,6 +3,16 @@ gta_hs_estimate_classifier<- function(agreed.refusal.threshold=.2,
                                       train.share=.8,
                                       relevance.threshold=.5,
                                       path.to.cloud=NULL){
+  
+  
+  database <<- "ricardomain"
+  
+  gta_sql_pool_open(db.title=database,
+                    db.host = gta_pwd(database)$host,
+                    db.name = gta_pwd(database)$name,
+                    db.user = gta_pwd(database)$user,
+                    db.password = gta_pwd(database)$password,
+                    table.prefix = "hs_")
  
   if(is.null(path.to.cloud)==F){
     setwd(path.to.cloud)
